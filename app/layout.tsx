@@ -31,6 +31,10 @@ export const metadata: Metadata = {
   },
   description:
     "Sello discográfico independiente desde 2016 en María La Baja, Bolívar. Trap, afrobeat, reggaeton y dancehall con raíces afrocolombianas.",
+  icons: {
+    icon: [{ url: "/logosodi.jpeg", type: "image/jpeg" }],
+    apple: "/logosodi.jpeg",
+  },
 };
 
 export default function RootLayout({

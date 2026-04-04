@@ -3,19 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import {
-  addMonths,
-  eachDayOfInterval,
-  endOfMonth,
-  endOfWeek,
-  format,
-  isSameMonth,
-  parseISO,
-  startOfMonth,
-  startOfWeek,
-  subMonths,
-} from "date-fns";
-import { es } from "date-fns/locale";
+import { eachDayOfInterval, endOfMonth, endOfWeek, startOfMonth, startOfWeek } from "date-fns";
 import { CalendarClock, ChevronLeft, ChevronRight, Lock, LockOpen } from "lucide-react";
 import { adminBlockDate, adminUnblockDate } from "@/app/actions/admin-actions";
 import { Button } from "@/components/ui/button";
@@ -28,6 +16,12 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { SERVICE_TYPE_LABELS, TIME_SLOT_LABELS } from "@/lib/constants";
+import {
+  DEFAULT_CALENDAR_TIMEZONE,
+  formatCalendarDayKey,
+  instantToCalendarDateKey,
+  shiftCalendarMonthYm,
+} from "@/lib/calendar-date-key";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -108,11 +102,14 @@ export function AdminCalendarView({
   days,
   sessions,
   blocked,
+  calendarTimeZone = DEFAULT_CALENDAR_TIMEZONE,
 }: {
   month: string;
   days: CalendarDayData[];
   sessions: SessionBrief[];
   blocked: BlockedRow[];
+  /** Misma zona que CALENDAR_TZ en el backend (días del calendario del estudio). */
+  calendarTimeZone?: string;
 }) {
   const router = useRouter();
   const [detailOpen, setDetailOpen] = useState(false);
@@ -121,17 +118,18 @@ export function AdminCalendarView({
   const [pending, setPending] = useState(false);
   const [pendingId, setPendingId] = useState<string | null>(null);
 
-  const monthDate = parseISO(`${month}-01`);
-  const prevMonth = format(subMonths(monthDate, 1), "yyyy-MM");
-  const nextMonth = format(addMonths(monthDate, 1), "yyyy-MM");
+  const tz = calendarTimeZone;
+  const prevMonth = shiftCalendarMonthYm(month, -1);
+  const nextMonth = shiftCalendarMonthYm(month, 1);
+  const monthAnchorUtc = new Date(`${month}-01T12:00:00.000Z`);
 
   const dayMap = useMemo(() => new Map(days.map((d) => [d.date, d])), [days]);
 
   const gridDays = useMemo(() => {
-    const start = startOfWeek(startOfMonth(monthDate), { weekStartsOn: 1 });
-    const end = endOfWeek(endOfMonth(monthDate), { weekStartsOn: 1 });
+    const start = startOfWeek(startOfMonth(monthAnchorUtc), { weekStartsOn: 1 });
+    const end = endOfWeek(endOfMonth(monthAnchorUtc), { weekStartsOn: 1 });
     return eachDayOfInterval({ start, end });
-  }, [monthDate]);
+  }, [monthAnchorUtc]);
 
   const stats = useMemo(() => {
     let pendingSlots = 0;
@@ -241,7 +239,7 @@ export function AdminCalendarView({
             </Link>
           </Button>
           <span className="min-w-[10rem] text-center font-display text-lg capitalize text-foreground">
-            {format(monthDate, "MMMM yyyy", { locale: es })}
+            {formatCalendarDayKey(`${month}-15`, tz, { month: "long", year: "numeric" }, "es")}
           </span>
           <Button variant="outline" size="icon" asChild className="shrink-0 border-white/10 bg-black/20">
             <Link href={`/admin/dashboard/calendar?month=${nextMonth}`} aria-label="Mes siguiente">
@@ -249,7 +247,9 @@ export function AdminCalendarView({
             </Link>
           </Button>
           <Button variant="secondary" asChild className="ml-2 hidden sm:inline-flex">
-            <Link href={`/admin/dashboard/calendar?month=${format(new Date(), "yyyy-MM")}`}>Hoy</Link>
+            <Link href={`/admin/dashboard/calendar?month=${instantToCalendarDateKey(new Date(), tz).slice(0, 7)}`}>
+              Hoy
+            </Link>
           </Button>
         </div>
       </div>
@@ -298,10 +298,10 @@ export function AdminCalendarView({
             </div>
           ))}
           {gridDays.map((cell) => {
-            const key = format(cell, "yyyy-MM-dd");
+            const key = instantToCalendarDateKey(cell, tz);
             const d = dayMap.get(key);
-            const inMonth = isSameMonth(cell, monthDate);
-            const isToday = key === format(new Date(), "yyyy-MM-dd");
+            const inMonth = key.startsWith(`${month}-`);
+            const isToday = key === instantToCalendarDateKey(new Date(), tz);
             const daySessions = inMonth ? sessionsForDay(key) : [];
             const daySummaryTitle = daySessions
               .map((s) => `${s.artistName} · ${TIME_SLOT_LABELS[s.timeSlot] ?? s.timeSlot} · ${sessionStatusEs(s.status)}`)
@@ -333,7 +333,7 @@ export function AdminCalendarView({
                       isToday && "font-semibold text-primary",
                     )}
                   >
-                    {format(cell, "d")}
+                    {Number(key.slice(8, 10))}
                   </span>
                   {d?.blocked ? <Lock className="h-3.5 w-3.5 shrink-0 text-zinc-400" aria-hidden /> : null}
                 </div>
@@ -386,7 +386,8 @@ export function AdminCalendarView({
                   className="rounded-lg border border-border/60 bg-black/20 px-3 py-2.5"
                 >
                   <span className="font-mono text-[11px] text-[var(--text-muted)]">
-                    {format(parseISO(s.scheduledDate), "EEE d MMM", { locale: es })} ·{" "}
+                    {formatCalendarDayKey(s.calendarDayKey, tz, { weekday: "short", day: "numeric", month: "short" }, "es")}{" "}
+                    ·{" "}
                     {TIME_SLOT_LABELS[s.timeSlot] ?? s.timeSlot}
                   </span>
                   <p className="mt-0.5 font-medium text-foreground">{s.artistName}</p>
@@ -414,7 +415,7 @@ export function AdminCalendarView({
                 >
                   <div>
                     <span className="font-medium text-foreground">
-                      {format(parseISO(`${b.dateKey}T12:00:00`), "EEEE d MMMM", { locale: es })}
+                      {formatCalendarDayKey(b.dateKey, tz, { weekday: "long", day: "numeric", month: "long" }, "es")}
                     </span>
                     <span className="ml-2 rounded border border-zinc-500/40 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-zinc-400">
                       {blockScopeLabel(b.scope)}
@@ -444,7 +445,7 @@ export function AdminCalendarView({
           <DialogHeader>
             <DialogTitle className="font-display text-xl">
               {selectedDate
-                ? format(parseISO(selectedDate), "EEEE d 'de' MMMM", { locale: es })
+                ? formatCalendarDayKey(selectedDate, tz, { weekday: "long", day: "numeric", month: "long" }, "es")
                 : "Día"}
             </DialogTitle>
           </DialogHeader>

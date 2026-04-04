@@ -37,6 +37,7 @@ export default async function AdminCalendarPage({
     );
   }
   const data = (await res.json()) as {
+    calendarTimeZone?: string;
     sessions: {
       id: string;
       scheduledDate: string;
@@ -62,6 +63,7 @@ export default async function AdminCalendarPage({
       days={days}
       sessions={data.sessions}
       blocked={data.blocked}
+      calendarTimeZone={data.calendarTimeZone ?? "America/Bogota"}
     />
   );
 }

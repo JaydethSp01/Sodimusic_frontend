@@ -58,7 +58,7 @@ export default async function HomePage() {
       "@type": "Place",
       name: "María La Baja, Bolívar, Colombia",
     },
-    genre: ["Trap", "Reggaeton", "Afrobeat", "Dancehall"],
+    genre: ["Champeta", "Trap", "Reggaeton", "Afrobeat", "Dancehall"],
     url: "https://sodimusic.com",
     sameAs: [site.social.facebook, site.social.youtube],
   };

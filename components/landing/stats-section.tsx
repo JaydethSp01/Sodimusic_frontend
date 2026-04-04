@@ -7,7 +7,7 @@ import CountUp from "react-countup";
 const items = [
   { value: 50, suffix: "+", label: "producciones" },
   { value: 9, suffix: "", label: "años activos" },
-  { value: 4, suffix: "", label: "géneros" },
+  { value: 5, suffix: "", label: "géneros" },
   { value: 3, suffix: "", label: "países" },
 ];
 

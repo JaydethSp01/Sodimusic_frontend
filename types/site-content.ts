@@ -21,6 +21,8 @@ export type SiteContent = {
     aboutEyebrow: string;
     aboutTitle: string;
     aboutBody: string;
+    /** Imagen del panel lateral «Quiénes somos» */
+    aboutImageUrl: string;
     aboutAsideCaption: string;
     genresEyebrow: string;
     genresTitle: string;

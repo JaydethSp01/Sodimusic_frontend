@@ -341,6 +341,12 @@ export function SiteConfigEditor({
           <Field label="Quiénes somos — texto">
             <Textarea rows={5} value={c.home.aboutBody} onChange={(e) => setC((p) => ({ ...p, home: { ...p.home, aboutBody: e.target.value } }))} />
           </Field>
+          <Field label="Quiénes somos — imagen lateral (URL o /uploads/...)">
+            <Input
+              value={c.home.aboutImageUrl}
+              onChange={(e) => setC((p) => ({ ...p, home: { ...p.home, aboutImageUrl: e.target.value } }))}
+            />
+          </Field>
           <Field label="Leyenda caja lateral">
             <Input
               value={c.home.aboutAsideCaption}

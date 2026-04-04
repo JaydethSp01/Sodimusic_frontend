@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Script from "next/script";
 import Link from "next/link";
 import { HeroSection } from "@/components/landing/hero-section";
@@ -71,16 +72,21 @@ export default async function HomePage() {
             </p>
             <StatsSection />
           </div>
-          <div
-            className="relative min-h-[280px] overflow-hidden rounded-lg border border-border bg-background-card"
-            aria-hidden
-          >
-            <div className="hero-gradient absolute inset-0 opacity-40" />
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
-            <p className="absolute bottom-6 left-6 right-6 font-mono text-xs text-[var(--text-muted)]">
+          <figure className="relative min-h-[280px] overflow-hidden rounded-lg border border-border bg-background-card">
+            <Image
+              src={site.home.aboutImageUrl}
+              alt=""
+              fill
+              className="object-cover"
+              sizes="(max-width: 1024px) 100vw, 38vw"
+              priority={false}
+            />
+            <div className="hero-gradient pointer-events-none absolute inset-0 opacity-35" />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
+            <figcaption className="absolute bottom-6 left-6 right-6 font-mono text-xs text-[var(--text-muted)]">
               {site.home.aboutAsideCaption}
-            </p>
-          </div>
+            </figcaption>
+          </figure>
         </div>
       </section>
 

@@ -52,11 +52,22 @@ const config: Config = {
           "50%": { backgroundPosition: "100% 50%" },
           "100%": { backgroundPosition: "0% 50%" },
         },
+        loginBlob: {
+          "0%, 100%": { transform: "translate(0, 0) scale(1)" },
+          "40%": { transform: "translate(4%, 6%) scale(1.06)" },
+          "70%": { transform: "translate(-3%, 3%) scale(0.97)" },
+        },
+        loginFadeIn: {
+          from: { opacity: "0", transform: "translateY(10px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "hero-gradient": "gradientShift 12s ease infinite",
+        "login-blob": "loginBlob 20s ease-in-out infinite",
+        "login-fade-in": "loginFadeIn 0.5s ease-out forwards",
       },
     },
   },

@@ -24,7 +24,7 @@ test.describe("UAT automatizado — panel admin", () => {
 
   test("login y panel principal", async ({ page }) => {
     await login(page);
-    await expect(page.getByRole("heading", { name: /^panel$/i })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("heading", { level: 1, name: /^panel$/i })).toBeVisible({ timeout: 15_000 });
   });
 
   test("beats: tabla y crear", async ({ page }) => {

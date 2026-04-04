@@ -31,14 +31,18 @@ export type DashboardStatsPayload = {
   sessionsByStatus: { status: string; count: number }[];
 };
 
-const CHART_BAR_MAX_PX = 104;
+const CHART_BAR_MAX_PX = 108;
+const CHART_COL_WIDTH_PX = 36;
 
 function MiniBarChart({
   data,
   accentClass,
+  zeroClass = "bg-zinc-500/35",
 }: {
   data: { date: string; count: number }[];
   accentClass: string;
+  /** Clase para días con count 0 (debe contrastar con el fondo). */
+  zeroClass?: string;
 }) {
   if (data.length === 0) {
     return (
@@ -49,37 +53,51 @@ function MiniBarChart({
   }
 
   const max = Math.max(1, ...data.map((d) => d.count));
+  const minWidthPx = data.length * CHART_COL_WIDTH_PX + (data.length - 1) * 6;
 
   return (
     <div className="pt-2">
-      <div className="flex h-[112px] items-end gap-1 border-b border-white/5 pb-0.5">
-        {data.map((d) => {
-          const barPx =
-            d.count === 0 ? 3 : Math.max(6, Math.round((d.count / max) * CHART_BAR_MAX_PX));
-          return (
-            <div
-              key={d.date}
-              className="group relative flex min-w-0 flex-1 flex-col justify-end"
-              title={`${d.date}: ${d.count}`}
-            >
+      <div className="-mx-1 overflow-x-auto px-1 pb-1">
+        <div
+          className="flex h-[120px] items-end gap-1.5 border-b border-white/10 pb-1"
+          style={{ minWidth: minWidthPx }}
+        >
+          {data.map((d) => {
+            const barPx =
+              d.count === 0 ? 5 : Math.max(10, Math.round((d.count / max) * CHART_BAR_MAX_PX));
+            return (
               <div
-                className={`w-full rounded-t transition-all duration-300 group-hover:brightness-110 ${accentClass}`}
-                style={{
-                  height: barPx,
-                  minHeight: 3,
-                  opacity: d.count ? 0.9 : 0.25,
-                }}
-              />
-            </div>
-          );
-        })}
+                key={d.date}
+                className="flex shrink-0 flex-col items-center justify-end"
+                style={{ width: CHART_COL_WIDTH_PX }}
+                title={`${d.date}: ${d.count}`}
+              >
+                {d.count > 0 ? (
+                  <span className="mb-0.5 font-mono text-[10px] font-medium text-primary">{d.count}</span>
+                ) : (
+                  <span className="mb-0.5 h-3" aria-hidden />
+                )}
+                <div
+                  className={`w-full rounded-t transition-all duration-300 ${d.count > 0 ? accentClass : zeroClass}`}
+                  style={{ height: `${barPx}px`, minHeight: d.count > 0 ? 10 : 5 }}
+                />
+              </div>
+            );
+          })}
+        </div>
       </div>
-      <div className="mt-1.5 flex gap-1">
-        {data.map((d) => (
-          <div key={`${d.date}-lbl`} className="min-w-0 flex-1 truncate text-center font-mono text-[9px] text-[var(--text-muted)]">
-            {d.date.slice(8)}
-          </div>
-        ))}
+      <div className="mt-1.5 overflow-x-auto">
+        <div className="flex gap-1.5" style={{ minWidth: minWidthPx }}>
+          {data.map((d) => (
+            <div
+              key={`${d.date}-lbl`}
+              className="shrink-0 text-center font-mono text-[9px] text-[var(--text-muted)]"
+              style={{ width: CHART_COL_WIDTH_PX }}
+            >
+              {d.date.slice(8)}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -184,7 +202,7 @@ export function AdminDashboardInsights({ data }: { data: DashboardStatsPayload }
               <CardTitle className="text-base font-normal">Vistas por día (14 días)</CardTitle>
             </CardHeader>
             <CardContent>
-              <MiniBarChart data={data.pageViewsByDay} accentClass="bg-primary/50" />
+              <MiniBarChart data={data.pageViewsByDay} accentClass="bg-primary shadow-[0_0_12px_rgba(255,107,0,0.25)]" />
             </CardContent>
           </Card>
         </motion.div>
@@ -198,7 +216,11 @@ export function AdminDashboardInsights({ data }: { data: DashboardStatsPayload }
               <CardTitle className="text-base font-normal">Sesiones nuevas por día</CardTitle>
             </CardHeader>
             <CardContent>
-              <MiniBarChart data={data.sessionsCreatedByDay} accentClass="bg-[var(--gold)]/45" />
+              <MiniBarChart
+                data={data.sessionsCreatedByDay}
+                accentClass="bg-[#d4a017] shadow-[0_0_10px_rgba(212,160,23,0.2)]"
+                zeroClass="bg-zinc-500/40"
+              />
             </CardContent>
           </Card>
         </motion.div>

@@ -1,0 +1,140 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #080808;
+  --background-secondary: #111111;
+  --background-card: #161616;
+  --background-elevated: #1e1e1e;
+
+  --primary: #ff6b00;
+  --primary-hover: #ff8c33;
+  --primary-muted: rgba(255, 107, 0, 0.15);
+
+  --gold: #d4a017;
+  --gold-muted: rgba(212, 160, 23, 0.15);
+
+  --text-primary: #f0ede8;
+  --text-secondary: #a09890;
+  --text-muted: #5a5550;
+
+  --border: rgba(255, 107, 0, 0.12);
+  --border-hover: rgba(255, 107, 0, 0.35);
+
+  --radius: 4px;
+  --radius-lg: 8px;
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-body antialiased text-foreground;
+    background: radial-gradient(ellipse at top left, #1a0a00 0%, #080808 50%, #000d1a 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.4;
+  }
+
+  h1,
+  h2 {
+    @apply font-display;
+  }
+
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  summary:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .glass-card {
+    background: linear-gradient(180deg, rgba(30, 30, 30, 0.8) 0%, rgba(17, 17, 17, 0.92) 100%);
+    backdrop-filter: blur(6px);
+  }
+
+  .brand-glow {
+    box-shadow: 0 0 0 1px rgba(255, 107, 0, 0.2), 0 8px 32px rgba(255, 107, 0, 0.14);
+  }
+
+  .hero-gradient {
+    background: linear-gradient(-45deg, #0d0000, #1a0800, #000d0a, #00040d);
+    background-size: 400% 400%;
+    animation: gradientShift 12s ease infinite;
+  }
+
+  .nav-link-underline {
+    @apply relative inline-block;
+  }
+
+  .nav-link-underline::after {
+    content: "";
+    @apply pointer-events-none absolute bottom-0 left-0 h-px w-full origin-left scale-x-0 bg-primary transition-transform duration-300;
+  }
+
+  .nav-link-underline:hover::after,
+  .nav-link-underline:focus-visible::after {
+    @apply scale-x-100;
+  }
+
+  .booking-calendar.rdp-root {
+    --rdp-accent-color: var(--primary);
+    --rdp-accent-background-color: rgba(255, 107, 0, 0.18);
+    --rdp-disabled-opacity: 0.3;
+  }
+
+  .booking-calendar .rdp-day_button:not([disabled]):not([aria-selected="true"]):hover {
+    background-color: rgba(255, 107, 0, 0.2);
+  }
+}

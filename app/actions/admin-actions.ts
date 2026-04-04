@@ -51,16 +51,22 @@ export async function deleteBookingSession(id: string): Promise<{ ok: boolean; e
 export async function adminBlockDate(
   date: string,
   reason?: string,
+  scope: "DAY" | "morning" | "afternoon" | "night" = "DAY",
 ): Promise<{ ok: boolean; error?: string }> {
   const res = await fetchAdmin("/api/admin/blocked-dates", {
     method: "POST",
-    body: JSON.stringify({ date, reason: reason?.trim() || undefined }),
+    body: JSON.stringify({
+      date,
+      reason: reason?.trim() || undefined,
+      scope,
+    }),
   });
   if (!res.ok) {
     const err = (await res.json().catch(() => ({}))) as { error?: string };
     return { ok: false, error: err.error ?? "No se pudo bloquear el día" };
   }
   revalidatePath("/admin/dashboard/calendar");
+  revalidatePath("/booking");
   return { ok: true };
 }
 
@@ -71,6 +77,7 @@ export async function adminUnblockDate(id: string): Promise<{ ok: boolean; error
     return { ok: false, error: err.error ?? "No se pudo desbloquear" };
   }
   revalidatePath("/admin/dashboard/calendar");
+  revalidatePath("/booking");
   return { ok: true };
 }
 

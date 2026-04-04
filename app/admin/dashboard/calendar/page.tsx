@@ -28,7 +28,7 @@ export default async function AdminCalendarPage({
       status: string;
       serviceType: string;
     }[];
-    blocked: { id: string; date: string; reason: string | null }[];
+    blocked: { id: string; dateKey: string; scope: string; reason: string | null }[];
     days?: {
       date: string;
       blocked: boolean;

@@ -156,13 +156,15 @@ export function BookingWizard({ booking }: { booking: BookingConfig }) {
       if (!r.ok) {
         return;
       }
-      const data = (await r.json()) as { items: { date: string }[] };
+      const data = (await r.json()) as { items: { dateKey: string; scope: string }[] };
       if (cancelled) {
         return;
       }
       const set = new Set<string>();
       for (const row of data.items) {
-        set.add(format(new Date(row.date), "yyyy-MM-dd"));
+        if (row.scope === "DAY") {
+          set.add(row.dateKey);
+        }
       }
       setBlocked(set);
     })();

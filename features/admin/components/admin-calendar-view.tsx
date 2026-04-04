@@ -48,7 +48,12 @@ type SessionBrief = {
   serviceType: string;
 };
 
-type BlockedRow = { id: string; date: string; reason: string | null };
+type BlockedRow = { id: string; dateKey: string; scope: string; reason: string | null };
+
+function blockScopeLabel(scope: string): string {
+  if (scope === "DAY") return "Día completo";
+  return TIME_SLOT_LABELS[scope] ?? scope;
+}
 
 const SLOTS: ("morning" | "afternoon" | "night")[] = ["morning", "afternoon", "night"];
 
@@ -98,6 +103,7 @@ export function AdminCalendarView({
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [blockReason, setBlockReason] = useState("");
   const [pending, setPending] = useState(false);
+  const [pendingId, setPendingId] = useState<string | null>(null);
 
   const monthDate = parseISO(`${month}-01`);
   const prevMonth = format(subMonths(monthDate, 1), "yyyy-MM");
@@ -129,9 +135,14 @@ export function AdminCalendarView({
   }, [days, sessions.length]);
 
   const selectedDay = selectedDate ? dayMap.get(selectedDate) : undefined;
-  const selectedBlocked = selectedDate
-    ? blocked.find((b) => format(parseISO(b.date), "yyyy-MM-dd") === selectedDate)
+  const selectedDayFullBlock = selectedDate
+    ? blocked.find((b) => b.dateKey === selectedDate && b.scope === "DAY")
     : undefined;
+
+  function blockRowForSlot(slot: string) {
+    if (!selectedDate) return undefined;
+    return blocked.find((b) => b.dateKey === selectedDate && b.scope === slot);
+  }
 
   function sessionsForSlot(dateStr: string, slot: string) {
     return sessions.filter((s) => {
@@ -140,28 +151,32 @@ export function AdminCalendarView({
     });
   }
 
-  async function onUnblock() {
-    if (!selectedBlocked) return;
-    setPending(true);
+  async function onUnblockById(id: string, message: string) {
+    setPendingId(id);
     try {
-      const r = await adminUnblockDate(selectedBlocked.id);
+      const r = await adminUnblockDate(id);
       if (!r.ok) {
         toast.error(r.error ?? "Error");
         return;
       }
-      toast.success("Día desbloqueado");
+      toast.success(message);
       setDetailOpen(false);
       router.refresh();
     } finally {
-      setPending(false);
+      setPendingId(null);
     }
+  }
+
+  async function onUnblockDay() {
+    if (!selectedDayFullBlock) return;
+    await onUnblockById(selectedDayFullBlock.id, "Día desbloqueado");
   }
 
   async function onBlockDay() {
     if (!selectedDate) return;
     setPending(true);
     try {
-      const r = await adminBlockDate(selectedDate, blockReason || undefined);
+      const r = await adminBlockDate(selectedDate, blockReason || undefined, "DAY");
       if (!r.ok) {
         toast.error(r.error ?? "Error");
         return;
@@ -169,6 +184,23 @@ export function AdminCalendarView({
       toast.success("Día bloqueado (todas las franjas)");
       setBlockReason("");
       setDetailOpen(false);
+      router.refresh();
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function onBlockSlot(sl: "morning" | "afternoon" | "night") {
+    if (!selectedDate) return;
+    setPending(true);
+    try {
+      const r = await adminBlockDate(selectedDate, blockReason || undefined, sl);
+      if (!r.ok) {
+        toast.error(r.error ?? "Error");
+        return;
+      }
+      toast.success("Franja bloqueada");
+      setBlockReason("");
       router.refresh();
     } finally {
       setPending(false);
@@ -327,15 +359,39 @@ export function AdminCalendarView({
           </ul>
         </div>
         <div className="rounded-xl border border-border bg-background-card/50 p-5">
-          <h2 className="font-body text-base font-semibold text-foreground">Días bloqueados</h2>
+          <h2 className="font-body text-base font-semibold text-foreground">Bloqueos del mes</h2>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">
+            Día completo o franjas sueltas; se guardan en base de datos y afectan el booking público.
+          </p>
           <ul className="mt-4 space-y-2 text-sm">
             {blocked.length === 0 ? (
-              <li className="text-[var(--text-muted)]">Ningún día bloqueado en este mes.</li>
+              <li className="text-[var(--text-muted)]">No hay bloqueos en este mes.</li>
             ) : (
               blocked.map((b) => (
-                <li key={b.id} className="rounded-lg border border-zinc-600/30 bg-zinc-950/40 px-3 py-2">
-                  {format(parseISO(b.date), "EEEE d MMMM", { locale: es })}
-                  {b.reason ? <span className="block text-xs text-[var(--text-muted)]">{b.reason}</span> : null}
+                <li
+                  key={b.id}
+                  className="flex flex-col gap-2 rounded-lg border border-zinc-600/30 bg-zinc-950/40 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div>
+                    <span className="font-medium text-foreground">
+                      {format(parseISO(`${b.dateKey}T12:00:00`), "EEEE d MMMM", { locale: es })}
+                    </span>
+                    <span className="ml-2 rounded border border-zinc-500/40 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-zinc-400">
+                      {blockScopeLabel(b.scope)}
+                    </span>
+                    {b.reason ? <span className="mt-1 block text-xs text-[var(--text-muted)]">{b.reason}</span> : null}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 border-zinc-500/50"
+                    disabled={pendingId === b.id}
+                    onClick={() => void onUnblockById(b.id, "Bloqueo eliminado")}
+                  >
+                    <LockOpen className="mr-1 h-3.5 w-3.5" />
+                    Desbloquear
+                  </Button>
                 </li>
               ))
             )}
@@ -355,16 +411,21 @@ export function AdminCalendarView({
 
           {selectedDate && selectedDay ? (
             <div className="space-y-5 text-sm">
-              {selectedDay.blocked && selectedBlocked ? (
+              {selectedDay.blocked && selectedDayFullBlock ? (
                 <div className="space-y-3 rounded-lg border border-zinc-600/40 bg-zinc-950/50 p-4">
                   <p className="flex items-center gap-2 text-[var(--text-secondary)]">
                     <Lock className="h-4 w-4 text-zinc-400" />
-                    Este día está bloqueado para reservas públicas.
+                    Este día está bloqueado por completo para reservas públicas.
                   </p>
-                  {selectedBlocked.reason ? (
-                    <p className="text-xs text-[var(--text-muted)]">Motivo: {selectedBlocked.reason}</p>
+                  {selectedDayFullBlock.reason ? (
+                    <p className="text-xs text-[var(--text-muted)]">Motivo: {selectedDayFullBlock.reason}</p>
                   ) : null}
-                  <Button type="button" variant="outline" disabled={pending} onClick={() => void onUnblock()}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={pending || pendingId !== null}
+                    onClick={() => void onUnblockDay()}
+                  >
                     <LockOpen className="h-4 w-4" />
                     Desbloquear día
                   </Button>
@@ -375,9 +436,10 @@ export function AdminCalendarView({
                     {SLOTS.map((sl) => {
                       const st = selectedDay.slots[sl];
                       const list = sessionsForSlot(selectedDate, sl);
+                      const slotBlock = blockRowForSlot(sl);
                       return (
                         <div key={sl} className="rounded-lg border border-white/10 bg-black/30 p-3">
-                          <div className="flex items-center justify-between gap-2">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
                             <span className="font-medium text-foreground">{TIME_SLOT_LABELS[sl] ?? sl}</span>
                             <span
                               className={cn(
@@ -385,6 +447,7 @@ export function AdminCalendarView({
                                 st === "FREE" && "border-emerald-500/30 text-emerald-300",
                                 st === "PENDING" && "border-amber-500/35 text-amber-300",
                                 st === "CONFIRMED" && "border-primary/35 text-primary",
+                                st === "BLOCKED" && "border-zinc-500/40 text-zinc-300",
                               )}
                             >
                               {slotLabel(st)}
@@ -402,13 +465,43 @@ export function AdminCalendarView({
                           ) : (
                             <p className="mt-1 text-xs text-[var(--text-muted)]">Sin sesión en esta franja.</p>
                           )}
+                          {st === "FREE" ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="mt-3 w-full border-zinc-500/40 sm:w-auto"
+                              disabled={pending}
+                              onClick={() => void onBlockSlot(sl)}
+                            >
+                              <Lock className="mr-1 h-3.5 w-3.5" />
+                              Bloquear esta franja
+                            </Button>
+                          ) : null}
+                          {st === "BLOCKED" && slotBlock ? (
+                            <div className="mt-3 space-y-1">
+                              {slotBlock.reason ? (
+                                <p className="text-xs text-[var(--text-muted)]">Motivo: {slotBlock.reason}</p>
+                              ) : null}
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={pending || pendingId !== null}
+                                onClick={() => void onUnblockById(slotBlock.id, "Franja desbloqueada")}
+                              >
+                                <LockOpen className="mr-1 h-3.5 w-3.5" />
+                                Desbloquear franja
+                              </Button>
+                            </div>
+                          ) : null}
                         </div>
                       );
                     })}
                   </div>
 
                   <div className="space-y-2 border-t border-white/10 pt-4">
-                    <Label htmlFor="block-reason">Bloquear todo el día (opcional: motivo)</Label>
+                    <Label htmlFor="block-reason">Motivo opcional (aplica a bloqueos que hagas abajo)</Label>
                     <Textarea
                       id="block-reason"
                       value={blockReason}

@@ -31,6 +31,8 @@ export type DashboardStatsPayload = {
   sessionsByStatus: { status: string; count: number }[];
 };
 
+const CHART_BAR_MAX_PX = 104;
+
 function MiniBarChart({
   data,
   accentClass,
@@ -38,27 +40,47 @@ function MiniBarChart({
   data: { date: string; count: number }[];
   accentClass: string;
 }) {
+  if (data.length === 0) {
+    return (
+      <p className="py-8 text-center text-sm text-[var(--text-muted)]">
+        Sin serie diaria (actualiza el backend o recarga tras desplegar).
+      </p>
+    );
+  }
+
   const max = Math.max(1, ...data.map((d) => d.count));
+
   return (
-    <div className="flex h-40 items-end gap-1 pt-2">
-      {data.map((d) => {
-        const h = Math.round((d.count / max) * 100);
-        return (
-          <div
-            key={d.date}
-            className="group relative flex min-w-0 flex-1 flex-col justify-end"
-            title={`${d.date}: ${d.count}`}
-          >
+    <div className="pt-2">
+      <div className="flex h-[112px] items-end gap-1 border-b border-white/5 pb-0.5">
+        {data.map((d) => {
+          const barPx =
+            d.count === 0 ? 3 : Math.max(6, Math.round((d.count / max) * CHART_BAR_MAX_PX));
+          return (
             <div
-              className={`w-full min-h-[3px] rounded-t transition-all duration-300 group-hover:opacity-100 ${accentClass}`}
-              style={{ height: `${Math.max(h, d.count > 0 ? 8 : 3)}%`, opacity: d.count ? 0.85 : 0.2 }}
-            />
-            <span className="mt-1.5 block truncate text-center font-mono text-[9px] uppercase tracking-tighter text-[var(--text-muted)]">
-              {d.date.slice(8)}
-            </span>
+              key={d.date}
+              className="group relative flex min-w-0 flex-1 flex-col justify-end"
+              title={`${d.date}: ${d.count}`}
+            >
+              <div
+                className={`w-full rounded-t transition-all duration-300 group-hover:brightness-110 ${accentClass}`}
+                style={{
+                  height: barPx,
+                  minHeight: 3,
+                  opacity: d.count ? 0.9 : 0.25,
+                }}
+              />
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-1.5 flex gap-1">
+        {data.map((d) => (
+          <div key={`${d.date}-lbl`} className="min-w-0 flex-1 truncate text-center font-mono text-[9px] text-[var(--text-muted)]">
+            {d.date.slice(8)}
           </div>
-        );
-      })}
+        ))}
+      </div>
     </div>
   );
 }

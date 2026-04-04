@@ -30,6 +30,7 @@ const SERVICE_KEYS = [
   "BEAT_PRODUCTION",
   "COPRODUCTION",
   "MIX_MASTER",
+  "AUDIOVISUAL_PRODUCTION",
   "CONSULTING",
 ] as const satisfies readonly (keyof typeof SERVICE_TYPE_LABELS)[];
 

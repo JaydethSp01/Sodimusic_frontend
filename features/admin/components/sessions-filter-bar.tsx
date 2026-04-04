@@ -17,6 +17,7 @@ const SERVICES = [
   { value: "all", label: "Todos los servicios" },
   { value: "VOCAL_RECORDING", label: "Grabación vocal" },
   { value: "BEAT_PRODUCTION", label: "Beat" },
+  { value: "AUDIOVISUAL_PRODUCTION", label: "Audiovisual / video" },
   { value: "COPRODUCTION", label: "Coproducción" },
   { value: "MIX_MASTER", label: "Mix / master" },
   { value: "CONSULTING", label: "Consultoría" },

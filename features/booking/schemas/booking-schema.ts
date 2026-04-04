@@ -24,7 +24,16 @@ export const timeSlotSchema = z.enum(["morning", "afternoon", "night"]);
 
 export const bookingFullSchema = z.object({
   serviceTypes: z
-    .array(z.enum(["VOCAL_RECORDING", "BEAT_PRODUCTION", "COPRODUCTION", "MIX_MASTER", "CONSULTING"]))
+    .array(
+      z.enum([
+        "VOCAL_RECORDING",
+        "BEAT_PRODUCTION",
+        "COPRODUCTION",
+        "MIX_MASTER",
+        "AUDIOVISUAL_PRODUCTION",
+        "CONSULTING",
+      ]),
+    )
     .min(1, "Selecciona al menos un servicio"),
   artisticName: z.string().min(1, "Nombre artístico obligatorio"),
   fullName: z.string().min(2, "Nombre completo obligatorio"),

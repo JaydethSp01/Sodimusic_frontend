@@ -3,6 +3,7 @@ export type ServiceType =
   | "BEAT_PRODUCTION"
   | "COPRODUCTION"
   | "MIX_MASTER"
+  | "AUDIOVISUAL_PRODUCTION"
   | "CONSULTING";
 
 export type SessionStatus = "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED";

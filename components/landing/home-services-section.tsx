@@ -10,6 +10,11 @@ const services = [
   { icon: "🎹", title: "Beat personalizado", desc: "JeiVy produce un beat a medida para tu proyecto." },
   { icon: "🤝", title: "Coproducción", desc: "Traes tu idea, la desarrollamos juntos." },
   { icon: "🎚️", title: "Mezcla y masterización", desc: "Tu canción al siguiente nivel." },
+  {
+    icon: "🎬",
+    title: "Producción audiovisual (video)",
+    desc: "Video clip, lyric video o piezas para redes con dirección y post producción.",
+  },
   { icon: "💬", title: "Consultoría artística", desc: "Hablamos de tu proyecto y tu sonido (30 min)." },
 ];
 

@@ -60,7 +60,7 @@ test.describe("UAT automatizado — panel admin", () => {
   test("calendario", async ({ page }) => {
     await login(page);
     await page.goto("/admin/dashboard/calendar");
-    await expect(page.getByRole("heading", { name: /calendario y disponibilidad/i })).toBeVisible({
+    await expect(page.getByRole("heading", { name: /calendario del estudio/i })).toBeVisible({
       timeout: 20_000,
     });
   });

@@ -16,7 +16,7 @@ import {
   subMonths,
 } from "date-fns";
 import { es } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Lock, LockOpen } from "lucide-react";
+import { CalendarClock, ChevronLeft, ChevronRight, Lock, LockOpen } from "lucide-react";
 import { adminBlockDate, adminUnblockDate } from "@/app/actions/admin-actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,6 +42,7 @@ export type CalendarDayData = {
 type SessionBrief = {
   id: string;
   scheduledDate: string;
+  calendarDayKey: string;
   timeSlot: string;
   artistName: string;
   status: string;
@@ -79,11 +80,26 @@ function slotLabel(s: SlotState): string {
     case "BLOCKED":
       return "Bloqueado";
     case "PENDING":
-      return "Pendiente";
+      return "Agendada";
     case "CONFIRMED":
       return "Confirmada";
     default:
       return s;
+  }
+}
+
+function slotDetailLabel(s: SlotState): string {
+  switch (s) {
+    case "PENDING":
+      return "Sesión agendada · pendiente de confirmar";
+    case "CONFIRMED":
+      return "Sesión agendada · confirmada";
+    case "BLOCKED":
+      return "Franja bloqueada (no disponible para reservas)";
+    case "FREE":
+      return "Sin sesión en esta franja";
+    default:
+      return slotLabel(s);
   }
 }
 
@@ -145,10 +161,11 @@ export function AdminCalendarView({
   }
 
   function sessionsForSlot(dateStr: string, slot: string) {
-    return sessions.filter((s) => {
-      const d = format(parseISO(s.scheduledDate), "yyyy-MM-dd");
-      return d === dateStr && s.timeSlot === slot;
-    });
+    return sessions.filter((s) => s.calendarDayKey === dateStr && s.timeSlot === slot);
+  }
+
+  function sessionsForDay(dateStr: string) {
+    return sessions.filter((s) => s.calendarDayKey === dateStr);
   }
 
   async function onUnblockById(id: string, message: string) {
@@ -213,8 +230,8 @@ export function AdminCalendarView({
         <div>
           <h1 className="font-display text-3xl tracking-wide text-foreground">Calendario del estudio</h1>
           <p className="mt-1 max-w-2xl text-sm text-[var(--text-secondary)]">
-            Vista mensual: cada casilla es un día. La barra de color resume mañana, tarde y noche. Toca un día para ver
-            detalle, sesiones o bloquear/desbloquear.
+            Vista mensual: la barra indica mañana, tarde y noche. Naranja o naranja primario = sesión agendada en esa
+            franja. Debajo verás quién reservó. Toca un día para el detalle completo.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -259,10 +276,10 @@ export function AdminCalendarView({
           <span className="h-2 w-6 rounded-full bg-emerald-500/70" /> Libre
         </span>
         <span className="inline-flex items-center gap-2">
-          <span className="h-2 w-6 rounded-full bg-amber-500/80" /> Pendiente
+          <span className="h-2 w-6 rounded-full bg-amber-500/80" /> Agendada (pendiente de confirmar)
         </span>
         <span className="inline-flex items-center gap-2">
-          <span className="h-2 w-6 rounded-full bg-primary" /> Confirmada
+          <span className="h-2 w-6 rounded-full bg-primary" /> Agendada (confirmada)
         </span>
         <span className="inline-flex items-center gap-2">
           <span className="h-2 w-6 rounded-full bg-zinc-600" /> Bloqueado
@@ -285,6 +302,10 @@ export function AdminCalendarView({
             const d = dayMap.get(key);
             const inMonth = isSameMonth(cell, monthDate);
             const isToday = key === format(new Date(), "yyyy-MM-dd");
+            const daySessions = inMonth ? sessionsForDay(key) : [];
+            const daySummaryTitle = daySessions
+              .map((s) => `${s.artistName} · ${TIME_SLOT_LABELS[s.timeSlot] ?? s.timeSlot} · ${sessionStatusEs(s.status)}`)
+              .join("\n");
 
             return (
               <button
@@ -297,7 +318,7 @@ export function AdminCalendarView({
                 }}
                 disabled={!inMonth}
                 className={cn(
-                  "flex min-h-[88px] flex-col gap-1.5 rounded-xl border p-2 text-left transition-colors",
+                  "flex min-h-[96px] flex-col gap-1 rounded-xl border p-2 text-left transition-colors",
                   inMonth
                     ? "border-white/10 bg-background-card/80 hover:border-primary/35 hover:bg-background-elevated/90"
                     : "cursor-default border-transparent bg-transparent opacity-30",
@@ -317,15 +338,34 @@ export function AdminCalendarView({
                   {d?.blocked ? <Lock className="h-3.5 w-3.5 shrink-0 text-zinc-400" aria-hidden /> : null}
                 </div>
                 {d && inMonth ? (
-                  <div className="flex h-2 w-full gap-px overflow-hidden rounded-full bg-black/50" title="Mañana | Tarde | Noche">
+                  <div
+                    className="flex h-2 w-full gap-px overflow-hidden rounded-full bg-black/50"
+                    title="Mañana | Tarde | Noche — colores: libre / agendada pendiente / confirmada / bloqueado"
+                  >
                     {SLOTS.map((sl) => (
                       <div
                         key={sl}
                         className={cn("min-w-0 flex-1", slotBarClass(d.slots[sl]))}
-                        title={`${TIME_SLOT_LABELS[sl]?.split(" ")[0] ?? sl}: ${slotLabel(d.slots[sl])}`}
+                        title={`${TIME_SLOT_LABELS[sl]?.split(" ")[0] ?? sl}: ${slotDetailLabel(d.slots[sl])}`}
                       />
                     ))}
                   </div>
+                ) : null}
+                {daySessions.length > 0 ? (
+                  <p
+                    className="line-clamp-2 text-[10px] leading-snug text-[var(--text-muted)]"
+                    title={daySummaryTitle || undefined}
+                  >
+                    <CalendarClock className="mr-0.5 inline-block h-3 w-3 shrink-0 align-[-2px] text-amber-500/90" aria-hidden />
+                    {daySessions.length === 1 ? (
+                      <>
+                        <span className="text-foreground/90">{daySessions[0].artistName}</span>
+                        <span className="text-[var(--text-muted)]"> · {sessionStatusEs(daySessions[0].status)}</span>
+                      </>
+                    ) : (
+                      <span>{daySessions.length} sesiones agendadas</span>
+                    )}
+                  </p>
                 ) : null}
               </button>
             );
@@ -454,16 +494,23 @@ export function AdminCalendarView({
                             </span>
                           </div>
                           {list.length > 0 ? (
-                            <ul className="mt-2 space-y-1 text-xs text-[var(--text-secondary)]">
-                              {list.map((s) => (
-                                <li key={s.id}>
-                                  <strong className="text-foreground">{s.artistName}</strong> —{" "}
-                                  {sessionStatusEs(s.status)}
-                                </li>
-                              ))}
-                            </ul>
+                            <div className="mt-2 space-y-1.5">
+                              <p className="text-[11px] font-medium uppercase tracking-wide text-amber-400/90">
+                                Sesión agendada
+                              </p>
+                              <ul className="space-y-1 text-xs text-[var(--text-secondary)]">
+                                {list.map((s) => (
+                                  <li key={s.id} className="rounded-md border border-white/5 bg-black/20 px-2 py-1.5">
+                                    <strong className="text-foreground">{s.artistName}</strong>
+                                    <span className="block text-[10px] text-[var(--text-muted)]">
+                                      {formatServiceTypes(s.serviceType)} · {sessionStatusEs(s.status)}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
                           ) : (
-                            <p className="mt-1 text-xs text-[var(--text-muted)]">Sin sesión en esta franja.</p>
+                            <p className="mt-1 text-xs text-[var(--text-muted)]">Sin sesión agendada en esta franja.</p>
                           )}
                           {st === "FREE" ? (
                             <Button

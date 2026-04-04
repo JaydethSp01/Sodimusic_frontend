@@ -31,8 +31,8 @@ export function HeroSection({ hero }: { hero: SiteContent["hero"] }) {
         aria-hidden
       />
       <div className="pointer-events-none absolute inset-0" aria-hidden>
-        <div className="absolute -left-16 top-20 h-44 w-44 rounded-full bg-primary/20 blur-3xl md:h-72 md:w-72" />
-        <div className="absolute -right-16 bottom-24 h-40 w-40 rounded-full bg-[var(--gold-muted)] blur-3xl md:h-64 md:w-64" />
+        <div className="hero-orb hero-orb-a absolute -left-16 top-20 h-44 w-44 rounded-full bg-primary/20 blur-3xl md:h-72 md:w-72" />
+        <div className="hero-orb hero-orb-b absolute -right-16 bottom-24 h-40 w-40 rounded-full bg-[var(--gold-muted)] blur-3xl md:h-64 md:w-64" />
       </div>
 
       <motion.div

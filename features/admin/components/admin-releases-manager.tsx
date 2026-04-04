@@ -8,6 +8,15 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,6 +69,8 @@ export function AdminReleasesManager({ initialItems }: { initialItems: Release[]
   const [draft, setDraft] = useState<ReleaseDraft>(() => emptyDraft());
   const [saving, setSaving] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Release | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   const coverPreview = useMemo(() => (draft.coverUrl ? resolveMediaUrl(draft.coverUrl) : null), [draft.coverUrl]);
 
@@ -140,16 +151,21 @@ export function AdminReleasesManager({ initialItems }: { initialItems: Release[]
     }
   }
 
-  async function onDelete(row: Release) {
-    const ok = window.confirm(`¿Borrar "${row.title}"?`);
-    if (!ok) return;
-    const r = await deleteReleaseAction(row.id, row.slug);
-    if (!r.ok) {
-      toast.error(r.error ?? "Error al borrar");
-      return;
+  async function confirmDeleteRelease() {
+    if (!deleteTarget) return;
+    setDeleteBusy(true);
+    try {
+      const r = await deleteReleaseAction(deleteTarget.id, deleteTarget.slug);
+      if (!r.ok) {
+        toast.error(r.error ?? "Error al borrar");
+        return;
+      }
+      toast.success("Release borrada");
+      setDeleteTarget(null);
+      router.refresh();
+    } finally {
+      setDeleteBusy(false);
     }
-    toast.success("Release borrada");
-    router.refresh();
   }
 
   async function onUploadCover(e: ChangeEvent<HTMLInputElement>) {
@@ -172,6 +188,7 @@ export function AdminReleasesManager({ initialItems }: { initialItems: Release[]
   }
 
   return (
+    <>
     <Card>
       <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -212,7 +229,7 @@ export function AdminReleasesManager({ initialItems }: { initialItems: Release[]
                       <Button type="button" size="sm" variant="outline" onClick={() => openEdit(r)}>
                         Editar
                       </Button>
-                      <Button type="button" size="sm" variant="ghost" onClick={() => void onDelete(r)}>
+                      <Button type="button" size="sm" variant="ghost" onClick={() => setDeleteTarget(r)}>
                         Borrar
                       </Button>
                       <Button
@@ -345,6 +362,29 @@ export function AdminReleasesManager({ initialItems }: { initialItems: Release[]
         </DialogContent>
       </Dialog>
     </Card>
+
+      <AlertDialog open={deleteTarget !== null} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent className="border-white/10 bg-background-card">
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Borrar esta release?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará «{deleteTarget?.title ?? ""}» ({deleteTarget?.slug ?? ""}). Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteBusy}>Cancelar</AlertDialogCancel>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={deleteBusy}
+              onClick={() => void confirmDeleteRelease()}
+            >
+              {deleteBusy ? "Borrando…" : "Borrar"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 

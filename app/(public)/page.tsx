@@ -3,6 +3,12 @@ import Image from "next/image";
 import Script from "next/script";
 import Link from "next/link";
 import { HeroSection } from "@/components/landing/hero-section";
+import {
+  HomeFadeSection,
+  HomeFigureMotion,
+  HomeStagger,
+  HomeStaggerItem,
+} from "@/components/landing/home-page-motion";
 import { StatsSection } from "@/components/landing/stats-section";
 import { GenresGrid } from "@/components/landing/genres-grid";
 import { HomeStoryTimeline } from "@/components/landing/home-story-timeline";
@@ -28,9 +34,24 @@ function resolveAboutAsideImageUrl(configured: string): string {
 
 export async function generateMetadata(): Promise<Metadata> {
   const site = await getSiteContent();
+  const base = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://sodimusic.com").replace(/\/$/, "");
   return {
     title: site.seo.homeTitle,
     description: site.seo.homeDescription,
+    alternates: { canonical: base },
+    openGraph: {
+      type: "website",
+      locale: "es_CO",
+      url: base,
+      siteName: site.brand.logoText ?? "Sodimusic",
+      title: site.seo.homeTitle,
+      description: site.seo.homeDescription,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: site.seo.homeTitle,
+      description: site.seo.homeDescription,
+    },
   };
 }
 
@@ -71,7 +92,7 @@ export default async function HomePage() {
 
       <HeroSection hero={site.hero} />
 
-      <section className="border-b border-border px-4 py-20 lg:px-8" aria-labelledby="about-title">
+      <HomeFadeSection className="border-b border-border px-4 py-20 lg:px-8" aria-labelledby="about-title">
         <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[3fr_2fr] lg:items-center">
           <div>
             <SectionTitle eyebrow={site.home.aboutEyebrow} title={site.home.aboutTitle} />
@@ -83,7 +104,7 @@ export default async function HomePage() {
             </p>
             <StatsSection />
           </div>
-          <figure className="relative min-h-[280px] overflow-hidden rounded-lg border border-border bg-background-card">
+          <HomeFigureMotion className="relative min-h-[280px] overflow-hidden rounded-lg border border-border bg-background-card">
             <Image
               src={resolveAboutAsideImageUrl(site.home.aboutImageUrl)}
               alt=""
@@ -97,18 +118,18 @@ export default async function HomePage() {
             <figcaption className="absolute bottom-6 left-6 right-6 font-mono text-xs text-[var(--text-muted)]">
               {site.home.aboutAsideCaption}
             </figcaption>
-          </figure>
+          </HomeFigureMotion>
         </div>
-      </section>
+      </HomeFadeSection>
 
-      <section className="px-4 py-20 lg:px-8" aria-labelledby="genres-title">
+      <HomeFadeSection className="px-4 py-20 lg:px-8" aria-labelledby="genres-title">
         <div className="mx-auto max-w-7xl">
           <SectionTitle eyebrow={site.home.genresEyebrow} title={site.home.genresTitle} id="genres-title" />
           <GenresGrid />
         </div>
-      </section>
+      </HomeFadeSection>
 
-      <section className="border-t border-border px-4 py-20 lg:px-8" aria-labelledby="historia-title">
+      <HomeFadeSection className="border-t border-border px-4 py-20 lg:px-8" aria-labelledby="historia-title">
         <div className="mx-auto max-w-7xl">
           <SectionTitle eyebrow={site.home.storyEyebrow} title={site.home.storyTitle} />
           <h2 id="historia-title" className="sr-only">
@@ -116,28 +137,30 @@ export default async function HomePage() {
           </h2>
           <HomeStoryTimeline milestones={site.home.milestones} />
         </div>
-      </section>
+      </HomeFadeSection>
 
-      <section className="border-t border-border bg-background-secondary px-4 py-20 lg:px-8" aria-labelledby="feat-title">
+      <HomeFadeSection className="border-t border-border bg-background-secondary px-4 py-20 lg:px-8" aria-labelledby="feat-title">
         <div className="mx-auto max-w-7xl">
           <SectionTitle eyebrow={site.home.portfolioEyebrow} title={site.home.portfolioTitle} />
           <h2 id="feat-title" className="sr-only">
             Producciones destacadas
           </h2>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <HomeStagger className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {featured.map((p) => (
-              <ProductionCard key={p.id} production={p} />
+              <HomeStaggerItem key={p.id}>
+                <ProductionCard production={p} />
+              </HomeStaggerItem>
             ))}
-          </div>
+          </HomeStagger>
           <div className="mt-10 text-center">
             <Button asChild variant="outline">
               <Link href="/productions">{site.home.portfolioCta}</Link>
             </Button>
           </div>
         </div>
-      </section>
+      </HomeFadeSection>
 
-      <section className="px-4 py-20 lg:px-8" aria-labelledby="services-title">
+      <HomeFadeSection className="px-4 py-20 lg:px-8" aria-labelledby="services-title">
         <div className="mx-auto max-w-7xl">
           <SectionTitle
             title={site.home.servicesTitle}
@@ -149,9 +172,9 @@ export default async function HomePage() {
           </h2>
           <HomeServicesSection />
         </div>
-      </section>
+      </HomeFadeSection>
 
-      <section className="border-t border-border bg-background-secondary px-4 py-20 lg:px-8" aria-labelledby="contact-title">
+      <HomeFadeSection className="border-t border-border bg-background-secondary px-4 py-20 lg:px-8" aria-labelledby="contact-title">
         <div className="mx-auto max-w-7xl text-center">
           <h2 id="contact-title" className="font-display text-4xl text-foreground">
             {site.home.contactTitle}
@@ -162,55 +185,65 @@ export default async function HomePage() {
               {site.contact.email}
             </a>
           </p>
-          <div className="mt-10 grid grid-cols-3 justify-center gap-4 sm:flex sm:flex-wrap sm:gap-6">
-            <a
-              href={site.social.youtube}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex h-14 w-14 items-center justify-center rounded-full border border-border text-foreground transition-all hover:-translate-y-px hover:border-primary hover:text-primary"
-              aria-label="YouTube de Sodimusic"
-            >
-              <Youtube className="h-8 w-8" />
-            </a>
-            <a
-              href={site.social.instagram}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex h-14 w-14 items-center justify-center rounded-full border border-border transition-all hover:-translate-y-px hover:border-primary hover:text-primary"
-              aria-label="Instagram"
-            >
-              <Instagram className="h-8 w-8" />
-            </a>
-            <a
-              href={site.social.facebook}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex h-14 w-14 items-center justify-center rounded-full border border-border transition-all hover:-translate-y-px hover:border-primary hover:text-primary"
-              aria-label="Facebook"
-            >
-              <Facebook className="h-8 w-8" />
-            </a>
-            <a
-              href={site.social.spotify}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex h-14 w-14 items-center justify-center rounded-full border border-border transition-all hover:-translate-y-px hover:border-primary hover:text-primary"
-              aria-label="Spotify"
-            >
-              <Music2 className="h-8 w-8" />
-            </a>
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="col-span-3 flex h-14 min-w-[120px] items-center justify-center rounded-full border border-[#25D366]/50 bg-[#25D366]/10 px-4 text-sm font-medium text-[#25D366] transition hover:-translate-y-px hover:bg-[#25D366]/20 sm:col-auto"
-              aria-label="WhatsApp Sodimusic"
-            >
-              WhatsApp
-            </a>
-          </div>
+          <HomeStagger className="mt-10 grid grid-cols-3 justify-center gap-4 sm:flex sm:flex-wrap sm:gap-6">
+            <HomeStaggerItem>
+              <a
+                href={site.social.youtube}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-14 w-14 items-center justify-center rounded-full border border-border text-foreground transition-all hover:-translate-y-px hover:border-primary hover:text-primary"
+                aria-label="YouTube de Sodimusic"
+              >
+                <Youtube className="h-8 w-8" />
+              </a>
+            </HomeStaggerItem>
+            <HomeStaggerItem>
+              <a
+                href={site.social.instagram}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-14 w-14 items-center justify-center rounded-full border border-border transition-all hover:-translate-y-px hover:border-primary hover:text-primary"
+                aria-label="Instagram"
+              >
+                <Instagram className="h-8 w-8" />
+              </a>
+            </HomeStaggerItem>
+            <HomeStaggerItem>
+              <a
+                href={site.social.facebook}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-14 w-14 items-center justify-center rounded-full border border-border transition-all hover:-translate-y-px hover:border-primary hover:text-primary"
+                aria-label="Facebook"
+              >
+                <Facebook className="h-8 w-8" />
+              </a>
+            </HomeStaggerItem>
+            <HomeStaggerItem>
+              <a
+                href={site.social.spotify}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-14 w-14 items-center justify-center rounded-full border border-border transition-all hover:-translate-y-px hover:border-primary hover:text-primary"
+                aria-label="Spotify"
+              >
+                <Music2 className="h-8 w-8" />
+              </a>
+            </HomeStaggerItem>
+            <HomeStaggerItem className="col-span-3 sm:col-auto">
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-14 min-w-[120px] items-center justify-center rounded-full border border-[#25D366]/50 bg-[#25D366]/10 px-4 text-sm font-medium text-[#25D366] transition hover:-translate-y-px hover:bg-[#25D366]/20"
+                aria-label="WhatsApp Sodimusic"
+              >
+                WhatsApp
+              </a>
+            </HomeStaggerItem>
+          </HomeStagger>
         </div>
-      </section>
+      </HomeFadeSection>
     </>
   );
 }

@@ -16,11 +16,21 @@ export default defineConfig({
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: startServers
-    ? {
-        command: "npm run dev",
-        url: process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3000",
-        reuseExistingServer: !process.env.CI,
-        timeout: 120_000,
-      }
+    ? [
+        {
+          command: "npm run dev -w backend",
+          url: process.env.PLAYWRIGHT_BACKEND_HEALTH_URL ?? "http://127.0.0.1:4000/health",
+          reuseExistingServer: !process.env.CI,
+          timeout: 120_000,
+          cwd: "..",
+        },
+        {
+          command: "npm run dev -w frontend",
+          url: process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3000",
+          reuseExistingServer: !process.env.CI,
+          timeout: 120_000,
+          cwd: "..",
+        },
+      ]
     : undefined,
 });

@@ -8,6 +8,15 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -56,6 +65,8 @@ export function AdminBeatsManager({ initialItems }: { initialItems: Beat[] }) {
   const [saving, setSaving] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadingAudio, setUploadingAudio] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Beat | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   const coverPreview = useMemo(() => (draft.coverUrl ? resolveMediaUrl(draft.coverUrl) : null), [draft.coverUrl]);
   const audioPreview = useMemo(() => (draft.audioUrl ? resolveMediaUrl(draft.audioUrl) : null), [draft.audioUrl]);
@@ -133,16 +144,21 @@ export function AdminBeatsManager({ initialItems }: { initialItems: Beat[] }) {
     }
   }
 
-  async function onDelete(row: Beat) {
-    const ok = window.confirm(`¿Borrar "${row.title}"?`);
-    if (!ok) return;
-    const r = await deleteBeatAction(row.id);
-    if (!r.ok) {
-      toast.error(r.error ?? "Error al borrar");
-      return;
+  async function confirmDeleteBeat() {
+    if (!deleteTarget) return;
+    setDeleteBusy(true);
+    try {
+      const r = await deleteBeatAction(deleteTarget.id);
+      if (!r.ok) {
+        toast.error(r.error ?? "Error al borrar");
+        return;
+      }
+      toast.success("Beat borrado");
+      setDeleteTarget(null);
+      router.refresh();
+    } finally {
+      setDeleteBusy(false);
     }
-    toast.success("Beat borrado");
-    router.refresh();
   }
 
   async function onUploadCover(e: ChangeEvent<HTMLInputElement>) {
@@ -184,6 +200,7 @@ export function AdminBeatsManager({ initialItems }: { initialItems: Beat[] }) {
   }
 
   return (
+    <>
     <Card>
       <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -220,7 +237,7 @@ export function AdminBeatsManager({ initialItems }: { initialItems: Beat[] }) {
                       <Button type="button" size="sm" variant="outline" onClick={() => openEdit(b)}>
                         Editar
                       </Button>
-                      <Button type="button" size="sm" variant="ghost" onClick={() => void onDelete(b)}>
+                      <Button type="button" size="sm" variant="ghost" onClick={() => setDeleteTarget(b)}>
                         Borrar
                       </Button>
                     </div>
@@ -328,6 +345,29 @@ export function AdminBeatsManager({ initialItems }: { initialItems: Beat[] }) {
         </DialogContent>
       </Dialog>
     </Card>
+
+      <AlertDialog open={deleteTarget !== null} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent className="border-white/10 bg-background-card">
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Borrar este beat?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará «{deleteTarget?.title ?? ""}». Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteBusy}>Cancelar</AlertDialogCancel>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={deleteBusy}
+              onClick={() => void confirmDeleteBeat()}
+            >
+              {deleteBusy ? "Borrando…" : "Borrar"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 

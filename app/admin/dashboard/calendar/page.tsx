@@ -40,6 +40,7 @@ export default async function AdminCalendarPage({
     sessions: {
       id: string;
       scheduledDate: string;
+      calendarDayKey: string;
       timeSlot: string;
       artistName: string;
       status: string;

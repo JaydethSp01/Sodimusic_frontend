@@ -1,14 +1,12 @@
-# Sodimusic_frontend
+# Sodimusic Frontend
 
 Frontend oficial de Sodimusic Company con Next.js 14 (App Router), TypeScript estricto y Tailwind.
-
-Repositorio: [github.com/JaydethSp01/Sodimusic_frontend](https://github.com/JaydethSp01/Sodimusic_frontend)
 
 ## Requisitos
 
 - Node.js 20+
 - npm 10+
-- API en [Sodimusic_backend](https://github.com/JaydethSp01/Sodimusic_backend) (por defecto `http://localhost:4000`)
+- Backend corriendo (por defecto en `http://localhost:4000`)
 
 ## Variables de entorno
 
@@ -32,7 +30,7 @@ npm install
 npm run dev
 ```
 
-Frontend en `http://localhost:3000`.
+Frontend disponible en `http://localhost:3000`.
 
 ## Build
 
@@ -42,16 +40,6 @@ npm run build
 npm run start
 ```
 
-## Tests E2E (Playwright)
+## Notas de separación de repos
 
-Con el backend ya en marcha:
-
-```bash
-npm run test:e2e
-```
-
-Para levantar solo Next en dev y ejecutar humo UI (el API debe estar en `:4000`):
-
-```bash
-PLAYWRIGHT_START_SERVERS=1 npm run test:e2e
-```
+Este frontend es autocontenido y puede vivir en su propio repositorio sin depender del `package.json` de la raíz.

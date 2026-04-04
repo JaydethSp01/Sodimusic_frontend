@@ -8,6 +8,15 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -54,6 +63,8 @@ export function AdminProductionsManager({ initialItems }: { initialItems: Produc
   const [draft, setDraft] = useState<ProductionDraft>(() => emptyDraft());
   const [saving, setSaving] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Production | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   const coverPreview = useMemo(() => (draft.coverUrl ? resolveMediaUrl(draft.coverUrl) : null), [draft.coverUrl]);
 
@@ -111,16 +122,21 @@ export function AdminProductionsManager({ initialItems }: { initialItems: Produc
     }
   }
 
-  async function onDelete(row: Production) {
-    const ok = window.confirm(`¿Borrar "${row.title}"?`);
-    if (!ok) return;
-    const r = await deleteProductionAction(row.id);
-    if (!r.ok) {
-      toast.error(r.error ?? "Error al borrar");
-      return;
+  async function confirmDeleteProduction() {
+    if (!deleteTarget) return;
+    setDeleteBusy(true);
+    try {
+      const r = await deleteProductionAction(deleteTarget.id);
+      if (!r.ok) {
+        toast.error(r.error ?? "Error al borrar");
+        return;
+      }
+      toast.success("Producción borrada");
+      setDeleteTarget(null);
+      router.refresh();
+    } finally {
+      setDeleteBusy(false);
     }
-    toast.success("Producción borrada");
-    router.refresh();
   }
 
   async function onUploadCover(e: ChangeEvent<HTMLInputElement>) {
@@ -143,6 +159,7 @@ export function AdminProductionsManager({ initialItems }: { initialItems: Produc
   }
 
   return (
+    <>
     <Card>
       <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -179,7 +196,7 @@ export function AdminProductionsManager({ initialItems }: { initialItems: Produc
                       <Button type="button" size="sm" variant="outline" onClick={() => openEdit(p)}>
                         Editar
                       </Button>
-                      <Button type="button" size="sm" variant="ghost" onClick={() => void onDelete(p)}>
+                      <Button type="button" size="sm" variant="ghost" onClick={() => setDeleteTarget(p)}>
                         Borrar
                       </Button>
                     </div>
@@ -267,6 +284,29 @@ export function AdminProductionsManager({ initialItems }: { initialItems: Produc
         </DialogContent>
       </Dialog>
     </Card>
+
+      <AlertDialog open={deleteTarget !== null} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent className="border-white/10 bg-background-card">
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Borrar esta producción?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará «{deleteTarget?.title ?? ""}». Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteBusy}>Cancelar</AlertDialogCancel>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={deleteBusy}
+              onClick={() => void confirmDeleteProduction()}
+            >
+              {deleteBusy ? "Borrando…" : "Borrar"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 

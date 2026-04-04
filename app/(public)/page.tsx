@@ -15,6 +15,17 @@ import { getSiteContent } from "@/lib/site-config-server";
 import type { Production } from "@/types/models";
 import { Facebook, Instagram, Music2, Youtube } from "lucide-react";
 
+/** Foto fija en /public; sustituye el Unsplash antiguo guardado en el CMS. */
+const ABOUT_ASIDE_IMAGE = "/maria_la_bajafoto.jpg";
+const LEGACY_ABOUT_UNSPLASH_ID = "photo-1507525428034-b723cf961d3e";
+
+function resolveAboutAsideImageUrl(configured: string): string {
+  const u = configured?.trim() ?? "";
+  if (!u) return ABOUT_ASIDE_IMAGE;
+  if (u.includes(LEGACY_ABOUT_UNSPLASH_ID)) return ABOUT_ASIDE_IMAGE;
+  return u;
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   const site = await getSiteContent();
   return {
@@ -74,7 +85,7 @@ export default async function HomePage() {
           </div>
           <figure className="relative min-h-[280px] overflow-hidden rounded-lg border border-border bg-background-card">
             <Image
-              src={site.home.aboutImageUrl}
+              src={resolveAboutAsideImageUrl(site.home.aboutImageUrl)}
               alt=""
               fill
               className="object-cover"

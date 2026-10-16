@@ -13,6 +13,7 @@ import {
   Eye,
   LayoutGrid,
   Music2,
+  ShoppingBag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +34,8 @@ export type DashboardStatsPayload = {
   sessionsWeek: number;
   beatsAvailable: number;
   productionsTotal: number;
+  /** Opcional: solo si el backend lo devuelve */
+  productsActive?: number;
   pageViewsTotal: number;
   pageViewsLast7Days: number;
   pageViewsByDay: { date: string; count: number }[];
@@ -181,13 +184,25 @@ export function AdminDashboardInsights({ data }: { data: DashboardStatsPayload }
       icon: LayoutGrid,
       hint: "Total publicadas",
     },
+    ...(typeof data.productsActive === "number"
+      ? [
+          {
+            title: "Productos activos",
+            value: data.productsActive,
+            icon: ShoppingBag,
+            hint: "Visibles en la tienda",
+          },
+        ]
+      : []),
   ];
+
+  const kpiGridClass = kpiItems.length >= 5 ? "lg:grid-cols-5" : "lg:grid-cols-4";
 
   return (
     <div className="space-y-8">
       <motion.div
         ref={kpiRef}
-        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+        className={cn("grid gap-4 sm:grid-cols-2", kpiGridClass)}
         initial="hidden"
         animate={kpiStart ? "visible" : "hidden"}
         variants={{

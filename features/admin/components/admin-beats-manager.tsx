@@ -288,7 +288,7 @@ export function AdminBeatsManager({ initialItems }: { initialItems: Beat[] }) {
 
               <Field label="Estado">
                 <select
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex h-10 w-full rounded-md border border-border bg-background-secondary px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   value={draft.status}
                   onChange={(e) => setDraft((p) => ({ ...p, status: e.target.value as Status }))}
                 >

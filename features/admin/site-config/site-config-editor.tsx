@@ -1,31 +1,78 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { SiteContent, SiteMilestone, SiteNavLink } from "@/types/site-content";
+import { ArrowDown, ArrowUp, ExternalLink } from "lucide-react";
+import type {
+  SiteContent,
+  SiteCrewMember,
+  SiteMilestone,
+  SiteNavLink,
+  SiteStat,
+  SiteYoutubeChannel,
+} from "@/types/site-content";
 import { saveSiteDraftAction, publishSiteAction } from "@/app/actions/site-config-actions";
-import { uploadAdminFile } from "@/app/actions/admin-upload";
 import { setSitePreview } from "@/app/actions/site-preview";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { resolveMediaUrl } from "@/lib/resolve-media-url";
+import { SectionCallout } from "@/components/shared/section-callout";
+import { ImageUploadField } from "@/features/admin/components/image-upload-field";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+
+const SECTIONS: { id: string; label: string }[] = [
+  { id: "site-section-hero", label: "Hero" },
+  { id: "site-section-brand", label: "Marca y menú" },
+  { id: "site-section-home", label: "Inicio" },
+  { id: "site-section-youtube", label: "YouTube" },
+  { id: "site-section-shop", label: "Tienda" },
+  { id: "site-section-footer", label: "Pie y contacto" },
+  { id: "site-section-seo", label: "SEO y redes" },
+  { id: "site-section-qr", label: "Código QR" },
+  { id: "site-section-booking", label: "Booking" },
+  { id: "site-section-artists", label: "Artistas" },
+  { id: "site-section-beats", label: "Beats" },
+  { id: "site-section-productions", label: "Producciones" },
+  { id: "site-section-releases", label: "Lanzamientos" },
+  { id: "site-section-booking-success", label: "Confirmación" },
+  { id: "site-section-release-detail", label: "Ficha release" },
+];
+
+/** Extrae el ID de canal (UC…) de una URL de YouTube tipo /channel/UC… */
+function extractYoutubeChannelId(url: string): string | null {
+  const m = url.match(/\/channel\/(UC[A-Za-z0-9_-]{20,})/);
+  return m ? m[1] : null;
+}
+
+const CHANNEL_ID_HELP =
+  "En YouTube Studio → Configuración → Canal → Ajustes avanzados; empieza por UC. Si pegas una URL /channel/UC… se rellena solo.";
+
+const SECTION_CARD = "scroll-mt-36 md:scroll-mt-28";
 
 function Field({
   label,
+  hint,
   children,
 }: {
   label: string;
+  hint?: string;
   children: React.ReactNode;
 }) {
   return (
     <label className="block space-y-1.5">
       <span className="text-xs font-medium text-[var(--text-secondary)]">{label}</span>
       {children}
+      {hint ? <span className="block text-[11px] text-[var(--text-muted)]">{hint}</span> : null}
     </label>
   );
+}
+
+function SubsectionTitle({ children }: { children: React.ReactNode }) {
+  return <p className="text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">{children}</p>;
 }
 
 export function SiteConfigEditor({
@@ -42,8 +89,6 @@ export function SiteConfigEditor({
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [pending, start] = useTransition();
-
-  const heroPreview = useMemo(() => resolveMediaUrl(c.hero.heroImageUrl), [c.hero.heroImageUrl]);
 
   function updateNavLink(i: number, patch: Partial<SiteNavLink>) {
     setC((prev) => {
@@ -92,42 +137,78 @@ export function SiteConfigEditor({
     }));
   }
 
-  async function onHeroUpload(file: File | null) {
-    if (!file) {
-      return;
-    }
-    setErr(null);
-    const fd = new FormData();
-    fd.append("file", file);
-    const r = await uploadAdminFile(fd);
-    if (!r.ok || !r.url) {
-      setErr(r.error ?? "No se pudo subir la imagen");
-      toast.error(r.error ?? "No se pudo subir la imagen");
-      return;
-    }
-    setC((prev) => ({ ...prev, hero: { ...prev.hero, heroImageUrl: r.url! } }));
-    setMsg("Imagen del hero actualizada (guarda el borrador para conservarla).");
-    toast.success("Imagen subida correctamente");
+  function updateStat(i: number, patch: Partial<SiteStat>) {
+    setC((prev) => {
+      const stats = [...(prev.home.stats ?? [])];
+      stats[i] = { ...stats[i], ...patch };
+      return { ...prev, home: { ...prev.home, stats } };
+    });
   }
 
-  async function onCatalogHeroUpload(page: "beatsPage" | "productionsPage" | "releasesPage", file: File | null) {
-    if (!file) {
-      return;
-    }
-    setErr(null);
-    const fd = new FormData();
-    fd.append("file", file);
-    const r = await uploadAdminFile(fd);
-    if (!r.ok || !r.url) {
-      setErr(r.error ?? "No se pudo subir la imagen");
-      toast.error(r.error ?? "No se pudo subir la imagen");
-      return;
-    }
+  function addStat() {
     setC((prev) => ({
       ...prev,
-      [page]: { ...prev[page], heroImageUrl: r.url! },
+      home: { ...prev.home, stats: [...(prev.home.stats ?? []), { value: 0, suffix: "", label: "" }] },
     }));
-    toast.success("Imagen del hero subida");
+  }
+
+  function removeStat(i: number) {
+    setC((prev) => {
+      const stats = prev.home.stats ?? [];
+      if (stats.length <= 1) return prev;
+      return { ...prev, home: { ...prev.home, stats: stats.filter((_, j) => j !== i) } };
+    });
+  }
+
+  function updateMember(i: number, patch: Partial<SiteCrewMember>) {
+    setC((prev) => {
+      const members = [...prev.artists.members];
+      members[i] = { ...members[i], ...patch };
+      return { ...prev, artists: { ...prev.artists, members } };
+    });
+  }
+
+  function updateChannel(i: number, patch: Partial<SiteYoutubeChannel>) {
+    setC((prev) => {
+      const channels = [...prev.youtube.channels];
+      channels[i] = { ...channels[i], ...patch };
+      return { ...prev, youtube: { ...prev.youtube, channels } };
+    });
+  }
+
+  function onChannelUrlChange(i: number, url: string) {
+    const id = extractYoutubeChannelId(url);
+    updateChannel(i, id ? { url, channelId: id } : { url });
+  }
+
+  function addChannel() {
+    setC((prev) => ({
+      ...prev,
+      youtube: {
+        ...prev.youtube,
+        channels: [
+          ...prev.youtube.channels,
+          { name: "Nuevo canal", url: "", channelId: "", description: "", avatarUrl: "", featuredVideoUrl: "" },
+        ],
+      },
+    }));
+  }
+
+  function removeChannel(i: number) {
+    setC((prev) => ({
+      ...prev,
+      youtube: { ...prev.youtube, channels: prev.youtube.channels.filter((_, j) => j !== i) },
+    }));
+  }
+
+  function moveChannel(i: number, dir: -1 | 1) {
+    setC((prev) => {
+      const channels = [...prev.youtube.channels];
+      const t = i + dir;
+      if (t < 0 || t >= channels.length) return prev;
+      [channels[i], channels[t]] = [channels[t], channels[i]];
+      return { ...prev, youtube: { ...prev.youtube, channels } };
+    });
   }
 
   function saveDraft() {
@@ -179,52 +260,58 @@ export function SiteConfigEditor({
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="font-display text-3xl tracking-wide">Sitio web público</h1>
-          <p className="mt-2 max-w-2xl text-sm text-[var(--text-muted)]">
-            Edita textos, enlaces e imagen del hero. Guarda borrador, previsualiza y publica cuando esté listo. Las imágenes y
-            audios de beats/producciones se gestionan en sus secciones (URLs pueden apuntar a <code className="text-xs">/uploads/…</code>).
-          </p>
-          <p className="mt-2 font-mono text-xs text-[var(--text-muted)]">
-            Borrador: {new Date(draftUpdatedAt).toLocaleString("es-CO")}
-            {publishedAt ? ` · Publicado: ${new Date(publishedAt).toLocaleString("es-CO")}` : " · Aún sin publicar formal"}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" disabled={pending} onClick={() => preview()}>
-            Vista previa
-          </Button>
-          <Button type="button" variant="secondary" disabled={pending} onClick={() => saveDraft()}>
-            Guardar borrador
-          </Button>
-          <Button type="button" disabled={pending} onClick={() => publish()}>
-            Publicar
-          </Button>
-        </div>
+      <div>
+        <h1 className="font-display text-3xl tracking-wide">Sitio web público</h1>
+        <p className="mt-2 max-w-2xl text-sm text-[var(--text-muted)]">
+          Edita textos, enlaces e imágenes. Guarda borrador, previsualiza y publica cuando esté listo. Beats, producciones,
+          releases y productos se gestionan en sus propias secciones del panel.
+        </p>
+        <p className="mt-2 font-mono text-xs text-[var(--text-muted)]">
+          Borrador: {new Date(draftUpdatedAt).toLocaleString("es-CO")}
+          {publishedAt ? ` · Publicado: ${new Date(publishedAt).toLocaleString("es-CO")}` : " · Aún sin publicar formal"}
+        </p>
       </div>
 
-      {msg ? <p className="text-sm text-primary">{msg}</p> : null}
-      {err ? <p className="text-sm text-red-500">{err}</p> : null}
+      <div
+        className={cn(
+          "sticky top-14 z-20 -mx-6 border-y border-border bg-background-secondary/85 px-6 py-3 backdrop-blur md:top-0 md:-mx-8 md:px-8",
+          "supports-[backdrop-filter]:bg-background-secondary/70",
+        )}
+      >
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <nav aria-label="Secciones del editor" className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 lg:pb-0">
+            {SECTIONS.map((s) => (
+              <a
+                key={s.id}
+                href={`#${s.id}`}
+                className="shrink-0 rounded-full border border-border px-3 py-1 text-xs text-[var(--text-secondary)] transition-colors hover:border-primary/40 hover:text-foreground"
+              >
+                {s.label}
+              </a>
+            ))}
+          </nav>
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <Button type="button" size="sm" variant="outline" disabled={pending} onClick={() => preview()}>
+              Vista previa
+            </Button>
+            <Button type="button" size="sm" variant="secondary" disabled={pending} onClick={() => saveDraft()}>
+              Guardar borrador
+            </Button>
+            <Button type="button" size="sm" disabled={pending} onClick={() => publish()}>
+              {pending ? "Procesando…" : "Publicar"}
+            </Button>
+          </div>
+        </div>
+        {msg ? <p className="mt-2 text-xs text-primary">{msg}</p> : null}
+        {err ? <p className="mt-2 text-xs text-red-500">{err}</p> : null}
+      </div>
 
-      <Card>
+      <Card id="site-section-hero" className={SECTION_CARD}>
         <CardHeader>
           <CardTitle className="font-display text-xl">Hero</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="space-y-4">
-            <Field label="Imagen (URL o sube archivo)">
-              <Input
-                value={c.hero.heroImageUrl}
-                onChange={(e) => setC((p) => ({ ...p, hero: { ...p.hero, heroImageUrl: e.target.value } }))}
-              />
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                className="mt-2 block w-full text-sm"
-                onChange={(e) => void onHeroUpload(e.target.files?.[0] ?? null)}
-              />
-            </Field>
             <Field label="Línea superior (eyebrow)">
               <Input value={c.hero.eyebrow} onChange={(e) => setC((p) => ({ ...p, hero: { ...p.hero, eyebrow: e.target.value } }))} />
             </Field>
@@ -261,14 +348,19 @@ export function SiteConfigEditor({
               </Field>
             </div>
           </div>
-          <div className="relative aspect-video overflow-hidden rounded-lg border border-border bg-black/40">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={heroPreview} alt="" className="h-full w-full object-cover" />
+          <div>
+            <ImageUploadField
+              label="Imagen de fondo del hero"
+              aspect="video"
+              value={c.hero.heroImageUrl}
+              onChange={(v) => setC((p) => ({ ...p, hero: { ...p.hero, heroImageUrl: v } }))}
+              hint="Recomendado 1920×1080 o mayor. JPG/WebP · máximo 4,5 MB."
+            />
           </div>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card id="site-section-brand" className={SECTION_CARD}>
         <CardHeader>
           <CardTitle className="font-display text-xl">Marca y navegación</CardTitle>
         </CardHeader>
@@ -327,7 +419,7 @@ export function SiteConfigEditor({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card id="site-section-home" className={SECTION_CARD}>
         <CardHeader>
           <CardTitle className="font-display text-xl">Inicio — secciones</CardTitle>
         </CardHeader>
@@ -341,12 +433,12 @@ export function SiteConfigEditor({
           <Field label="Quiénes somos — texto">
             <Textarea rows={5} value={c.home.aboutBody} onChange={(e) => setC((p) => ({ ...p, home: { ...p.home, aboutBody: e.target.value } }))} />
           </Field>
-          <Field label="Quiénes somos — imagen lateral (URL o /uploads/...)">
-            <Input
-              value={c.home.aboutImageUrl}
-              onChange={(e) => setC((p) => ({ ...p, home: { ...p.home, aboutImageUrl: e.target.value } }))}
-            />
-          </Field>
+          <ImageUploadField
+            label="Quiénes somos — imagen lateral"
+            aspect="video"
+            value={c.home.aboutImageUrl}
+            onChange={(v) => setC((p) => ({ ...p, home: { ...p.home, aboutImageUrl: v } }))}
+          />
           <Field label="Leyenda caja lateral">
             <Input
               value={c.home.aboutAsideCaption}
@@ -418,10 +510,303 @@ export function SiteConfigEditor({
               </Button>
             </div>
           </div>
+
+          <div>
+            <p className="mb-1 text-xs font-medium text-[var(--text-secondary)]">Cifras (contadores animados bajo «Quiénes somos»)</p>
+            <p className="mb-2 text-[11px] text-[var(--text-muted)]">
+              Valor numérico + sufijo (p. ej. «+», «%», «k») + etiqueta. Mínimo una cifra.
+            </p>
+            <div className="space-y-2">
+              {(c.home.stats ?? []).map((st, i) => (
+                <div key={i} className="grid gap-2 rounded-md border border-border p-3 sm:grid-cols-[110px_90px_minmax(0,1fr)_auto]">
+                  <Input
+                    type="number"
+                    value={st.value}
+                    onChange={(e) => updateStat(i, { value: Number(e.target.value) || 0 })}
+                    placeholder="Valor"
+                    aria-label="Valor"
+                  />
+                  <Input value={st.suffix} onChange={(e) => updateStat(i, { suffix: e.target.value })} placeholder="Sufijo" aria-label="Sufijo" />
+                  <Input value={st.label} onChange={(e) => updateStat(i, { label: e.target.value })} placeholder="Etiqueta (p. ej. producciones)" aria-label="Etiqueta" />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={(c.home.stats?.length ?? 0) <= 1}
+                    onClick={() => removeStat(i)}
+                  >
+                    Quitar
+                  </Button>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={addStat}>
+                Añadir cifra
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card id="site-section-youtube" className={SECTION_CARD}>
+        <CardHeader>
+          <CardTitle className="font-display text-xl">Canales de YouTube</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-xs text-[var(--text-muted)]">
+            Los canales se muestran en el inicio (si está activado) y en la página de artistas. Con el ID de canal se incrusta
+            la lista de subidas sin necesidad de API key.
+          </p>
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox
+              checked={c.youtube.showOnHome}
+              onCheckedChange={(v) => setC((p) => ({ ...p, youtube: { ...p.youtube, showOnHome: v === true } }))}
+            />
+            Mostrar en el inicio
+          </label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Eyebrow">
+              <Input
+                value={c.youtube.sectionEyebrow}
+                onChange={(e) => setC((p) => ({ ...p, youtube: { ...p.youtube, sectionEyebrow: e.target.value } }))}
+              />
+            </Field>
+            <Field label="Título">
+              <Input
+                value={c.youtube.sectionTitle}
+                onChange={(e) => setC((p) => ({ ...p, youtube: { ...p.youtube, sectionTitle: e.target.value } }))}
+              />
+            </Field>
+          </div>
+          <Field label="Subtítulo">
+            <Textarea
+              rows={2}
+              value={c.youtube.sectionSubtitle}
+              onChange={(e) => setC((p) => ({ ...p, youtube: { ...p.youtube, sectionSubtitle: e.target.value } }))}
+            />
+          </Field>
+          <Field label="Texto del botón suscribirse">
+            <Input
+              value={c.youtube.subscribeLabel}
+              onChange={(e) => setC((p) => ({ ...p, youtube: { ...p.youtube, subscribeLabel: e.target.value } }))}
+            />
+          </Field>
+
+          <div className="space-y-3">
+            <SubsectionTitle>Canales</SubsectionTitle>
+            {c.youtube.channels.length === 0 ? (
+              <p className="text-xs text-[var(--text-muted)]">No hay canales. Añade al menos uno para mostrar la sección.</p>
+            ) : null}
+            <div className="space-y-4">
+              {c.youtube.channels.map((ch, idx) => (
+                <div key={idx} className="space-y-3 rounded-lg border border-border bg-background-card p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-medium text-[var(--text-secondary)]">
+                      Canal {idx + 1}
+                      {ch.name ? ` · ${ch.name}` : ""}
+                    </p>
+                    <div className="flex items-center gap-1">
+                      <Button type="button" variant="ghost" size="icon" className="h-8 w-8" aria-label="Subir" disabled={idx === 0} onClick={() => moveChannel(idx, -1)}>
+                        <ArrowUp className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        aria-label="Bajar"
+                        disabled={idx === c.youtube.channels.length - 1}
+                        onClick={() => moveChannel(idx, 1)}
+                      >
+                        <ArrowDown className="h-4 w-4" />
+                      </Button>
+                      <Button type="button" variant="ghost" size="sm" onClick={() => removeChannel(idx)}>
+                        Quitar
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Field label="Nombre">
+                      <Input value={ch.name} onChange={(e) => updateChannel(idx, { name: e.target.value })} />
+                    </Field>
+                    <Field label="URL del canal" hint="Si contiene /channel/UC… el ID se rellena solo.">
+                      <Input
+                        value={ch.url}
+                        onChange={(e) => onChannelUrlChange(idx, e.target.value)}
+                        placeholder="https://www.youtube.com/channel/UC… o https://www.youtube.com/@usuario"
+                      />
+                    </Field>
+                    <Field label="ID de canal (UC…)" hint={CHANNEL_ID_HELP}>
+                      <Input
+                        value={ch.channelId ?? ""}
+                        onChange={(e) => updateChannel(idx, { channelId: e.target.value.trim() })}
+                        placeholder="UCxxxxxxxxxxxxxxxxxxxxxx"
+                        className="font-mono"
+                      />
+                    </Field>
+                    <Field label="Video destacado (URL de YouTube)" hint="Opcional. Si falta se muestra la lista de subidas.">
+                      <Input
+                        value={ch.featuredVideoUrl ?? ""}
+                        onChange={(e) => updateChannel(idx, { featuredVideoUrl: e.target.value })}
+                        placeholder="https://www.youtube.com/watch?v=…"
+                      />
+                    </Field>
+                  </div>
+                  <Field label="Descripción">
+                    <Textarea rows={2} value={ch.description ?? ""} onChange={(e) => updateChannel(idx, { description: e.target.value })} />
+                  </Field>
+                  <ImageUploadField
+                    label="Avatar del canal"
+                    aspect="square"
+                    value={ch.avatarUrl ?? ""}
+                    onChange={(v) => updateChannel(idx, { avatarUrl: v })}
+                    hint="Cuadrado, mínimo 200×200. Opcional."
+                  />
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={addChannel}>
+                Añadir canal
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card id="site-section-shop" className={SECTION_CARD}>
+        <CardHeader>
+          <CardTitle className="font-display text-xl">Tienda</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <SectionCallout>
+            Aquí se editan los textos de la página <code className="font-mono text-xs">/tienda</code>. Los productos se gestionan en{" "}
+            <Link href="/admin/dashboard/tienda" className="inline-flex items-center gap-1 text-primary underline underline-offset-2">
+              Tienda <ExternalLink className="h-3 w-3" aria-hidden />
+            </Link>
+            .
+          </SectionCallout>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={c.shop.enabled}
+                onCheckedChange={(v) => setC((p) => ({ ...p, shop: { ...p.shop, enabled: v === true } }))}
+              />
+              Tienda activada (visible en el sitio)
+            </label>
+            <Field label="Etiqueta en el menú">
+              <Input value={c.shop.navLabel} onChange={(e) => setC((p) => ({ ...p, shop: { ...p.shop, navLabel: e.target.value } }))} />
+            </Field>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Meta título">
+              <Input value={c.shop.metaTitle} onChange={(e) => setC((p) => ({ ...p, shop: { ...p.shop, metaTitle: e.target.value } }))} />
+            </Field>
+            <Field label="Meta descripción">
+              <Input
+                value={c.shop.metaDescription}
+                onChange={(e) => setC((p) => ({ ...p, shop: { ...p.shop, metaDescription: e.target.value } }))}
+              />
+            </Field>
+          </div>
+
+          <SubsectionTitle>Hero de la tienda</SubsectionTitle>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Eyebrow (opcional)">
+              <Input
+                value={c.shop.heroEyebrow ?? ""}
+                onChange={(e) => setC((p) => ({ ...p, shop: { ...p.shop, heroEyebrow: e.target.value } }))}
+              />
+            </Field>
+            <Field label="Título">
+              <Input value={c.shop.heroTitle} onChange={(e) => setC((p) => ({ ...p, shop: { ...p.shop, heroTitle: e.target.value } }))} />
+            </Field>
+          </div>
+          <Field label="Descripción">
+            <Textarea
+              rows={2}
+              value={c.shop.heroDescription}
+              onChange={(e) => setC((p) => ({ ...p, shop: { ...p.shop, heroDescription: e.target.value } }))}
+            />
+          </Field>
+          <ImageUploadField
+            label="Imagen de fondo del hero (opcional)"
+            aspect="video"
+            value={c.shop.heroImageUrl ?? ""}
+            onChange={(v) => setC((p) => ({ ...p, shop: { ...p.shop, heroImageUrl: v } }))}
+          />
+
+          <SubsectionTitle>Textos de compra</SubsectionTitle>
+          <Field label="Mensaje cuando no hay productos">
+            <Textarea
+              rows={2}
+              value={c.shop.emptyStateMessage}
+              onChange={(e) => setC((p) => ({ ...p, shop: { ...p.shop, emptyStateMessage: e.target.value } }))}
+            />
+          </Field>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Botón pedir (orderCtaLabel)">
+              <Input
+                value={c.shop.orderCtaLabel}
+                onChange={(e) => setC((p) => ({ ...p, shop: { ...p.shop, orderCtaLabel: e.target.value } }))}
+              />
+            </Field>
+            <Field label="Botón añadir al pedido (addToCartLabel)">
+              <Input
+                value={c.shop.addToCartLabel}
+                onChange={(e) => setC((p) => ({ ...p, shop: { ...p.shop, addToCartLabel: e.target.value } }))}
+              />
+            </Field>
+          </div>
+          <Field label="Intro del mensaje de WhatsApp" hint="Se antepone al detalle del pedido que arma el cliente.">
+            <Textarea
+              rows={2}
+              value={c.shop.whatsappOrderIntro}
+              onChange={(e) => setC((p) => ({ ...p, shop: { ...p.shop, whatsappOrderIntro: e.target.value } }))}
+            />
+          </Field>
+          <Field label="Nota de envíos (opcional)">
+            <Input
+              value={c.shop.shippingNote ?? ""}
+              onChange={(e) => setC((p) => ({ ...p, shop: { ...p.shop, shippingNote: e.target.value } }))}
+            />
+          </Field>
+
+          <SubsectionTitle>Bloque en el inicio</SubsectionTitle>
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox
+              checked={c.shop.showOnHome}
+              onCheckedChange={(v) => setC((p) => ({ ...p, shop: { ...p.shop, showOnHome: v === true } }))}
+            />
+            Mostrar productos destacados en el inicio
+          </label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Eyebrow">
+              <Input
+                value={c.shop.homeSectionEyebrow}
+                onChange={(e) => setC((p) => ({ ...p, shop: { ...p.shop, homeSectionEyebrow: e.target.value } }))}
+              />
+            </Field>
+            <Field label="Título">
+              <Input
+                value={c.shop.homeSectionTitle}
+                onChange={(e) => setC((p) => ({ ...p, shop: { ...p.shop, homeSectionTitle: e.target.value } }))}
+              />
+            </Field>
+            <Field label="Subtítulo">
+              <Input
+                value={c.shop.homeSectionSubtitle}
+                onChange={(e) => setC((p) => ({ ...p, shop: { ...p.shop, homeSectionSubtitle: e.target.value } }))}
+              />
+            </Field>
+            <Field label="CTA (ver toda la tienda)">
+              <Input
+                value={c.shop.homeCtaLabel}
+                onChange={(e) => setC((p) => ({ ...p, shop: { ...p.shop, homeCtaLabel: e.target.value } }))}
+              />
+            </Field>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card id="site-section-footer" className={SECTION_CARD}>
         <CardHeader>
           <CardTitle className="font-display text-xl">Pie de página y contacto</CardTitle>
         </CardHeader>
@@ -449,7 +834,7 @@ export function SiteConfigEditor({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card id="site-section-seo" className={SECTION_CARD}>
         <CardHeader>
           <CardTitle className="font-display text-xl">SEO y redes</CardTitle>
         </CardHeader>
@@ -480,7 +865,46 @@ export function SiteConfigEditor({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card id="site-section-qr" className={SECTION_CARD}>
+        <CardHeader>
+          <CardTitle className="font-display text-xl">Código QR</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <SectionCallout>
+            El QR del sitio apunta a la URL de abajo (vacía = URL principal del sitio). Para descargarlo, imprimirlo o
+            cambiar colores ve a{" "}
+            <Link href="/admin/dashboard/qr" className="inline-flex items-center gap-1 text-primary underline underline-offset-2">
+              Código QR <ExternalLink className="h-3 w-3" aria-hidden />
+            </Link>
+            .
+          </SectionCallout>
+          <Field label="URL destino" hint="Déjala vacía para usar la URL del sitio. Debe empezar por https://">
+            <Input
+              value={c.qr.targetUrl ?? ""}
+              onChange={(e) => setC((p) => ({ ...p, qr: { ...p.qr, targetUrl: e.target.value } }))}
+              placeholder="https://sodimusic.co"
+            />
+          </Field>
+          <Field label="Etiqueta (texto junto al QR)">
+            <Input value={c.qr.label} onChange={(e) => setC((p) => ({ ...p, qr: { ...p.qr, label: e.target.value } }))} />
+          </Field>
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox
+              checked={c.qr.showInFooter}
+              onCheckedChange={(v) => setC((p) => ({ ...p, qr: { ...p.qr, showInFooter: v === true } }))}
+            />
+            Mostrar el QR en el pie de página
+          </label>
+          <Field label="Leyenda del pie">
+            <Input
+              value={c.qr.footerCaption}
+              onChange={(e) => setC((p) => ({ ...p, qr: { ...p.qr, footerCaption: e.target.value } }))}
+            />
+          </Field>
+        </CardContent>
+      </Card>
+
+      <Card id="site-section-booking" className={SECTION_CARD}>
         <CardHeader>
           <CardTitle className="font-display text-xl">Booking (Agenda)</CardTitle>
         </CardHeader>
@@ -629,7 +1053,7 @@ export function SiteConfigEditor({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card id="site-section-artists" className={SECTION_CARD}>
         <CardHeader>
           <CardTitle className="font-display text-xl">Artistas (Crew)</CardTitle>
         </CardHeader>
@@ -674,6 +1098,14 @@ export function SiteConfigEditor({
               onChange={(e) => setC((p) => ({ ...p, artists: { ...p.artists, producerBio: e.target.value } }))}
             />
           </Field>
+
+          <ImageUploadField
+            label="Foto del productor"
+            aspect="portrait"
+            value={c.artists.producerImageUrl ?? ""}
+            onChange={(v) => setC((p) => ({ ...p, artists: { ...p.artists, producerImageUrl: v } }))}
+            hint="Vertical (3:4). Opcional: si falta se usa el diseño por defecto."
+          />
 
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="CTA botón (booking)">
@@ -739,6 +1171,29 @@ export function SiteConfigEditor({
                       }
                     />
                   </Field>
+                  <ImageUploadField
+                    label="Foto"
+                    aspect="portrait"
+                    value={m.imageUrl ?? ""}
+                    onChange={(v) => updateMember(idx, { imageUrl: v })}
+                    hint="Vertical (3:4). Opcional."
+                  />
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Field label="Instagram (URL)">
+                      <Input
+                        value={m.instagramUrl ?? ""}
+                        onChange={(e) => updateMember(idx, { instagramUrl: e.target.value })}
+                        placeholder="https://instagram.com/…"
+                      />
+                    </Field>
+                    <Field label="YouTube (URL)">
+                      <Input
+                        value={m.youtubeUrl ?? ""}
+                        onChange={(e) => updateMember(idx, { youtubeUrl: e.target.value })}
+                        placeholder="https://youtube.com/@…"
+                      />
+                    </Field>
+                  </div>
                   <div className="flex justify-end">
                     <Button
                       type="button"
@@ -778,7 +1233,7 @@ export function SiteConfigEditor({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card id="site-section-beats" className={SECTION_CARD}>
         <CardHeader>
           <CardTitle className="font-display text-xl">Página pública — Beats</CardTitle>
         </CardHeader>
@@ -821,22 +1276,16 @@ export function SiteConfigEditor({
               onChange={(e) => setC((p) => ({ ...p, beatsPage: { ...p.beatsPage, heroDescriptionTemplate: e.target.value } }))}
             />
           </Field>
-          <Field label="Hero — imagen de fondo (URL o sube archivo)">
-            <Input
-              value={c.beatsPage.heroImageUrl ?? ""}
-              onChange={(e) => setC((p) => ({ ...p, beatsPage: { ...p.beatsPage, heroImageUrl: e.target.value } }))}
-            />
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="mt-2 block w-full text-sm"
-              onChange={(e) => void onCatalogHeroUpload("beatsPage", e.target.files?.[0] ?? null)}
-            />
-          </Field>
+          <ImageUploadField
+            label="Hero — imagen de fondo"
+            aspect="video"
+            value={c.beatsPage.heroImageUrl ?? ""}
+            onChange={(v) => setC((p) => ({ ...p, beatsPage: { ...p.beatsPage, heroImageUrl: v } }))}
+          />
         </CardContent>
       </Card>
 
-      <Card>
+      <Card id="site-section-productions" className={SECTION_CARD}>
         <CardHeader>
           <CardTitle className="font-display text-xl">Página pública — Producciones</CardTitle>
         </CardHeader>
@@ -885,22 +1334,16 @@ export function SiteConfigEditor({
               }
             />
           </Field>
-          <Field label="Hero — imagen de fondo (URL o sube archivo)">
-            <Input
-              value={c.productionsPage.heroImageUrl ?? ""}
-              onChange={(e) => setC((p) => ({ ...p, productionsPage: { ...p.productionsPage, heroImageUrl: e.target.value } }))}
-            />
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="mt-2 block w-full text-sm"
-              onChange={(e) => void onCatalogHeroUpload("productionsPage", e.target.files?.[0] ?? null)}
-            />
-          </Field>
+          <ImageUploadField
+            label="Hero — imagen de fondo"
+            aspect="video"
+            value={c.productionsPage.heroImageUrl ?? ""}
+            onChange={(v) => setC((p) => ({ ...p, productionsPage: { ...p.productionsPage, heroImageUrl: v } }))}
+          />
         </CardContent>
       </Card>
 
-      <Card>
+      <Card id="site-section-releases" className={SECTION_CARD}>
         <CardHeader>
           <CardTitle className="font-display text-xl">Página pública — Lanzamientos</CardTitle>
         </CardHeader>
@@ -946,22 +1389,16 @@ export function SiteConfigEditor({
               onChange={(e) => setC((p) => ({ ...p, releasesPage: { ...p.releasesPage, emptyStateMessage: e.target.value } }))}
             />
           </Field>
-          <Field label="Hero — imagen de fondo (URL o sube archivo)">
-            <Input
-              value={c.releasesPage.heroImageUrl ?? ""}
-              onChange={(e) => setC((p) => ({ ...p, releasesPage: { ...p.releasesPage, heroImageUrl: e.target.value } }))}
-            />
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="mt-2 block w-full text-sm"
-              onChange={(e) => void onCatalogHeroUpload("releasesPage", e.target.files?.[0] ?? null)}
-            />
-          </Field>
+          <ImageUploadField
+            label="Hero — imagen de fondo"
+            aspect="video"
+            value={c.releasesPage.heroImageUrl ?? ""}
+            onChange={(v) => setC((p) => ({ ...p, releasesPage: { ...p.releasesPage, heroImageUrl: v } }))}
+          />
         </CardContent>
       </Card>
 
-      <Card>
+      <Card id="site-section-booking-success" className={SECTION_CARD}>
         <CardHeader>
           <CardTitle className="font-display text-xl">Booking — página de confirmación</CardTitle>
         </CardHeader>
@@ -1016,7 +1453,7 @@ export function SiteConfigEditor({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card id="site-section-release-detail" className={SECTION_CARD}>
         <CardHeader>
           <CardTitle className="font-display text-xl">Ficha de lanzamiento (/releases/[slug])</CardTitle>
         </CardHeader>

@@ -6,13 +6,22 @@ import { fadeInUp, staggerContainer } from "@/lib/animations";
 export function HomeFadeSection({
   className,
   children,
+  id,
+  "aria-labelledby": ariaLabelledBy,
+  "aria-label": ariaLabel,
 }: {
   className?: string;
   children: React.ReactNode;
+  id?: string;
+  "aria-labelledby"?: string;
+  "aria-label"?: string;
 }) {
   return (
     <motion.section
       className={className}
+      id={id}
+      aria-labelledby={ariaLabelledBy}
+      aria-label={ariaLabel}
       variants={fadeInUp}
       initial="hidden"
       whileInView="visible"

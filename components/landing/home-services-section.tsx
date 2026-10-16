@@ -4,21 +4,23 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer } from "@/lib/animations";
 import { ArrowRight } from "lucide-react";
+import type { SiteContent } from "@/types/site-content";
 
-const services = [
-  { icon: "🎤", title: "Grabación vocal", desc: "Graba tus voces con dirección artística." },
-  { icon: "🎹", title: "Beat personalizado", desc: "JeiVy produce un beat a medida para tu proyecto." },
-  { icon: "🤝", title: "Coproducción", desc: "Traes tu idea, la desarrollamos juntos." },
-  { icon: "🎚️", title: "Mezcla y masterización", desc: "Tu canción al siguiente nivel." },
-  {
-    icon: "🎬",
-    title: "Producción audiovisual (video)",
-    desc: "Video clip, lyric video o piezas para redes con dirección y post producción.",
-  },
-  { icon: "💬", title: "Consultoría artística", desc: "Hablamos de tu proyecto y tu sonido (30 min)." },
-];
+type Service = SiteContent["booking"]["services"][number];
 
-export function HomeServicesSection() {
+export function HomeServicesSection({
+  services,
+  ctaHref,
+  ctaLabel = "Agendar",
+}: {
+  services: Service[];
+  ctaHref: string;
+  ctaLabel?: string;
+}) {
+  if (!services.length) {
+    return null;
+  }
+
   return (
     <motion.div
       className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
@@ -31,7 +33,7 @@ export function HomeServicesSection() {
         const n = String(i + 1).padStart(2, "0");
         return (
           <motion.article
-            key={s.title}
+            key={`${s.type}-${s.title}`}
             variants={fadeInUp}
             className="group relative overflow-hidden rounded-lg border border-border bg-background-card/80 p-6 transition-all duration-300 hover:border-primary/40 hover:bg-primary/5"
           >
@@ -48,10 +50,11 @@ export function HomeServicesSection() {
               <h3 className="mt-4 font-display text-xl text-foreground">{s.title}</h3>
               <p className="mt-2 text-sm text-[var(--text-secondary)]">{s.desc}</p>
               <Link
-                href="/booking"
-                className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:text-primary"
+                href={ctaHref}
+                className="mt-4 inline-flex min-h-11 items-center gap-1 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:text-primary"
+                aria-label={`${ctaLabel}: ${s.title}`}
               >
-                Agendar
+                {ctaLabel}
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
               </Link>
             </div>

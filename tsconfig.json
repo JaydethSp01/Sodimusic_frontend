@@ -32,7 +32,8 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "/tmp/next-dist-302ae41201a73146/types/**/*.ts"
+    "/tmp/next-dist-302ae41201a73146/types/**/*.ts",
+    "/tmp/next-dist-4669b4634fbaa1fa/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

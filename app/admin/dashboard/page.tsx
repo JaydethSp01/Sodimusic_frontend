@@ -24,6 +24,7 @@ export default async function AdminDashboardPage() {
     sessionsWeek: raw.sessionsWeek,
     beatsAvailable: raw.beatsAvailable,
     productionsTotal: raw.productionsTotal,
+    ...(typeof raw.productsActive === "number" ? { productsActive: raw.productsActive } : {}),
     pageViewsTotal: raw.pageViewsTotal ?? 0,
     pageViewsLast7Days: raw.pageViewsLast7Days ?? 0,
     pageViewsByDay: raw.pageViewsByDay ?? emptyDays(),
@@ -37,7 +38,7 @@ export default async function AdminDashboardPage() {
         <h1 className="font-display text-3xl tracking-wide">Panel</h1>
         <div className="mt-2 max-w-2xl">
           <SectionCallout>
-            Resumen rápido para gestionar el día a día: sesiones, beats, visitas al sitio y producciones.
+            Resumen rápido para gestionar el día a día: sesiones, beats, visitas al sitio, producciones y tienda.
           </SectionCallout>
         </div>
       </div>

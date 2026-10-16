@@ -3,12 +3,48 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { Menu, X } from "lucide-react";
+import {
+  CalendarDays,
+  Disc3,
+  Globe,
+  LayoutDashboard,
+  LayoutGrid,
+  Menu,
+  Music2,
+  QrCode,
+  ShoppingBag,
+  Users,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import { AdminLogoutButton } from "@/features/admin/components/admin-logout-button";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export type AdminNavLink = { href: string; label: string };
+export type AdminNavIcon =
+  | "home"
+  | "globe"
+  | "sessions"
+  | "productions"
+  | "beats"
+  | "releases"
+  | "shop"
+  | "calendar"
+  | "qr";
+
+export type AdminNavLink = { href: string; label: string; icon?: AdminNavIcon };
+
+const NAV_ICONS: Record<AdminNavIcon, LucideIcon> = {
+  home: LayoutDashboard,
+  globe: Globe,
+  sessions: Users,
+  productions: LayoutGrid,
+  beats: Music2,
+  releases: Disc3,
+  shop: ShoppingBag,
+  calendar: CalendarDays,
+  qr: QrCode,
+};
 
 function isActiveRoute(pathname: string, href: string) {
   if (href === "/admin/dashboard") {
@@ -19,7 +55,7 @@ function isActiveRoute(pathname: string, href: string) {
 
 function linkClass(pathname: string, href: string) {
   return cn(
-    "rounded-md px-3 py-2 text-sm transition-colors",
+    "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors",
     isActiveRoute(pathname, href)
       ? "bg-background-elevated text-foreground"
       : "text-[var(--text-secondary)] hover:bg-background-elevated hover:text-foreground",
@@ -39,17 +75,27 @@ function AdminNavLinks({
 }) {
   return (
     <nav aria-label="Panel admin" className={cn("flex flex-col gap-1", className)}>
-      {links.map((l) => (
-        <Link
-          key={l.href}
-          href={l.href}
-          prefetch={true}
-          onClick={onItemClick}
-          className={linkClass(pathname, l.href)}
-        >
-          {l.label}
-        </Link>
-      ))}
+      {links.map((l) => {
+        const Icon = l.icon ? NAV_ICONS[l.icon] : null;
+        const active = isActiveRoute(pathname, l.href);
+        return (
+          <Link
+            key={l.href}
+            href={l.href}
+            prefetch={true}
+            onClick={onItemClick}
+            className={linkClass(pathname, l.href)}
+          >
+            {Icon ? (
+              <Icon
+                className={cn("h-4 w-4 shrink-0", active ? "text-primary" : "text-[var(--text-muted)]")}
+                aria-hidden
+              />
+            ) : null}
+            <span>{l.label}</span>
+          </Link>
+        );
+      })}
     </nav>
   );
 }

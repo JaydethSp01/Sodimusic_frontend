@@ -10,7 +10,9 @@ const routes = [
   { match: "/admin/dashboard/productions", title: "Producciones" },
   { match: "/admin/dashboard/beats", title: "Beats" },
   { match: "/admin/dashboard/releases", title: "Releases" },
+  { match: "/admin/dashboard/tienda", title: "Tienda" },
   { match: "/admin/dashboard/calendar", title: "Calendario" },
+  { match: "/admin/dashboard/qr", title: "Código QR" },
 ];
 
 export function AdminRouteHeader() {
@@ -29,7 +31,11 @@ export function AdminRouteHeader() {
           <h2 className="font-display text-2xl tracking-wide">{current}</h2>
         </div>
         <div className="text-sm text-[var(--text-secondary)]">
-          {pathname.includes("/site") ? "Personaliza lo que ve el usuario" : "Gestión rápida en tiempo real"}
+          {pathname.includes("/site")
+            ? "Personaliza lo que ve el usuario"
+            : pathname.includes("/qr")
+              ? "Genera y descarga el código de tu página"
+              : "Gestión rápida en tiempo real"}
         </div>
       </div>
       <div className="mt-4 h-px w-full bg-primary/10" />

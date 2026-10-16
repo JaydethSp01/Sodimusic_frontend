@@ -67,3 +67,27 @@ export interface BookingSessionRow {
   createdAt: string;
   updatedAt: string;
 }
+
+export type ProductStatus = "ACTIVE" | "DRAFT" | "SOLD_OUT";
+
+export interface Product {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  priceCOP: number;
+  /** Precio anterior (tachado) opcional */
+  compareAtCOP: number | null;
+  category: string;
+  /** URLs absolutas o /uploads/... (la primera es la portada) */
+  images: string[];
+  /** Tallas/variantes, p. ej. ["S","M","L"] */
+  sizes: string[];
+  /** null = sin control de inventario */
+  stock: number | null;
+  status: ProductStatus;
+  featured: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}

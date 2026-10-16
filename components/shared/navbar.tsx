@@ -9,14 +9,23 @@ import { ChevronRight, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useScrollCompact } from "@/lib/hooks/use-scroll-compact";
+import { CartButton } from "@/features/shop/components/cart-button";
 import type { SiteContent } from "@/types/site-content";
 
 const menuTransition = { type: "tween" as const, duration: 0.28, ease: [0.25, 0.1, 0.25, 1] as const };
 
-type NavbarSite = Pick<SiteContent, "brand" | "nav" | "hero">;
+type NavbarSite = Pick<SiteContent, "brand" | "nav" | "hero" | "shop">;
+
+function isShopHref(href: string): boolean {
+  return href === "/tienda" || href.startsWith("/tienda/") || href.startsWith("/tienda?");
+}
 
 export function Navbar({ site }: { site: NavbarSite }) {
-  const links = site.nav.links;
+  const shopEnabled = site.shop?.enabled === true;
+  const links =
+    shopEnabled && !site.nav.links.some((l) => isShopHref(l.href))
+      ? [...site.nav.links, { href: "/tienda", label: site.shop.navLabel || "Tienda" }]
+      : site.nav.links;
   const [open, setOpen] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
   const pathname = usePathname();
@@ -80,19 +89,23 @@ export function Navbar({ site }: { site: NavbarSite }) {
           {site.brand.logoText}
         </Link>
 
-        <nav aria-label="Principal" className="hidden items-center gap-8 md:flex">
-          {links.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className={cn(
-                "nav-link-underline text-sm transition-colors hover:text-primary",
-                pathname === l.href ? "text-primary" : "text-[var(--text-secondary)]",
-              )}
-            >
-              {l.label}
-            </Link>
-          ))}
+        <nav aria-label="Principal" className="hidden items-center gap-6 md:flex lg:gap-8">
+          {links.map((l) => {
+            const active = pathname === l.href || (l.href !== "/" && pathname.startsWith(`${l.href}/`));
+            return (
+              <Link
+                key={l.href}
+                href={l.href}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "nav-link-underline py-2 text-sm transition-colors hover:text-primary",
+                  active ? "text-primary" : "text-[var(--text-secondary)]",
+                )}
+              >
+                {l.label}
+              </Link>
+            );
+          })}
           <Button
             asChild
             size="sm"
@@ -100,20 +113,24 @@ export function Navbar({ site }: { site: NavbarSite }) {
           >
             <Link href={site.nav.ctaHref}>{site.nav.ctaLabel}</Link>
           </Button>
+          {shopEnabled ? <CartButton className="-mr-2" /> : null}
         </nav>
 
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="relative z-[101] min-h-12 min-w-12 touch-manipulation md:hidden"
-          aria-label={open ? "Cerrar menú" : "Abrir menú"}
-          aria-expanded={open}
-          aria-controls="mobile-navigation"
-          onClick={() => setOpen((v) => !v)}
-        >
-          {open ? <X className="h-7 w-7" /> : <Menu className="h-7 w-7" />}
-        </Button>
+        <div className="flex items-center gap-1 md:hidden">
+          {shopEnabled ? <CartButton /> : null}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="relative z-[101] min-h-12 min-w-12 touch-manipulation"
+            aria-label={open ? "Cerrar menú" : "Abrir menú"}
+            aria-expanded={open}
+            aria-controls="mobile-navigation"
+            onClick={() => setOpen((v) => !v)}
+          >
+            {open ? <X className="h-7 w-7" /> : <Menu className="h-7 w-7" />}
+          </Button>
+        </div>
       </div>
 
       {portalReady
@@ -173,7 +190,7 @@ export function Navbar({ site }: { site: NavbarSite }) {
                       </p>
                       <ul className="flex flex-col gap-0">
                         {links.map((l, i) => {
-                          const active = pathname === l.href;
+                          const active = pathname === l.href || (l.href !== "/" && pathname.startsWith(`${l.href}/`));
                           return (
                             <motion.li
                               key={l.href}
@@ -184,6 +201,7 @@ export function Navbar({ site }: { site: NavbarSite }) {
                               <Link
                                 href={l.href}
                                 onClick={() => setOpen(false)}
+                                aria-current={active ? "page" : undefined}
                                 className={cn(
                                   "group flex min-h-[3.5rem] items-center justify-between border-b border-white/[0.06] py-1 pr-1 transition-colors",
                                   active ? "text-primary" : "text-foreground",

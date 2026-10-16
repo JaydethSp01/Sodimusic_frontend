@@ -67,6 +67,11 @@
     @apply border-border;
   }
 
+  /* Fondo de respaldo: evita destellos blancos fuera del gradiente (p. ej. overscroll en móvil). */
+  html {
+    background-color: var(--background);
+  }
+
   body {
     @apply font-body antialiased text-foreground;
     background: radial-gradient(ellipse at top left, #1a0a00 0%, #080808 50%, #000d1a 100%);

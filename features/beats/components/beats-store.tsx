@@ -43,7 +43,7 @@ export function BeatsStore({ initialItems }: { initialItems: Beat[] }) {
       if (genre !== "Todos" && b.genre !== genre) {
         return false;
       }
-      if (onlyAvail && b.status !== "AVAILABLE") {
+      if (onlyAvail && b.status === "SOLD") {
         return false;
       }
       if (mood !== "Todos" && b.mood !== mood) {

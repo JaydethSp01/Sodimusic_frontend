@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { AdminDashboardNav } from "@/features/admin/components/admin-dashboard-nav";
+import { AdminDashboardNav, type AdminNavLink } from "@/features/admin/components/admin-dashboard-nav";
 import { AdminRouteHeader } from "@/features/admin/components/admin-route-header";
 
 export const dynamic = "force-dynamic";
@@ -11,14 +11,16 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
     redirect("/admin/login");
   }
 
-  const links = [
-    { href: "/admin/dashboard", label: "Resumen" },
-    { href: "/admin/dashboard/site", label: "Sitio web" },
-    { href: "/admin/dashboard/sessions", label: "Sesiones" },
-    { href: "/admin/dashboard/productions", label: "Producciones" },
-    { href: "/admin/dashboard/beats", label: "Beats" },
-    { href: "/admin/dashboard/releases", label: "Releases" },
-    { href: "/admin/dashboard/calendar", label: "Calendario" },
+  const links: AdminNavLink[] = [
+    { href: "/admin/dashboard", label: "Resumen", icon: "home" },
+    { href: "/admin/dashboard/site", label: "Sitio web", icon: "globe" },
+    { href: "/admin/dashboard/sessions", label: "Sesiones", icon: "sessions" },
+    { href: "/admin/dashboard/productions", label: "Producciones", icon: "productions" },
+    { href: "/admin/dashboard/beats", label: "Beats", icon: "beats" },
+    { href: "/admin/dashboard/releases", label: "Releases", icon: "releases" },
+    { href: "/admin/dashboard/tienda", label: "Tienda", icon: "shop" },
+    { href: "/admin/dashboard/calendar", label: "Calendario", icon: "calendar" },
+    { href: "/admin/dashboard/qr", label: "Código QR", icon: "qr" },
   ];
 
   return (

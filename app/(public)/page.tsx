@@ -13,10 +13,13 @@ import { StatsSection } from "@/components/landing/stats-section";
 import { GenresGrid } from "@/components/landing/genres-grid";
 import { HomeStoryTimeline } from "@/components/landing/home-story-timeline";
 import { HomeServicesSection } from "@/components/landing/home-services-section";
+import { HomeShopSection } from "@/components/landing/home-shop-section";
+import { YoutubeChannelsSection } from "@/components/landing/youtube-channels-section";
 import { SectionTitle } from "@/components/shared/section-title";
 import { ProductionCard } from "@/features/productions/components/production-card";
 import { Button } from "@/components/ui/button";
 import { fetchPublic } from "@/lib/api";
+import { fetchProducts } from "@/features/shop/api";
 import { getSiteContent } from "@/lib/site-config-server";
 import type { Production } from "@/types/models";
 import { Facebook, Instagram, Music2, Youtube } from "lucide-react";
@@ -56,17 +59,26 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 async function getFeaturedProductions(): Promise<Production[]> {
-  const res = await fetchPublic("/api/productions?featured=1&pageSize=3", { next: { revalidate: 60 } });
-  if (!res.ok) {
+  try {
+    const res = await fetchPublic("/api/productions?featured=1&pageSize=3", { next: { revalidate: 60 } });
+    if (!res.ok) {
+      return [];
+    }
+    const data = (await res.json()) as { items: Production[] };
+    return Array.isArray(data.items) ? data.items : [];
+  } catch {
     return [];
   }
-  const data = (await res.json()) as { items: Production[] };
-  return data.items;
 }
 
 export default async function HomePage() {
   const site = await getSiteContent();
-  const featured = await getFeaturedProductions();
+  const showShop = site.shop.enabled && site.shop.showOnHome;
+  const showYoutube = site.youtube.showOnHome && site.youtube.channels.length > 0;
+  const [featured, featuredProducts] = await Promise.all([
+    getFeaturedProductions(),
+    showShop ? fetchProducts({ featured: true, pageSize: 4 }).then((r) => r.items) : Promise.resolve([]),
+  ]);
 
   const whatsappUrl = `https://wa.me/${site.contact.whatsapp}`;
 
@@ -80,8 +92,8 @@ export default async function HomePage() {
       name: "María La Baja, Bolívar, Colombia",
     },
     genre: ["Champeta", "Trap", "Reggaeton", "Afrobeat", "Dancehall"],
-    url: "https://sodimusic.com",
-    sameAs: [site.social.facebook, site.social.youtube],
+    url: (process.env.NEXT_PUBLIC_SITE_URL ?? "https://sodimusic.com").replace(/\/$/, ""),
+    sameAs: [site.social.facebook, site.social.youtube, site.social.instagram, site.social.tiktok].filter(Boolean),
   };
 
   return (
@@ -102,7 +114,7 @@ export default async function HomePage() {
             <p className="max-w-prose border-l-2 border-primary pl-6 text-lg leading-[1.75] text-[var(--text-secondary)]">
               {site.home.aboutBody}
             </p>
-            <StatsSection />
+            <StatsSection stats={site.home.stats} />
           </div>
           <HomeFigureMotion className="relative min-h-[280px] overflow-hidden rounded-lg border border-border bg-background-card">
             <Image
@@ -145,13 +157,19 @@ export default async function HomePage() {
           <h2 id="feat-title" className="sr-only">
             Producciones destacadas
           </h2>
-          <HomeStagger className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {featured.map((p) => (
-              <HomeStaggerItem key={p.id}>
-                <ProductionCard production={p} />
-              </HomeStaggerItem>
-            ))}
-          </HomeStagger>
+          {featured.length ? (
+            <HomeStagger className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {featured.map((p) => (
+                <HomeStaggerItem key={p.id}>
+                  <ProductionCard production={p} />
+                </HomeStaggerItem>
+              ))}
+            </HomeStagger>
+          ) : (
+            <p className="rounded-lg border border-dashed border-border px-6 py-10 text-center text-[var(--text-secondary)]">
+              Pronto verás aquí las producciones destacadas.
+            </p>
+          )}
           <div className="mt-10 text-center">
             <Button asChild variant="outline">
               <Link href="/productions">{site.home.portfolioCta}</Link>
@@ -160,7 +178,13 @@ export default async function HomePage() {
         </div>
       </HomeFadeSection>
 
-      <HomeFadeSection className="px-4 py-20 lg:px-8" aria-labelledby="services-title">
+      {showYoutube ? (
+        <YoutubeChannelsSection youtube={site.youtube} className="border-t border-border" />
+      ) : null}
+
+      {showShop ? <HomeShopSection shop={site.shop} products={featuredProducts} /> : null}
+
+      <HomeFadeSection className="border-t border-border px-4 py-20 lg:px-8" aria-labelledby="services-title">
         <div className="mx-auto max-w-7xl">
           <SectionTitle
             title={site.home.servicesTitle}
@@ -170,7 +194,7 @@ export default async function HomePage() {
           <h2 id="services-title" className="sr-only">
             Servicios
           </h2>
-          <HomeServicesSection />
+          <HomeServicesSection services={site.booking.services} ctaHref={site.nav.ctaHref} />
         </div>
       </HomeFadeSection>
 

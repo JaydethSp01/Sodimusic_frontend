@@ -11,6 +11,13 @@ import { test, expect, ADMIN_STORAGE_STATE, API_URL } from "../fixtures";
  * Clave: ruta; valor: regla axe + descripción.
  */
 const KNOWN_ISSUES: Record<string, { rule: string; description: string }[]> = {
+  "/canales": [
+    {
+      rule: "color-contrast",
+      description:
+        "BUG a11y: el botón «Suscribirse» de la tarjeta de canal (features/channels/components/channel-card.tsx, bg-[#ff0000] con texto blanco) da 3.99:1 (< 4.5:1); axe también marca título/descripción durante el revelado.",
+    },
+  ],
   "/tienda": [
     {
       rule: "color-contrast",

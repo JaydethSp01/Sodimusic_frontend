@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { ChevronRight, Menu, X } from "lucide-react";
@@ -32,6 +32,8 @@ export function Navbar({ site }: { site: NavbarSite }) {
   const [panel, setPanel] = useState<PanelState>("closed");
   const open = panel === "open";
   const [portalReady, setPortalReady] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const openerRef = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
   const compact = useScrollCompact(32);
 
@@ -75,11 +77,47 @@ export function Navbar({ site }: { site: NavbarSite }) {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         closeMenu();
+        return;
+      }
+      // Trampa de foco: Tab/Shift+Tab se quedan dentro del diálogo.
+      if (e.key === "Tab" && dialogRef.current) {
+        const focusables = Array.from(
+          dialogRef.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'),
+        ).filter((el) => el.offsetParent !== null);
+        if (!focusables.length) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        const active = document.activeElement as HTMLElement | null;
+        if (!active || !dialogRef.current.contains(active)) {
+          e.preventDefault();
+          first.focus();
+        } else if (e.shiftKey && active === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && active === last) {
+          e.preventDefault();
+          first.focus();
+        }
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
+
+  // Foco inicial en el botón de cerrar al abrir; al cerrar, devolverlo al botón que abrió el menú.
+  useEffect(() => {
+    if (open) {
+      const t = window.setTimeout(() => {
+        const first = dialogRef.current?.querySelector<HTMLElement>('button[aria-label="Cerrar menú"]');
+        first?.focus();
+      }, 0);
+      return () => window.clearTimeout(t);
+    }
+    if (panel === "closing") {
+      openerRef.current?.focus();
+    }
+    return undefined;
+  }, [open, panel]);
 
   useEffect(() => {
     setPanel((p) => (p === "open" ? "closing" : p));
@@ -135,6 +173,7 @@ export function Navbar({ site }: { site: NavbarSite }) {
         <div className="flex items-center gap-1 md:hidden">
           {shopEnabled ? <CartButton /> : null}
           <Button
+            ref={openerRef}
             type="button"
             variant="ghost"
             size="icon"
@@ -152,6 +191,7 @@ export function Navbar({ site }: { site: NavbarSite }) {
       {portalReady && panel !== "closed"
         ? createPortal(
             <div
+              ref={dialogRef}
               id="mobile-navigation"
               role="dialog"
               aria-modal="true"

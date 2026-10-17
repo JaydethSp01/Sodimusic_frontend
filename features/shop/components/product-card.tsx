@@ -92,7 +92,7 @@ export function ProductCard({ product, priority = false, ivaIncluded = true, cla
         </div>
       </div>
       <div className="flex flex-1 flex-col p-3 sm:p-4">
-        <p className="font-mono text-[10px] uppercase tracking-widest text-[var(--text-muted)]">{product.category}</p>
+        <p className="font-mono text-[11px] uppercase tracking-widest text-[var(--text-secondary)]">{product.category}</p>
         <h3 className="mt-1 font-body text-base font-semibold leading-snug text-foreground">
           <Link
             href={`/tienda/${product.slug}`}
@@ -103,7 +103,7 @@ export function ProductCard({ product, priority = false, ivaIncluded = true, cla
           </Link>
         </h3>
         {ivaIncluded ? (
-          <p className="mt-auto pt-2 font-mono text-[10px] uppercase tracking-wider text-[var(--text-muted)]">IVA incluido</p>
+          <p className="mt-auto pt-2 font-mono text-[11px] uppercase tracking-wider text-[var(--text-secondary)]">IVA incluido</p>
         ) : null}
       </div>
     </article>

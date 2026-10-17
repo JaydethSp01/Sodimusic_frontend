@@ -1,12 +1,12 @@
-"use client";
-
-import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 
+/** Formulario POST a /logout (route handler fuera del middleware de auth). */
 export function AdminLogoutButton() {
   return (
-    <Button type="button" variant="outline" className="w-full" onClick={() => void signOut({ callbackUrl: "/" })}>
-      Cerrar sesión
-    </Button>
+    <form method="post" action="/logout" className="w-full">
+      <Button type="submit" variant="outline" className="w-full">
+        Cerrar sesión
+      </Button>
+    </form>
   );
 }

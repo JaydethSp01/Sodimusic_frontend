@@ -53,9 +53,8 @@ test.describe("Admin · login y logout", () => {
     await page.getByRole("button", { name: /iniciar sesión en el panel/i }).click();
     await expect(page).toHaveURL(/\/admin\/dashboard$/, { timeout: 30_000 });
 
-    const signout = page.waitForResponse((r) => r.url().includes("/api/auth/signout") && r.request().method() === "POST");
+    // El logout es una server action (auth.js v5 `signOut({ redirectTo })`): borra la cookie en el servidor y redirige.
     await page.getByRole("button", { name: /cerrar sesión/i }).click();
-    expect((await signout).status()).toBe(200);
     await expect(page).toHaveURL(/\/$/, { timeout: 45_000 });
 
     const sessionCookie = (await context.cookies()).find((c) => /session-token/.test(c.name));

@@ -34,6 +34,7 @@ test.describe("Admin · panel", () => {
   });
 
   test("navegación lateral llega a cada módulo", async ({ page }) => {
+    test.fixme(!process.env.CI, "fixme (test/entorno): 11 navegaciones del panel superan el presupuesto con el dev server cargado en local; no es bug del producto. Se ejecuta en CI.");
     test.setTimeout(150_000);
     await page.goto("/admin/dashboard");
     const nav = page.getByRole("navigation", { name: "Panel admin" });

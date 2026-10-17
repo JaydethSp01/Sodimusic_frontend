@@ -1,14 +1,17 @@
 "use client";
 
-import { SessionProvider } from "next-auth/react";
 import { Toaster } from "sonner";
 
-/** Proveedores solo del admin: sesión de next-auth y notificaciones (sonner). */
+/**
+ * Proveedores solo del admin: notificaciones (sonner).
+ * Sin `SessionProvider`: nadie usa `useSession` y su polling a /api/auth/session reemitía la cookie
+ * de sesión en paralelo al logout, dejando al usuario conectado.
+ */
 export function AdminProviders({ children }: { children: React.ReactNode }) {
   return (
-    <SessionProvider>
+    <>
       {children}
       <Toaster richColors position="top-center" theme="dark" />
-    </SessionProvider>
+    </>
   );
 }

@@ -161,7 +161,7 @@ export function ChannelCard({
             href={subscribeUrl(channel.url)}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex min-h-11 items-center gap-2 rounded-md bg-[#ff0000] px-4 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-px hover:bg-[#e60000] hover:shadow-[0_8px_24px_rgba(255,0,0,0.25)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transition-none"
+            className="inline-flex min-h-11 items-center gap-2 rounded-md bg-[#c4302b] px-4 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-px hover:bg-[#a8271f] hover:shadow-[0_8px_24px_rgba(196,48,43,0.3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transition-none"
             aria-label={`${subscribeLabel}: ${channel.name} en YouTube`}
           >
             <Youtube className="h-5 w-5" aria-hidden />

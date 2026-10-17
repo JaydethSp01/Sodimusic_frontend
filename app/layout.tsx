@@ -3,17 +3,26 @@ import { Bebas_Neue, DM_Sans, Syne_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 
+/**
+ * Fuentes: `display: "swap"` en todas y solo los pesos usados en el código
+ * (Bebas Neue y Syne Mono solo existen en 400; DM Sans se usa con
+ * font-normal/medium/semibold → 400/500/600). Solo se hace `preload` de la
+ * display principal (titulares/LCP); el resto se descarga sin bloquear.
+ */
 const bebasNeue = Bebas_Neue({
   weight: "400",
   subsets: ["latin"],
   variable: "--font-display",
   display: "swap",
+  preload: true,
 });
 
 const dmSans = DM_Sans({
+  weight: ["400", "500", "600"],
   subsets: ["latin"],
   variable: "--font-body",
   display: "swap",
+  preload: false,
 });
 
 const syneMono = Syne_Mono({
@@ -21,6 +30,7 @@ const syneMono = Syne_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
   display: "swap",
+  preload: false,
 });
 
 export const metadata: Metadata = {

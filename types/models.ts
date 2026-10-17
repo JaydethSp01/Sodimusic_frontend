@@ -20,8 +20,14 @@ export interface Beat {
   genre: string;
   bpm: number | null;
   mood: string | null;
+  /** Precio "desde" (licencia más barata) */
   priceCOP: number;
+  priceMp3COP?: number | null;
+  priceWavCOP?: number | null;
+  priceStemsCOP?: number | null;
+  priceExclusiveCOP?: number | null;
   status: string;
+  /** Preview de audio (MP3) */
   audioUrl: string | null;
   coverUrl: string | null;
   exclusive: boolean;
@@ -39,6 +45,13 @@ export interface Release {
   coverUrl: string | null;
   spotifyUrl: string | null;
   youtubeUrl: string | null;
+  appleUrl?: string | null;
+  deezerUrl?: string | null;
+  amazonUrl?: string | null;
+  tidalUrl?: string | null;
+  soundcloudUrl?: string | null;
+  /** ISO date */
+  releaseDate?: string | null;
   description: string | null;
   featured: boolean;
   /** true = aparece en /releases (próximos y adelantos). false = solo catálogo interno / producciones pasadas. */
@@ -90,4 +103,76 @@ export interface Product {
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export type ChannelStatus = "ACTIVE" | "HIDDEN";
+
+export interface YoutubeChannel {
+  id: string;
+  name: string;
+  url: string;
+  channelId: string | null;
+  handle: string | null;
+  description: string | null;
+  avatarUrl: string | null;
+  featuredVideoUrl: string | null;
+  category: string;
+  featured: boolean;
+  status: ChannelStatus;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Paginated<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export type ContactSubject = "PRENSA" | "DEMO" | "BOOKING_ARTISTA" | "COLABORACION" | "OTRO";
+export type ContactStatus = "NEW" | "READ" | "ARCHIVED";
+
+export interface ContactMessage {
+  id: string;
+  subject: ContactSubject | string;
+  name: string;
+  email: string;
+  phone: string | null;
+  message: string;
+  policyAcceptedAt: string;
+  policyVersion: string;
+  status: ContactStatus;
+  createdAt: string;
+}
+
+export type BeatLicenseType = "MP3" | "WAV" | "STEMS" | "EXCLUSIVE";
+
+export interface BeatInterestRow {
+  id: string;
+  beatId: string | null;
+  beatTitle: string;
+  artistName: string;
+  email: string;
+  phone: string | null;
+  instagram: string | null;
+  message: string | null;
+  exclusiveIntent: boolean;
+  licenseType: BeatLicenseType | null;
+  policyAcceptedAt: string;
+  policyVersion: string;
+  marketingOptIn: boolean;
+  createdAt: string;
+}
+
+export interface Subscriber {
+  id: string;
+  email: string;
+  name: string | null;
+  source: string;
+  policyAcceptedAt: string;
+  policyVersion: string;
+  unsubscribedAt: string | null;
+  createdAt: string;
 }

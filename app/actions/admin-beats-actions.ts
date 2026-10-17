@@ -1,6 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { publicTags } from "@/lib/api";
 import { fetchAdmin } from "@/lib/api-admin";
 import type { Beat } from "@/types/models";
 
@@ -10,7 +11,13 @@ type CreateBeatInput = {
   bpm?: number | null;
   mood?: string | null;
   priceCOP: number;
+  /** Precios por licencia (null = no se ofrece esa licencia) */
+  priceMp3COP?: number | null;
+  priceWavCOP?: number | null;
+  priceStemsCOP?: number | null;
+  priceExclusiveCOP?: number | null;
   status: "AVAILABLE" | "SOLD" | "EXCLUSIVE";
+  /** Preview MP3 */
   audioUrl?: string | null;
   coverUrl?: string | null;
   exclusive?: boolean;
@@ -30,6 +37,7 @@ export async function createBeatAction(input: CreateBeatInput): Promise<{ ok: bo
     return { ok: false, error: j.error ?? "Error al crear beat" };
   }
   const row = (await res.json()) as Beat;
+  revalidateTag(publicTags.beats);
   revalidatePath("/admin/dashboard/beats");
   revalidatePath("/beats");
   return { ok: true, row };
@@ -44,6 +52,7 @@ export async function patchBeatAction(id: string, input: PatchBeatInput): Promis
     const j = (await res.json().catch(() => ({}))) as { error?: string };
     return { ok: false, error: j.error ?? "Error al editar beat" };
   }
+  revalidateTag(publicTags.beats);
   revalidatePath("/admin/dashboard/beats");
   revalidatePath("/beats");
   return { ok: true };
@@ -55,6 +64,7 @@ export async function deleteBeatAction(id: string): Promise<{ ok: boolean; error
     const j = (await res.json().catch(() => ({}))) as { error?: string };
     return { ok: false, error: j.error ?? "Error al borrar beat" };
   }
+  revalidateTag(publicTags.beats);
   revalidatePath("/admin/dashboard/beats");
   revalidatePath("/beats");
   return { ok: true };

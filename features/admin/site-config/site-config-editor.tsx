@@ -3,15 +3,8 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowUp, ExternalLink } from "lucide-react";
-import type {
-  SiteContent,
-  SiteCrewMember,
-  SiteMilestone,
-  SiteNavLink,
-  SiteStat,
-  SiteYoutubeChannel,
-} from "@/types/site-content";
+import { ExternalLink } from "lucide-react";
+import type { SiteContent, SiteCrewMember, SiteMilestone, SiteNavLink, SiteStat } from "@/types/site-content";
 import { saveSiteDraftAction, publishSiteAction } from "@/app/actions/site-config-actions";
 import { setSitePreview } from "@/app/actions/site-preview";
 import { Button } from "@/components/ui/button";
@@ -21,6 +14,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionCallout } from "@/components/shared/section-callout";
 import { ImageUploadField } from "@/features/admin/components/image-upload-field";
+import { SITE_CONTENT_DEFAULTS } from "@/lib/site-defaults";
+import { Field, SECTION_CARD, SubsectionTitle } from "./editor-field";
+import { LegalCard } from "./legal-card";
+import { ContactPageCard } from "./contact-page-card";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -31,6 +28,8 @@ const SECTIONS: { id: string; label: string }[] = [
   { id: "site-section-youtube", label: "YouTube" },
   { id: "site-section-shop", label: "Tienda" },
   { id: "site-section-footer", label: "Pie y contacto" },
+  { id: "site-section-legal", label: "Legal" },
+  { id: "site-section-contact-page", label: "Contacto y prensa" },
   { id: "site-section-seo", label: "SEO y redes" },
   { id: "site-section-qr", label: "Código QR" },
   { id: "site-section-booking", label: "Booking" },
@@ -42,39 +41,6 @@ const SECTIONS: { id: string; label: string }[] = [
   { id: "site-section-release-detail", label: "Ficha release" },
 ];
 
-/** Extrae el ID de canal (UC…) de una URL de YouTube tipo /channel/UC… */
-function extractYoutubeChannelId(url: string): string | null {
-  const m = url.match(/\/channel\/(UC[A-Za-z0-9_-]{20,})/);
-  return m ? m[1] : null;
-}
-
-const CHANNEL_ID_HELP =
-  "En YouTube Studio → Configuración → Canal → Ajustes avanzados; empieza por UC. Si pegas una URL /channel/UC… se rellena solo.";
-
-const SECTION_CARD = "scroll-mt-36 md:scroll-mt-28";
-
-function Field({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block space-y-1.5">
-      <span className="text-xs font-medium text-[var(--text-secondary)]">{label}</span>
-      {children}
-      {hint ? <span className="block text-[11px] text-[var(--text-muted)]">{hint}</span> : null}
-    </label>
-  );
-}
-
-function SubsectionTitle({ children }: { children: React.ReactNode }) {
-  return <p className="text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">{children}</p>;
-}
-
 export function SiteConfigEditor({
   initialDraft,
   publishedAt,
@@ -85,7 +51,12 @@ export function SiteConfigEditor({
   draftUpdatedAt: string;
 }) {
   const router = useRouter();
-  const [c, setC] = useState<SiteContent>(initialDraft);
+  const [c, setC] = useState<SiteContent>(() => ({
+    ...initialDraft,
+    youtube: { ...SITE_CONTENT_DEFAULTS.youtube, ...initialDraft.youtube },
+    legal: { ...SITE_CONTENT_DEFAULTS.legal, ...(initialDraft.legal ?? {}) },
+    contactPage: { ...SITE_CONTENT_DEFAULTS.contactPage, ...(initialDraft.contactPage ?? {}) },
+  }));
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -165,49 +136,6 @@ export function SiteConfigEditor({
       const members = [...prev.artists.members];
       members[i] = { ...members[i], ...patch };
       return { ...prev, artists: { ...prev.artists, members } };
-    });
-  }
-
-  function updateChannel(i: number, patch: Partial<SiteYoutubeChannel>) {
-    setC((prev) => {
-      const channels = [...prev.youtube.channels];
-      channels[i] = { ...channels[i], ...patch };
-      return { ...prev, youtube: { ...prev.youtube, channels } };
-    });
-  }
-
-  function onChannelUrlChange(i: number, url: string) {
-    const id = extractYoutubeChannelId(url);
-    updateChannel(i, id ? { url, channelId: id } : { url });
-  }
-
-  function addChannel() {
-    setC((prev) => ({
-      ...prev,
-      youtube: {
-        ...prev.youtube,
-        channels: [
-          ...prev.youtube.channels,
-          { name: "Nuevo canal", url: "", channelId: "", description: "", avatarUrl: "", featuredVideoUrl: "" },
-        ],
-      },
-    }));
-  }
-
-  function removeChannel(i: number) {
-    setC((prev) => ({
-      ...prev,
-      youtube: { ...prev.youtube, channels: prev.youtube.channels.filter((_, j) => j !== i) },
-    }));
-  }
-
-  function moveChannel(i: number, dir: -1 | 1) {
-    setC((prev) => {
-      const channels = [...prev.youtube.channels];
-      const t = i + dir;
-      if (t < 0 || t >= channels.length) return prev;
-      [channels[i], channels[t]] = [channels[t], channels[i]];
-      return { ...prev, youtube: { ...prev.youtube, channels } };
     });
   }
 
@@ -552,10 +480,13 @@ export function SiteConfigEditor({
           <CardTitle className="font-display text-xl">Canales de YouTube</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-xs text-[var(--text-muted)]">
-            Los canales se muestran en el inicio (si está activado) y en la página de artistas. Con el ID de canal se incrusta
-            la lista de subidas sin necesidad de API key.
-          </p>
+          <SectionCallout>
+            Los canales ahora se gestionan en{" "}
+            <Link href="/admin/dashboard/canales" className="inline-flex items-center gap-1 text-primary underline underline-offset-2">
+              Admin → Canales <ExternalLink className="h-3 w-3" aria-hidden />
+            </Link>
+            . Aquí solo se editan los textos de la sección del inicio y de la página <code className="font-mono text-xs">/canales</code>.
+          </SectionCallout>
           <label className="flex items-center gap-2 text-sm">
             <Checkbox
               checked={c.youtube.showOnHome}
@@ -591,82 +522,42 @@ export function SiteConfigEditor({
             />
           </Field>
 
-          <div className="space-y-3">
-            <SubsectionTitle>Canales</SubsectionTitle>
-            {c.youtube.channels.length === 0 ? (
-              <p className="text-xs text-[var(--text-muted)]">No hay canales. Añade al menos uno para mostrar la sección.</p>
-            ) : null}
-            <div className="space-y-4">
-              {c.youtube.channels.map((ch, idx) => (
-                <div key={idx} className="space-y-3 rounded-lg border border-border bg-background-card p-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-medium text-[var(--text-secondary)]">
-                      Canal {idx + 1}
-                      {ch.name ? ` · ${ch.name}` : ""}
-                    </p>
-                    <div className="flex items-center gap-1">
-                      <Button type="button" variant="ghost" size="icon" className="h-8 w-8" aria-label="Subir" disabled={idx === 0} onClick={() => moveChannel(idx, -1)}>
-                        <ArrowUp className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        aria-label="Bajar"
-                        disabled={idx === c.youtube.channels.length - 1}
-                        onClick={() => moveChannel(idx, 1)}
-                      >
-                        <ArrowDown className="h-4 w-4" />
-                      </Button>
-                      <Button type="button" variant="ghost" size="sm" onClick={() => removeChannel(idx)}>
-                        Quitar
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <Field label="Nombre">
-                      <Input value={ch.name} onChange={(e) => updateChannel(idx, { name: e.target.value })} />
-                    </Field>
-                    <Field label="URL del canal" hint="Si contiene /channel/UC… el ID se rellena solo.">
-                      <Input
-                        value={ch.url}
-                        onChange={(e) => onChannelUrlChange(idx, e.target.value)}
-                        placeholder="https://www.youtube.com/channel/UC… o https://www.youtube.com/@usuario"
-                      />
-                    </Field>
-                    <Field label="ID de canal (UC…)" hint={CHANNEL_ID_HELP}>
-                      <Input
-                        value={ch.channelId ?? ""}
-                        onChange={(e) => updateChannel(idx, { channelId: e.target.value.trim() })}
-                        placeholder="UCxxxxxxxxxxxxxxxxxxxxxx"
-                        className="font-mono"
-                      />
-                    </Field>
-                    <Field label="Video destacado (URL de YouTube)" hint="Opcional. Si falta se muestra la lista de subidas.">
-                      <Input
-                        value={ch.featuredVideoUrl ?? ""}
-                        onChange={(e) => updateChannel(idx, { featuredVideoUrl: e.target.value })}
-                        placeholder="https://www.youtube.com/watch?v=…"
-                      />
-                    </Field>
-                  </div>
-                  <Field label="Descripción">
-                    <Textarea rows={2} value={ch.description ?? ""} onChange={(e) => updateChannel(idx, { description: e.target.value })} />
-                  </Field>
-                  <ImageUploadField
-                    label="Avatar del canal"
-                    aspect="square"
-                    value={ch.avatarUrl ?? ""}
-                    onChange={(v) => updateChannel(idx, { avatarUrl: v })}
-                    hint="Cuadrado, mínimo 200×200. Opcional."
-                  />
-                </div>
-              ))}
-              <Button type="button" variant="outline" size="sm" onClick={addChannel}>
-                Añadir canal
-              </Button>
-            </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Canales destacados en el inicio (máximo)" hint="Se muestran los canales marcados como destacados, hasta este número.">
+              <Input
+                type="number"
+                min={1}
+                max={24}
+                value={c.youtube.homeLimit}
+                onChange={(e) =>
+                  setC((p) => ({
+                    ...p,
+                    youtube: { ...p.youtube, homeLimit: Math.max(1, Math.min(24, Math.round(Number(e.target.value)) || 1)) },
+                  }))
+                }
+              />
+            </Field>
+            <Field label="Texto del enlace «ver todos»" hint="Se le añade el total entre paréntesis, p. ej. «Ver todos los canales (12)».">
+              <Input
+                value={c.youtube.allChannelsLabel}
+                onChange={(e) => setC((p) => ({ ...p, youtube: { ...p.youtube, allChannelsLabel: e.target.value } }))}
+              />
+            </Field>
+          </div>
+          <SubsectionTitle>Página /canales</SubsectionTitle>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Título">
+              <Input
+                value={c.youtube.pageTitle}
+                onChange={(e) => setC((p) => ({ ...p, youtube: { ...p.youtube, pageTitle: e.target.value } }))}
+              />
+            </Field>
+            <Field label="Descripción (también meta descripción)">
+              <Input
+                value={c.youtube.pageDescription}
+                onChange={(e) => setC((p) => ({ ...p, youtube: { ...p.youtube, pageDescription: e.target.value } }))}
+              />
+            </Field>
           </div>
         </CardContent>
       </Card>
@@ -834,6 +725,13 @@ export function SiteConfigEditor({
         </CardContent>
       </Card>
 
+      <LegalCard legal={c.legal} onChange={(patch) => setC((p) => ({ ...p, legal: { ...p.legal, ...patch } }))} />
+
+      <ContactPageCard
+        contactPage={c.contactPage}
+        onChange={(patch) => setC((p) => ({ ...p, contactPage: { ...p.contactPage, ...patch } }))}
+      />
+
       <Card id="site-section-seo" className={SECTION_CARD}>
         <CardHeader>
           <CardTitle className="font-display text-xl">SEO y redes</CardTitle>
@@ -996,6 +894,36 @@ export function SiteConfigEditor({
                       }
                     />
                   </Field>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Field label="Precio «desde» (COP, sin puntos)" hint="Vacío = sin precio público. Se muestra con «IVA incluido» si está activo en Legal.">
+                      <Input
+                        type="number"
+                        min={0}
+                        step={1000}
+                        value={svc.priceFromCOP ?? ""}
+                        onChange={(e) =>
+                          setC((p) => {
+                            const next = [...p.booking.services];
+                            const n = Math.round(Number(e.target.value));
+                            next[idx] = { ...next[idx], priceFromCOP: e.target.value === "" || !Number.isFinite(n) ? undefined : Math.max(0, n) };
+                            return { ...p, booking: { ...p.booking, services: next } };
+                          })
+                        }
+                      />
+                    </Field>
+                    <Field label="Nota del precio" hint="Ej: «por hora», «por canción», «por proyecto».">
+                      <Input
+                        value={svc.priceNote ?? ""}
+                        onChange={(e) =>
+                          setC((p) => {
+                            const next = [...p.booking.services];
+                            next[idx] = { ...next[idx], priceNote: e.target.value };
+                            return { ...p, booking: { ...p.booking, services: next } };
+                          })
+                        }
+                      />
+                    </Field>
+                  </div>
                   <div className="flex justify-end">
                     <Button
                       type="button"
@@ -1193,7 +1121,24 @@ export function SiteConfigEditor({
                         placeholder="https://youtube.com/@…"
                       />
                     </Field>
+                    <Field label="Spotify (URL)">
+                      <Input
+                        value={m.spotifyUrl ?? ""}
+                        onChange={(e) => updateMember(idx, { spotifyUrl: e.target.value })}
+                        placeholder="https://open.spotify.com/artist/…"
+                      />
+                    </Field>
+                    <Field label="TikTok (URL)">
+                      <Input
+                        value={m.tiktokUrl ?? ""}
+                        onChange={(e) => updateMember(idx, { tiktokUrl: e.target.value })}
+                        placeholder="https://www.tiktok.com/@…"
+                      />
+                    </Field>
                   </div>
+                  <Field label="Rol en el crew" hint="Ej: Artista, Productor, Ingeniero de mezcla. Opcional.">
+                    <Input value={m.role ?? ""} onChange={(e) => updateMember(idx, { role: e.target.value })} placeholder="Artista" />
+                  </Field>
                   <div className="flex justify-end">
                     <Button
                       type="button"

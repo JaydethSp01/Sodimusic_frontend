@@ -3,22 +3,33 @@ import { Footer } from "@/components/shared/footer";
 import { SitePreviewBanner } from "@/components/shared/site-preview-banner";
 import { PageViewTracker } from "@/components/public/page-view-tracker";
 import { getSiteContent } from "@/lib/site-config-server";
-import { CartDrawer } from "@/features/shop/components/cart-drawer";
+import { CartDrawerLazy } from "@/features/shop/components/cart-drawer-lazy";
+import { FloatingWhatsapp } from "@/components/shared/floating-whatsapp";
+import { RevealNoScriptFallback } from "@/components/shared/reveal-item";
 
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
   const site = await getSiteContent();
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
   return (
     <>
+      <RevealNoScriptFallback />
       <PageViewTracker />
       <Navbar site={site} />
       <main id="contenido-principal" className="relative z-[2]">
         {children}
       </main>
       <Footer site={site} />
+      <FloatingWhatsapp
+        config={{
+          enabled: site.legal?.floatingWhatsapp ?? true,
+          phone: site.legal?.phone || site.contact.whatsapp,
+          businessName: site.legal?.businessName ?? site.brand.logoText,
+        }}
+      />
       {site.shop.enabled ? (
-        <CartDrawer
+        <CartDrawerLazy
           whatsappPhone={site.contact.whatsapp}
+          ivaIncluded={site.legal?.ivaIncluded ?? true}
           whatsappIntro={site.shop.whatsappOrderIntro}
           orderCtaLabel={site.shop.orderCtaLabel}
           shippingNote={site.shop.shippingNote}

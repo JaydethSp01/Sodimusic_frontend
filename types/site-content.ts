@@ -12,6 +12,50 @@ export type SiteCrewMember = {
   imageUrl?: string;
   instagramUrl?: string;
   youtubeUrl?: string;
+  spotifyUrl?: string;
+  tiktokUrl?: string;
+  role?: string;
+};
+
+export type SiteLegal = {
+  /** Nombre comercial */
+  businessName: string;
+  /** Razón social o nombre del comerciante persona natural; "" = pendiente */
+  legalName: string;
+  nit: string;
+  address: string;
+  city: string;
+  country: string;
+  /** Correo de PQR / datos personales */
+  email: string;
+  /** WhatsApp E.164 sin + */
+  phone: string;
+  hours: string;
+  ivaIncluded: boolean;
+  ivaResponsible: boolean;
+  /** Anticipo del estudio, 0–100 */
+  depositPercent: number;
+  cancellationHours: number;
+  policyVersion: string;
+  termsVersion: string;
+  showNewsletter: boolean;
+  newsletterTitle: string;
+  newsletterSubtitle: string;
+  newsletterCtaLabel: string;
+  floatingWhatsapp: boolean;
+};
+
+export type SiteContactSubject = { value: string; label: string };
+
+export type SiteContact = {
+  pageTitle: string;
+  pageDescription: string;
+  subjects: SiteContactSubject[];
+  pressTitle: string;
+  pressBody: string;
+  pressLogoUrl: string;
+  pressPhotoUrls: string[];
+  pressKitUrl: string;
 };
 
 export type SiteYoutubeChannel = {
@@ -94,7 +138,7 @@ export type SiteContent = {
     heroTitle: string;
     heroDescription: string;
     stepLabels: string[];
-    services: { type: string; icon: string; title: string; desc: string }[];
+    services: { type: string; icon: string; title: string; desc: string; priceFromCOP?: number; priceNote?: string }[];
     genreChips: string[];
   };
   artists: {
@@ -158,8 +202,16 @@ export type SiteContent = {
     sectionTitle: string;
     sectionSubtitle: string;
     subscribeLabel: string;
+    /** Máximo de canales destacados en el home */
+    homeLimit: number;
+    allChannelsLabel: string;
+    pageTitle: string;
+    pageDescription: string;
+    /** Obsoleto: los canales viven en /api/channels. Se conserva para datos antiguos. */
     channels: SiteYoutubeChannel[];
   };
+  legal: SiteLegal;
+  contactPage: SiteContact;
   /** Tienda / marketplace de merch (los productos viven en la API: /api/products) */
   shop: {
     enabled: boolean;

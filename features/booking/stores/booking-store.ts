@@ -15,6 +15,11 @@ export interface BookingStore {
   phone: string;
   email: string;
   instagram: string;
+  /** null = sin responder */
+  isAdult: boolean | null;
+  policyAccepted: boolean;
+  cancellationAccepted: boolean;
+  marketingOptIn: boolean;
   setStep: (step: number) => void;
   setField: <K extends keyof BookingStore>(key: K, value: BookingStore[K]) => void;
   reset: () => void;
@@ -34,6 +39,10 @@ const initial: Omit<BookingStore, "setStep" | "setField" | "reset"> = {
   phone: "",
   email: "",
   instagram: "",
+  isAdult: null,
+  policyAccepted: false,
+  cancellationAccepted: false,
+  marketingOptIn: false,
 };
 
 export const useBookingStore = create<BookingStore>((set) => ({

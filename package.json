@@ -9,7 +9,12 @@
     "start": "next start",
     "lint": "next lint",
     "format": "prettier --write .",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:public": "playwright test e2e/public",
+    "test:e2e:admin": "playwright test e2e/admin --project=chromium",
+    "test:e2e:a11y": "playwright test e2e/a11y",
+    "test:e2e:update-snapshots": "playwright test e2e/a11y/visual.spec.ts --update-snapshots"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -35,7 +40,6 @@
     "next-auth": "^5.0.0-beta.30",
     "qrcode": "^1.5.4",
     "react": "^18",
-    "react-countup": "^6.5.3",
     "react-day-picker": "^9.14.0",
     "react-dom": "^18",
     "react-hook-form": "^7.72.0",
@@ -46,6 +50,7 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
     "@playwright/test": "^1.49.1",
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20",

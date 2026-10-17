@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { LazyMotion, domAnimation, m } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { WHATSAPP_URL } from "@/lib/constants";
 import type { SiteContent } from "@/types/site-content";
@@ -41,8 +41,9 @@ export function BookingSuccessView({
   }, []);
 
   return (
+    <LazyMotion features={domAnimation}>
     <section className="mx-auto max-w-xl px-4 py-24 text-center">
-      <motion.div
+      <m.div
         className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border-2 border-primary/40 bg-primary/10"
         initial={{ scale: 0.6, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -50,7 +51,7 @@ export function BookingSuccessView({
         aria-hidden
       >
         <svg className="h-10 w-10 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <motion.path
+          <m.path
             d="M5 13l4 4L19 7"
             initial={{ pathLength: 0 }}
             animate={{ pathLength: 1 }}
@@ -59,7 +60,7 @@ export function BookingSuccessView({
             strokeLinejoin="round"
           />
         </svg>
-      </motion.div>
+      </m.div>
       <p className="mt-8 font-mono text-xs uppercase tracking-widest text-primary">{copy.eyebrow}</p>
       <h1 className="mt-4 font-display text-6xl tracking-wide text-primary md:text-7xl">{code}</h1>
       <p className="mt-6 text-[var(--text-secondary)]">{copy.body}</p>
@@ -81,5 +82,6 @@ export function BookingSuccessView({
         </Link>
       </div>
     </section>
+    </LazyMotion>
   );
 }

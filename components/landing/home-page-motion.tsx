@@ -1,7 +1,12 @@
-"use client";
+import { Reveal } from "@/components/shared/reveal";
+import { RevealItem } from "@/components/shared/reveal-item";
 
-import { motion } from "framer-motion";
-import { fadeInUp, staggerContainer } from "@/lib/animations";
+/**
+ * Envoltorios de revelado del home (y de /tienda, /canales): antes `motion.*` + `whileInView` de
+ * framer-motion; ahora `Reveal`/`RevealItem` (IntersectionObserver + CSS, ver `components/shared/reveal.tsx`).
+ * Sin "use client": `RevealItem` se renderiza en servidor y solo `Reveal` lleva JS.
+ */
+export { RevealNoScriptFallback } from "@/components/shared/reveal-item";
 
 export function HomeFadeSection({
   className,
@@ -17,18 +22,9 @@ export function HomeFadeSection({
   "aria-label"?: string;
 }) {
   return (
-    <motion.section
-      className={className}
-      id={id}
-      aria-labelledby={ariaLabelledBy}
-      aria-label={ariaLabel}
-      variants={fadeInUp}
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: "-56px" }}
-    >
+    <Reveal as="section" className={className} id={id} aria-labelledby={ariaLabelledBy} aria-label={ariaLabel}>
       {children}
-    </motion.section>
+    </Reveal>
   );
 }
 
@@ -40,15 +36,9 @@ export function HomeFigureMotion({
   children: React.ReactNode;
 }) {
   return (
-    <motion.figure
-      className={className}
-      initial={{ opacity: 0, scale: 0.985 }}
-      whileInView={{ opacity: 1, scale: 1 }}
-      viewport={{ once: true, margin: "-48px" }}
-      transition={{ duration: 0.75, ease: [0.25, 0.1, 0.25, 1] }}
-    >
+    <Reveal as="figure" variant="figure" className={className}>
       {children}
-    </motion.figure>
+    </Reveal>
   );
 }
 
@@ -60,22 +50,12 @@ export function HomeStagger({
   children: React.ReactNode;
 }) {
   return (
-    <motion.div
-      className={className}
-      variants={staggerContainer}
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: "-40px" }}
-    >
+    <Reveal variant="stagger" className={className}>
       {children}
-    </motion.div>
+    </Reveal>
   );
 }
 
 export function HomeStaggerItem({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <motion.div variants={fadeInUp} className={className}>
-      {children}
-    </motion.div>
-  );
+  return <RevealItem className={className}>{children}</RevealItem>;
 }

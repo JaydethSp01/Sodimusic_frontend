@@ -8,7 +8,7 @@ test.describe("Humo público (regresión UI)", () => {
   });
 
   test("beats, producciones, lanzamientos responden 200", async ({ page }) => {
-    for (const path of ["/beats", "/productions", "/releases", "/booking", "/artists", "/tienda"]) {
+    for (const path of ["/beats", "/productions", "/releases", "/booking", "/artists", "/tienda", "/canales", "/contacto", "/legal/privacidad", "/legal/terminos-tienda", "/legal/terminos-estudio", "/legal/licencia-beats", "/legal/aviso-legal"]) {
       const res = await page.goto(path, { waitUntil: "domcontentloaded" });
       expect(res?.ok(), `${path} debe responder OK`).toBeTruthy();
     }

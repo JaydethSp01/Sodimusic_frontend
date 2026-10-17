@@ -7,13 +7,16 @@ import {
   CalendarDays,
   Disc3,
   Globe,
+  Inbox,
   LayoutDashboard,
   LayoutGrid,
+  Mail,
   Menu,
   Music2,
   QrCode,
   ShoppingBag,
   Users,
+  Youtube,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -29,10 +32,13 @@ export type AdminNavIcon =
   | "beats"
   | "releases"
   | "shop"
+  | "channels"
   | "calendar"
-  | "qr";
+  | "qr"
+  | "inbox"
+  | "mail";
 
-export type AdminNavLink = { href: string; label: string; icon?: AdminNavIcon };
+export type AdminNavLink = { href: string; label: string; icon?: AdminNavIcon; badge?: number };
 
 const NAV_ICONS: Record<AdminNavIcon, LucideIcon> = {
   home: LayoutDashboard,
@@ -42,8 +48,11 @@ const NAV_ICONS: Record<AdminNavIcon, LucideIcon> = {
   beats: Music2,
   releases: Disc3,
   shop: ShoppingBag,
+  channels: Youtube,
   calendar: CalendarDays,
   qr: QrCode,
+  inbox: Inbox,
+  mail: Mail,
 };
 
 function isActiveRoute(pathname: string, href: string) {
@@ -93,6 +102,14 @@ function AdminNavLinks({
               />
             ) : null}
             <span>{l.label}</span>
+            {typeof l.badge === "number" && l.badge > 0 ? (
+              <span
+                className="ml-auto inline-flex min-w-[1.5rem] items-center justify-center rounded-full bg-primary px-1.5 py-0.5 font-mono text-[10px] font-semibold leading-none text-[#120a04]"
+                aria-label={`${l.badge} nuevos`}
+              >
+                {l.badge > 99 ? "99+" : l.badge}
+              </span>
+            ) : null}
           </Link>
         );
       })}

@@ -1,33 +1,31 @@
-"use client";
-
 import Image from "next/image";
-import { motion } from "framer-motion";
 import { Instagram, Youtube } from "lucide-react";
-import { fadeInUp, staggerContainer } from "@/lib/animations";
 import { PlaceholderCover } from "@/components/shared/placeholder-cover";
+import { Reveal } from "@/components/shared/reveal";
+import { RevealItem } from "@/components/shared/reveal-item";
+import { COVER_IMAGE_PROPS } from "@/lib/image-blur";
+import { genreColor } from "@/lib/genre-colors";
 import { resolveMediaUrl } from "@/lib/resolve-media-url";
 import { cn } from "@/lib/utils";
 import type { SiteCrewMember } from "@/types/site-content";
 
 export type CrewMember = SiteCrewMember;
 
+const socialBtn =
+  "flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white backdrop-blur-sm transition-colors hover:border-primary hover:bg-primary hover:text-[var(--primary-foreground)]";
+
 export function ArtistsCrewGrid({ members }: { members: SiteCrewMember[] }) {
   return (
-    <motion.ul
-      className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
-      variants={staggerContainer}
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: "-40px" }}
-    >
+    <Reveal as="ul" variant="stagger" className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
       {members.map((m) => {
         const hasLinks = !!(m.instagramUrl?.trim() || m.youtubeUrl?.trim());
+        const color = genreColor(m.genre);
         return (
-          <motion.li key={m.name} variants={fadeInUp}>
+          <RevealItem as="li" key={m.name} className="h-full">
             <article
               className={cn(
-                "group flex h-full flex-col overflow-hidden rounded-lg border border-border bg-background-card transition-all duration-300",
-                "hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_12px_40px_rgba(255,107,0,0.12)]",
+                "group relative flex h-full flex-col overflow-hidden rounded-lg border border-border bg-background-card transition-all duration-300",
+                "hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_18px_48px_-12px_rgba(255,107,0,0.25)]",
               )}
             >
               <div className="relative aspect-[4/5] w-full overflow-hidden">
@@ -36,49 +34,62 @@ export function ArtistsCrewGrid({ members }: { members: SiteCrewMember[] }) {
                     src={resolveMediaUrl(m.imageUrl)}
                     alt={`Foto de ${m.name}`}
                     fill
-                    className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                    {...COVER_IMAGE_PROPS}
+                    className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                   />
                 ) : (
-                  <PlaceholderCover seed={m.name} className="absolute inset-0" />
+                  <PlaceholderCover seed={m.name} label={m.name} className="absolute inset-0" />
                 )}
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/70 to-transparent" aria-hidden />
-              </div>
-              <div className="flex flex-1 flex-col p-4">
-                <h3 className="font-display text-2xl text-foreground">{m.name}</h3>
-                <p className="mt-1 font-mono text-xs uppercase tracking-widest text-primary">{m.genre}</p>
-                <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)]">{m.bio}</p>
-                {hasLinks ? (
-                  <div className="mt-auto flex gap-2 pt-4">
-                    {m.instagramUrl?.trim() ? (
-                      <a
-                        href={m.instagramUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 text-[var(--text-secondary)] transition-colors hover:border-primary/40 hover:text-primary"
-                        aria-label={`Instagram de ${m.name}`}
-                      >
-                        <Instagram className="h-5 w-5" aria-hidden />
-                      </a>
-                    ) : null}
-                    {m.youtubeUrl?.trim() ? (
-                      <a
-                        href={m.youtubeUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 text-[var(--text-secondary)] transition-colors hover:border-primary/40 hover:text-primary"
-                        aria-label={`YouTube de ${m.name}`}
-                      >
-                        <Youtube className="h-5 w-5" aria-hidden />
-                      </a>
-                    ) : null}
+                <div
+                  className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(8,8,8,0)_40%,rgba(8,8,8,0.55)_75%,rgba(8,8,8,0.95)_100%)]"
+                  aria-hidden
+                />
+                <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-5">
+                  <div className="min-w-0">
+                    <p
+                      className="font-mono text-[10px] uppercase tracking-[0.25em]"
+                      style={{ color: color.fg }}
+                    >
+                      {m.genre}
+                    </p>
+                    <h3 className="display-title mt-1 truncate text-3xl text-white md:text-4xl">{m.name}</h3>
                   </div>
-                ) : null}
+                  {hasLinks ? (
+                    <div className="flex shrink-0 gap-2">
+                      {m.instagramUrl?.trim() ? (
+                        <a
+                          href={m.instagramUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={socialBtn}
+                          aria-label={`Instagram de ${m.name}`}
+                        >
+                          <Instagram className="h-5 w-5" aria-hidden />
+                        </a>
+                      ) : null}
+                      {m.youtubeUrl?.trim() ? (
+                        <a
+                          href={m.youtubeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={socialBtn}
+                          aria-label={`YouTube de ${m.name}`}
+                        >
+                          <Youtube className="h-5 w-5" aria-hidden />
+                        </a>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
               </div>
+              {m.bio?.trim() ? (
+                <p className="p-5 text-sm leading-relaxed text-[var(--text-secondary)]">{m.bio}</p>
+              ) : null}
             </article>
-          </motion.li>
+          </RevealItem>
         );
       })}
-    </motion.ul>
+    </Reveal>
   );
 }

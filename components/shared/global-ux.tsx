@@ -21,18 +21,22 @@ function useScrollProgress() {
   return p;
 }
 
+/**
+ * UX global: barra de progreso de scroll.
+ * El botón flotante de WhatsApp se monta en el layout público con la configuración del sitio
+ * (ver `app/(public)/layout.tsx`), así no hace falta un fetch extra en el cliente.
+ */
 export function GlobalUX() {
   const progress = useScrollProgress();
 
   return (
-    <div
-      className="pointer-events-none fixed left-0 top-0 z-[100] h-0.5 w-full bg-primary/20"
-      aria-hidden
-    >
-      <div
-        className="pointer-events-none h-full bg-primary transition-[width] duration-100 ease-out"
-        style={{ width: `${progress * 100}%` }}
-      />
-    </div>
+    <>
+      <div className="pointer-events-none fixed left-0 top-0 z-[100] h-0.5 w-full bg-primary/20" aria-hidden>
+        <div
+          className="pointer-events-none h-full bg-primary transition-[width] duration-100 ease-out"
+          style={{ width: `${progress * 100}%` }}
+        />
+      </div>
+    </>
   );
 }

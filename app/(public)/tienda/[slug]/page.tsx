@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Script from "next/script";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Truck } from "lucide-react";
 import { ProductGallery } from "@/features/shop/components/product-gallery";
 import { AddToCart } from "@/features/shop/components/add-to-cart";
 import { ProductCard } from "@/features/shop/components/product-card";
@@ -52,6 +52,7 @@ export default async function ProductPage({ params }: Props) {
   const site = await getSiteContent();
   const base = siteBase();
   const soldOut = isSoldOut(product);
+  const ivaIncluded = site.legal?.ivaIncluded ?? true;
 
   const sameCategory = await fetchProducts({ category: product.category, pageSize: 8 });
   let related = sameCategory.items.filter((p) => p.id !== product.id);
@@ -88,6 +89,8 @@ export default async function ProductPage({ params }: Props) {
   };
 
   const hasDiscount = product.compareAtCOP != null && product.compareAtCOP > product.priceCOP;
+  const shippingNote =
+    site.shop.shippingNote?.trim() || "Envío a toda Colombia. El costo se cotiza por WhatsApp según tu ciudad antes de confirmar.";
 
   return (
     <article className="px-4 py-10 lg:px-8 lg:py-16">
@@ -97,7 +100,7 @@ export default async function ProductPage({ params }: Props) {
       <div className="mx-auto max-w-7xl">
         <Link
           href="/tienda"
-          className="inline-flex min-h-11 items-center gap-2 font-mono text-xs uppercase tracking-widest text-[var(--text-secondary)] transition-colors hover:text-primary"
+          className="inline-flex min-h-11 items-center gap-2 font-mono text-xs uppercase tracking-widest text-[var(--text-secondary)] transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden />
           {site.shop.navLabel}
@@ -115,11 +118,13 @@ export default async function ProductPage({ params }: Props) {
             <div className="mt-5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <span className="font-mono text-3xl text-primary">{formatCOP(product.priceCOP)}</span>
               {hasDiscount ? (
-                <span className="font-mono text-base text-[var(--text-muted)] line-through">
-                  {formatCOP(product.compareAtCOP as number)}
+                <span className="font-mono text-base text-[var(--text-muted)]">
+                  Antes <span className="line-through">{formatCOP(product.compareAtCOP as number)}</span>
                 </span>
               ) : null}
-              <span className="font-mono text-xs uppercase tracking-wider text-[var(--text-muted)]">COP</span>
+              <span className="font-mono text-xs uppercase tracking-wider text-[var(--text-muted)]">
+                COP{ivaIncluded ? " · IVA incluido" : ""}
+              </span>
               {soldOut ? (
                 <span className="rounded-full border border-white/15 bg-white/5 px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-[var(--text-secondary)]">
                   Agotado
@@ -141,10 +146,12 @@ export default async function ProductPage({ params }: Props) {
                 whatsappPhone={site.contact.whatsapp}
                 whatsappIntro={site.shop.whatsappOrderIntro}
                 siteUrl={base}
+                ivaIncluded={ivaIncluded}
               />
-              {site.shop.shippingNote?.trim() ? (
-                <p className="mt-5 text-xs leading-relaxed text-[var(--text-muted)]">{site.shop.shippingNote}</p>
-              ) : null}
+              <p className="mt-5 flex items-start gap-2 text-xs leading-relaxed text-[var(--text-muted)]">
+                <Truck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                <span>{shippingNote}</span>
+              </p>
             </div>
           </div>
         </div>
@@ -158,7 +165,7 @@ export default async function ProductPage({ params }: Props) {
             <ul className="mt-8 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
               {related.map((p) => (
                 <li key={p.id} className="h-full">
-                  <ProductCard product={p} />
+                  <ProductCard product={p} ivaIncluded={ivaIncluded} />
                 </li>
               ))}
             </ul>

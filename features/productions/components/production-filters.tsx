@@ -1,94 +1,107 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useCallback } from "react";
-import { cn } from "@/lib/utils";
+import { X } from "lucide-react";
+import { FilterChips, type FilterChip } from "@/components/shared/filter-chips";
 
-const genres = ["Todos", "Trap", "Reggaeton", "Afrobeat", "Dancehall"];
-const years = ["Todos", "2026", "2025", "2024", "2023", "2022", "2021", "2020", "2019", "2018", "2017", "2016"];
-const countries = ["Todos", "Colombia", "México", "Otro"];
+const ALL = "";
+const FIRST_YEAR = 2016;
 
-function PillRow({
-  label,
-  options,
-  current,
-  onPick,
-  ariaLabel,
-}: {
-  label: string;
-  options: string[];
-  current: string;
-  onPick: (v: string) => void;
-  ariaLabel: string;
-}) {
+const GENRES: FilterChip[] = [
+  { value: ALL, label: "Todos" },
+  { value: "Champeta", label: "Champeta" },
+  { value: "Trap", label: "Trap" },
+  { value: "Reggaeton", label: "Reggaeton" },
+  { value: "Afrobeat", label: "Afrobeat" },
+  { value: "Dancehall", label: "Dancehall" },
+];
+
+const COUNTRIES: FilterChip[] = [
+  { value: ALL, label: "Todos" },
+  { value: "Colombia", label: "Colombia" },
+  { value: "México", label: "México" },
+  { value: "Otro", label: "Otro" },
+];
+
+function yearChips(): FilterChip[] {
+  const current = new Date().getFullYear();
+  const years: FilterChip[] = [{ value: ALL, label: "Todos" }];
+  for (let y = current; y >= FIRST_YEAR; y--) {
+    years.push({ value: String(y), label: String(y) });
+  }
+  return years;
+}
+
+const YEARS = yearChips();
+
+/**
+ * Filtros de /productions con chips unificados en modo enlace (`hrefFor`):
+ * cada chip es un `<Link>` que conserva los demás filtros y reinicia la página.
+ */
+export function ProductionFilters() {
+  const sp = useSearchParams();
+  const genre = sp.get("genre") ?? ALL;
+  const year = sp.get("year") ?? ALL;
+  const country = sp.get("country") ?? ALL;
+  const hasFilters = !!(genre || year || country);
+
+  const hrefFor = useCallback(
+    (key: "genre" | "year" | "country") => (value: string) => {
+      const next = new URLSearchParams(sp.toString());
+      if (value) {
+        next.set(key, value);
+      } else {
+        next.delete(key);
+      }
+      next.delete("page");
+      const qs = next.toString();
+      return qs ? `/productions?${qs}` : "/productions";
+    },
+    [sp],
+  );
+
   return (
-    <div className="flex flex-col gap-2">
-      <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--text-muted)]">{label}</span>
-      <div className="flex flex-wrap gap-2" role="group" aria-label={ariaLabel}>
-        {options.map((opt) => {
-          const active = current === opt;
-          return (
-            <button
-              key={opt}
-              type="button"
-              onClick={() => onPick(opt)}
-              className={cn(
-                "rounded-full border px-3 py-1.5 font-mono text-xs transition-colors duration-200",
-                active
-                  ? "border-primary bg-primary text-white"
-                  : "border-white/10 bg-white/5 text-[var(--text-secondary)] hover:border-primary/40 hover:text-foreground",
-              )}
+    <div className="sticky top-[60px] z-30 border-b border-white/[0.06] bg-[#080808]/85 py-4 backdrop-blur-md md:top-[68px]">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 lg:px-8">
+        <FilterRow label="Género" chips={GENRES} active={genre} hrefFor={hrefFor("genre")} />
+        <FilterRow label="Año" chips={YEARS} active={year} hrefFor={hrefFor("year")} />
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <FilterRow label="País" chips={COUNTRIES} active={country} hrefFor={hrefFor("country")} className="min-w-0 flex-1" />
+          {hasFilters ? (
+            <Link
+              href="/productions"
+              scroll={false}
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 font-mono text-xs uppercase tracking-wider text-[var(--text-secondary)] transition-colors hover:text-primary"
             >
-              {opt}
-            </button>
-          );
-        })}
+              <X className="h-3.5 w-3.5" aria-hidden />
+              Limpiar filtros
+            </Link>
+          ) : null}
+        </div>
       </div>
     </div>
   );
 }
 
-export function ProductionFilters() {
-  const router = useRouter();
-  const sp = useSearchParams();
-
-  const setParam = useCallback(
-    (key: string, value: string) => {
-      const next = new URLSearchParams(sp.toString());
-      if (value === "Todos" || !value) {
-        next.delete(key);
-      } else {
-        next.set(key, value);
-      }
-      next.delete("page");
-      router.push(`/productions?${next.toString()}`);
-    },
-    [router, sp],
-  );
-
-  const genre = sp.get("genre") ?? "Todos";
-  const year = sp.get("year") ?? "Todos";
-  const country = sp.get("country") ?? "Todos";
-
+function FilterRow({
+  label,
+  chips,
+  active,
+  hrefFor,
+  className,
+}: {
+  label: string;
+  chips: FilterChip[];
+  active: string;
+  hrefFor: (value: string) => string;
+  className?: string;
+}) {
   return (
-    <div className="sticky top-[56px] z-30 border-b border-white/5 bg-black/55 py-4 backdrop-blur-md md:top-0">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 lg:px-8">
-        <PillRow
-          label="Género"
-          options={genres}
-          current={genre}
-          onPick={(v) => setParam("genre", v)}
-          ariaLabel="Filtrar por género"
-        />
-        <PillRow label="Año" options={years} current={year} onPick={(v) => setParam("year", v)} ariaLabel="Filtrar por año" />
-        <PillRow
-          label="País"
-          options={countries}
-          current={country}
-          onPick={(v) => setParam("country", v)}
-          ariaLabel="Filtrar por país"
-        />
-      </div>
+    <div className={className}>
+      <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.25em] text-[var(--text-muted)]">{label}</p>
+      <FilterChips label={`Filtrar por ${label.toLowerCase()}`} chips={chips} active={active} hrefFor={hrefFor} />
     </div>
   );
 }

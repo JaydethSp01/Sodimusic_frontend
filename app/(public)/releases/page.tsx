@@ -7,8 +7,11 @@ import { getSiteContent } from "@/lib/site-config-server";
 import { GenreTag } from "@/components/shared/genre-tag";
 import { PlaceholderCover } from "@/components/shared/placeholder-cover";
 import type { Release } from "@/types/models";
-import { Music2, Sparkles, Youtube } from "lucide-react";
+import { CalendarDays, Sparkles } from "lucide-react";
 import { resolveMediaUrl } from "@/lib/resolve-media-url";
+import { COVER_IMAGE_PROPS } from "@/lib/image-blur";
+import { SmartLinks } from "./_components/smart-links";
+import { formatReleaseDate, isFutureRelease, parseReleaseDate } from "./_components/release-date";
 
 export async function generateMetadata(): Promise<Metadata> {
   const site = await getSiteContent();
@@ -45,76 +48,88 @@ export default async function ReleasesPage({
         description={site.releasesPage.heroDescription}
         backgroundImageUrl={site.releasesPage.heroImageUrl}
       />
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 px-4 py-12 lg:grid-cols-2 lg:px-8">
+      <section className="mx-auto max-w-7xl px-4 py-12 lg:px-8" aria-label="Lanzamientos">
         {data.items.length === 0 ? (
-          <p className="col-span-full text-center text-[var(--text-secondary)]">{site.releasesPage.emptyStateMessage}</p>
-        ) : null}
-        {data.items.map((r) => (
-          <article
-            key={r.id}
-            className="flex flex-col overflow-hidden rounded-lg border border-border bg-background-card transition-colors hover:border-primary/25 md:flex-row"
-          >
-            <Link
-              href={`/releases/${r.slug}`}
-              className="relative block aspect-square w-full shrink-0 md:w-44 lg:w-52"
-            >
-              {r.coverUrl ? (
-                <Image
-                  src={resolveMediaUrl(r.coverUrl)}
-                  alt=""
-                  fill
-                  className="object-cover"
-                  sizes="(max-width:768px) 100vw, 200px"
-                />
-              ) : (
-                <PlaceholderCover seed={r.artistName} className="h-full w-full" />
-              )}
-              <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-[var(--gold)] backdrop-blur-sm">
-                <Sparkles className="h-3 w-3" aria-hidden />
-                Adelanto
-              </span>
-            </Link>
-            <div className="flex flex-1 flex-col p-4">
-              <Link href={`/releases/${r.slug}`} className="group">
-                <h2 className="font-body text-lg font-semibold text-foreground group-hover:text-primary">{r.title}</h2>
-              </Link>
-              <p className="text-sm text-[var(--text-secondary)]">{r.artistName}</p>
-              {r.description ? (
-                <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-[var(--text-muted)]">{r.description}</p>
-              ) : null}
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span className="font-mono text-xs text-[var(--text-muted)]">Previsto · {r.releaseYear}</span>
-                <GenreTag genre={r.genre} />
-              </div>
-              <div className="mt-auto flex gap-3 pt-4">
-                {r.youtubeUrl ? (
-                  <a
-                    href={r.youtubeUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-primary"
-                    aria-label={`Ver adelanto en YouTube: ${r.title}`}
-                  >
-                    <Youtube className="h-5 w-5 shrink-0" />
-                    Ver adelanto
-                  </a>
-                ) : null}
-                {r.spotifyUrl ? (
-                  <a
-                    href={r.spotifyUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[var(--text-secondary)] hover:text-primary"
-                    aria-label={`Spotify ${r.title}`}
-                  >
-                    <Music2 className="h-5 w-5" />
-                  </a>
-                ) : null}
-              </div>
-            </div>
-          </article>
-        ))}
-      </div>
+          <p className="rounded-lg border border-dashed border-border px-6 py-14 text-center text-[var(--text-secondary)]">
+            {site.releasesPage.emptyStateMessage}
+          </p>
+        ) : (
+          <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {data.items.map((r, i) => {
+              const date = parseReleaseDate(r);
+              const future = isFutureRelease(r);
+              return (
+                <li key={r.id} className="h-full">
+                  <article className="group relative flex h-full flex-col overflow-hidden rounded-lg border border-border bg-background-card transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_12px_40px_rgba(255,107,0,0.1)] focus-within:border-primary/50 motion-reduce:transition-none">
+                    <div className="relative aspect-square w-full overflow-hidden">
+                      {r.coverUrl ? (
+                        <Image
+                          src={resolveMediaUrl(r.coverUrl)}
+                          alt={`Portada de ${r.title} de ${r.artistName}`}
+                          fill
+                          priority={i < 3}
+                          {...COVER_IMAGE_PROPS}
+                          className="object-cover transition-transform duration-500 group-hover:scale-[1.04] motion-reduce:transition-none"
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        />
+                      ) : (
+                        <PlaceholderCover seed={r.artistName} className="absolute inset-0" />
+                      )}
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/80 via-black/30 to-transparent" aria-hidden />
+                      <div className="pointer-events-none absolute left-2 top-2 flex flex-wrap gap-1.5">
+                        {r.upcoming ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-black/70 px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-[var(--gold)] backdrop-blur-sm">
+                            <Sparkles className="h-3 w-3" aria-hidden />
+                            Adelanto
+                          </span>
+                        ) : null}
+                        {r.featured ? (
+                          <span className="rounded-full bg-primary/15 px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-primary ring-1 ring-primary/40 backdrop-blur-sm">
+                            Destacado
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="pointer-events-none absolute bottom-2 left-2 right-2">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1.5 font-mono text-xs text-white/90 backdrop-blur-sm">
+                          <CalendarDays className="h-3.5 w-3.5 text-[var(--gold)]" aria-hidden />
+                          {date ? (
+                            <>
+                              {future ? "Sale el " : ""}
+                              <time dateTime={date.toISOString()}>{formatReleaseDate(date, "short")}</time>
+                            </>
+                          ) : (
+                            <>Previsto · {r.releaseYear}</>
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex flex-1 flex-col p-4">
+                      <h2 className="font-body text-lg font-semibold leading-snug text-foreground">
+                        <Link
+                          href={`/releases/${r.slug}`}
+                          className="after:absolute after:inset-0 after:content-[''] hover:text-primary focus-visible:outline-none focus-visible:after:rounded-lg focus-visible:after:ring-2 focus-visible:after:ring-primary"
+                        >
+                          {r.title}
+                        </Link>
+                      </h2>
+                      <p className="text-sm text-[var(--text-secondary)]">{r.artistName}</p>
+                      {r.description ? (
+                        <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-[var(--text-muted)]">{r.description}</p>
+                      ) : null}
+                      <div className="mt-3">
+                        <GenreTag genre={r.genre} />
+                      </div>
+                      <div className="relative z-10 mt-auto pt-4">
+                        <SmartLinks release={r} />
+                      </div>
+                    </div>
+                  </article>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }

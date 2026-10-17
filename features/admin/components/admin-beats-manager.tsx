@@ -33,11 +33,36 @@ type BeatDraft = {
   bpm: number | null;
   mood: string | null;
   priceCOP: number;
+  priceMp3COP: number | null;
+  priceWavCOP: number | null;
+  priceStemsCOP: number | null;
+  priceExclusiveCOP: number | null;
   status: Status;
   audioUrl: string | null;
   coverUrl: string | null;
   exclusive: boolean;
 };
+
+type LicenseKey = "priceMp3COP" | "priceWavCOP" | "priceStemsCOP" | "priceExclusiveCOP";
+
+const LICENSES: { key: LicenseKey; label: string; help: string }[] = [
+  { key: "priceMp3COP", label: "Licencia MP3", help: "Uso básico, MP3 320 kbps" },
+  { key: "priceWavCOP", label: "Licencia WAV", help: "WAV sin comprimir" },
+  { key: "priceStemsCOP", label: "Licencia Stems", help: "Pistas separadas" },
+  { key: "priceExclusiveCOP", label: "Licencia exclusiva", help: "Se retira del catálogo" },
+];
+
+/** Precio "desde": el menor precio de licencia definido (o el priceCOP escrito si no hay licencias). */
+function minLicensePrice(d: Pick<BeatDraft, LicenseKey>): number | null {
+  const vals = LICENSES.map((l) => d[l.key]).filter((v): v is number => typeof v === "number" && v > 0);
+  return vals.length ? Math.min(...vals) : null;
+}
+
+function parsePrice(v: string): number | null {
+  if (v.trim() === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0 ? Math.round(n) : null;
+}
 
 function normalizeMaybeUrl(v: string): string | null {
   const s = v.trim();
@@ -50,6 +75,10 @@ const emptyDraft = (): BeatDraft => ({
   bpm: null,
   mood: null,
   priceCOP: 0,
+  priceMp3COP: null,
+  priceWavCOP: null,
+  priceStemsCOP: null,
+  priceExclusiveCOP: null,
   status: "AVAILABLE",
   audioUrl: null,
   coverUrl: null,
@@ -87,6 +116,10 @@ export function AdminBeatsManager({ initialItems }: { initialItems: Beat[] }) {
       bpm: row.bpm ?? null,
       mood: row.mood ?? null,
       priceCOP: row.priceCOP,
+      priceMp3COP: row.priceMp3COP ?? null,
+      priceWavCOP: row.priceWavCOP ?? null,
+      priceStemsCOP: row.priceStemsCOP ?? null,
+      priceExclusiveCOP: row.priceExclusiveCOP ?? null,
       status: row.status as Status,
       audioUrl: row.audioUrl,
       coverUrl: row.coverUrl,
@@ -97,19 +130,32 @@ export function AdminBeatsManager({ initialItems }: { initialItems: Beat[] }) {
 
   async function onSave() {
     if (saving) return;
-    if (!draft.title.trim() || !draft.genre.trim() || !Number.isFinite(draft.priceCOP) || draft.priceCOP <= 0) {
-      toast.error("Completa título, género y precio COP (> 0)");
+    const fromLicenses = minLicensePrice(draft);
+    const priceCOP = fromLicenses ?? draft.priceCOP;
+    if (!draft.title.trim() || !draft.genre.trim() || !Number.isFinite(priceCOP) || priceCOP <= 0) {
+      toast.error("Completa título, género y al menos un precio (> 0)");
+      return;
+    }
+    if (draft.audioUrl && !/^(https?:\/\/|\/)/.test(draft.audioUrl)) {
+      toast.error("La URL del preview debe empezar por http(s):// o /");
       return;
     }
     setSaving(true);
     try {
+      const licensePrices = {
+        priceMp3COP: draft.priceMp3COP,
+        priceWavCOP: draft.priceWavCOP,
+        priceStemsCOP: draft.priceStemsCOP,
+        priceExclusiveCOP: draft.priceExclusiveCOP,
+      };
       if (mode === "create") {
         const r = await createBeatAction({
           title: draft.title,
           genre: draft.genre,
           bpm: draft.bpm,
           mood: draft.mood,
-          priceCOP: draft.priceCOP,
+          priceCOP,
+          ...licensePrices,
           status: draft.status,
           audioUrl: draft.audioUrl,
           coverUrl: draft.coverUrl,
@@ -125,7 +171,8 @@ export function AdminBeatsManager({ initialItems }: { initialItems: Beat[] }) {
           genre: draft.genre,
           bpm: draft.bpm,
           mood: draft.mood,
-          priceCOP: draft.priceCOP,
+          priceCOP,
+          ...licensePrices,
           status: draft.status,
           audioUrl: draft.audioUrl,
           coverUrl: draft.coverUrl,
@@ -185,6 +232,10 @@ export function AdminBeatsManager({ initialItems }: { initialItems: Beat[] }) {
     if (!file) return;
     setUploadingAudio(true);
     try {
+      if (file.size > 4.5 * 1024 * 1024) {
+        toast.error("El preview debe pesar máximo 4,5 MB (recorta a 30–60 s)");
+        return;
+      }
       const fd = new FormData();
       fd.append("file", file);
       const r = await uploadAdminFile(fd);
@@ -193,7 +244,7 @@ export function AdminBeatsManager({ initialItems }: { initialItems: Beat[] }) {
         return;
       }
       setDraft((p) => ({ ...p, audioUrl: r.url ?? null }));
-      toast.success("Audio subido");
+      toast.success("Preview subido");
     } finally {
       setUploadingAudio(false);
     }
@@ -230,7 +281,21 @@ export function AdminBeatsManager({ initialItems }: { initialItems: Beat[] }) {
                   <TableCell className="font-medium">{b.title}</TableCell>
                   <TableCell>{b.genre}</TableCell>
                   <TableCell className="font-mono text-xs">{b.bpm ?? "—"}</TableCell>
-                  <TableCell className="font-mono text-xs">{b.priceCOP.toLocaleString("es-CO")} COP</TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {b.priceCOP.toLocaleString("es-CO")} COP
+                    {[b.priceMp3COP, b.priceWavCOP, b.priceStemsCOP, b.priceExclusiveCOP].some((v) => typeof v === "number") ? (
+                      <span className="block text-[10px] text-[var(--text-muted)]">
+                        {[
+                          b.priceMp3COP ? "MP3" : null,
+                          b.priceWavCOP ? "WAV" : null,
+                          b.priceStemsCOP ? "Stems" : null,
+                          b.priceExclusiveCOP ? "Excl." : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </span>
+                    ) : null}
+                  </TableCell>
                   <TableCell>{b.status}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-2">
@@ -278,10 +343,47 @@ export function AdminBeatsManager({ initialItems }: { initialItems: Beat[] }) {
                     onChange={(e) => setDraft((p) => ({ ...p, bpm: e.target.value === "" ? null : Number(e.target.value) }))}
                   />
                 </Field>
-                <Field label="Precio COP">
-                  <Input type="number" value={draft.priceCOP} onChange={(e) => setDraft((p) => ({ ...p, priceCOP: Number(e.target.value) || 0 }))} />
+                <Field label="Precio «desde» COP">
+                  <Input
+                    type="number"
+                    min={0}
+                    value={minLicensePrice(draft) ?? draft.priceCOP}
+                    readOnly={minLicensePrice(draft) !== null}
+                    onChange={(e) => setDraft((p) => ({ ...p, priceCOP: Number(e.target.value) || 0 }))}
+                  />
+                  <p className="text-[11px] text-[var(--text-muted)]">
+                    {minLicensePrice(draft) !== null ? "Se calcula con la licencia más barata." : "Sin licencias: precio único."}
+                  </p>
                 </Field>
               </div>
+
+              <fieldset className="space-y-2 rounded-lg border border-border p-3">
+                <legend className="px-1 text-xs font-medium text-[var(--text-secondary)]">Precios por licencia (COP)</legend>
+                <p className="text-[11px] text-[var(--text-muted)]">Deja vacío para no ofrecer esa licencia.</p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {LICENSES.map((l) => (
+                    <div key={l.key} className="space-y-1">
+                      <Label htmlFor={`beat-${l.key}`} className="text-[11px] text-[var(--text-secondary)]">
+                        {l.label}
+                      </Label>
+                      <Input
+                        id={`beat-${l.key}`}
+                        type="number"
+                        min={0}
+                        step={1000}
+                        inputMode="numeric"
+                        placeholder="—"
+                        value={draft[l.key] ?? ""}
+                        onChange={(e) => setDraft((p) => ({ ...p, [l.key]: parsePrice(e.target.value) }))}
+                        aria-describedby={`beat-${l.key}-help`}
+                      />
+                      <p id={`beat-${l.key}-help`} className="text-[10px] text-[var(--text-muted)]">
+                        {l.help}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </fieldset>
               <Field label="Mood (opcional)">
                 <Input value={draft.mood ?? ""} onChange={(e) => setDraft((p) => ({ ...p, mood: e.target.value.trim().length ? e.target.value : null }))} />
               </Field>
@@ -319,7 +421,7 @@ export function AdminBeatsManager({ initialItems }: { initialItems: Beat[] }) {
                 {uploadingCover ? <p className="mt-1 text-xs text-primary">Subiendo...</p> : null}
               </Field>
 
-              <Field label="Audio (mp3/wav)">
+              <Field label="Preview MP3 (audioUrl)">
                 {audioPreview ? (
                   <div className="mb-3 rounded-lg border border-border bg-background-secondary p-3">
                     <BeatAudioPlayer src={audioPreview} title={draft.title || "Beat"} />
@@ -327,8 +429,19 @@ export function AdminBeatsManager({ initialItems }: { initialItems: Beat[] }) {
                 ) : (
                   <div className="mb-3 h-20 w-full rounded-lg border border-border bg-background-secondary" />
                 )}
-                <Input value={draft.audioUrl ?? ""} onChange={(e) => setDraft((p) => ({ ...p, audioUrl: normalizeMaybeUrl(e.target.value) }))} />
-                <input type="file" accept="audio/mpeg,audio/wav" className="mt-2 block w-full text-sm" onChange={onUploadAudio} />
+                <Input
+                  placeholder="/uploads/... o https://"
+                  value={draft.audioUrl ?? ""}
+                  onChange={(e) => setDraft((p) => ({ ...p, audioUrl: normalizeMaybeUrl(e.target.value) }))}
+                />
+                <input
+                  type="file"
+                  accept="audio/mpeg,.mp3"
+                  aria-label="Subir preview MP3"
+                  className="mt-2 block w-full text-sm"
+                  onChange={onUploadAudio}
+                />
+                <p className="mt-1 text-[11px] text-[var(--text-muted)]">MP3 de 30–60 s, máximo 4,5 MB. Es lo que suena en /beats.</p>
                 {uploadingAudio ? <p className="mt-1 text-xs text-primary">Subiendo...</p> : null}
               </Field>
 

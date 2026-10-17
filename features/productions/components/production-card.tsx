@@ -1,86 +1,120 @@
-"use client";
-
 import Image from "next/image";
-import { motion } from "framer-motion";
-import { Music2, Youtube } from "lucide-react";
+import { Youtube } from "lucide-react";
 import type { Production } from "@/types/models";
-import { GenreTag } from "@/components/shared/genre-tag";
 import { PlaceholderCover } from "@/components/shared/placeholder-cover";
-import { cn } from "@/lib/utils";
+import { Reveal } from "@/components/shared/reveal";
+import { COVER_IMAGE_PROPS } from "@/lib/image-blur";
+import { genreColor } from "@/lib/genre-colors";
 import { resolveMediaUrl } from "@/lib/resolve-media-url";
+import { cn } from "@/lib/utils";
 
 interface ProductionCardProps {
   production: Production;
+  /** Prioriza la carga (primeras tarjetas visibles). */
+  priority?: boolean;
+  className?: string;
 }
 
-function initials(name: string): string {
-  return name
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
+/** Logotipo de Spotify (SVG inline; Lucide no incluye marcas). */
+export function SpotifyIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
+      <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.504 17.31a.748.748 0 0 1-1.03.249c-2.82-1.724-6.37-2.114-10.55-1.16a.748.748 0 1 1-.333-1.459c4.574-1.045 8.5-.595 11.664 1.339a.748.748 0 0 1 .249 1.03zm1.469-3.267a.936.936 0 0 1-1.287.308c-3.228-1.984-8.148-2.559-11.966-1.4a.936.936 0 1 1-.544-1.791c4.362-1.324 9.785-.683 13.49 1.595a.936.936 0 0 1 .307 1.288zm.126-3.403C15.235 8.34 8.81 8.13 5.116 9.251a1.123 1.123 0 0 1-.652-2.149c4.24-1.287 11.29-1.038 15.747 1.608a1.123 1.123 0 1 1-1.145 1.93z" />
+    </svg>
+  );
 }
 
-export function ProductionCard({ production }: ProductionCardProps) {
-  const loc = `${production.artistCity}, ${production.artistCountry}`;
-  const ini = initials(production.artistName);
+const iconBtn =
+  "inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/45 text-white backdrop-blur-sm transition-colors hover:border-primary hover:bg-primary hover:text-[var(--primary-foreground)] focus-visible:border-primary";
+
+export function ProductionCard({ production, priority = false, className }: ProductionCardProps) {
+  const loc = [production.artistCity, production.artistCountry].filter(Boolean).join(", ");
+  const color = genreColor(production.genre);
+  const hasLinks = !!(production.spotifyUrl || production.youtubeUrl);
 
   return (
-    <motion.article
-      className="group overflow-hidden rounded-lg border border-border bg-background-card transition-shadow duration-300 hover:border-primary/30"
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-40px" }}
-      transition={{ duration: 0.45, ease: [0.25, 0.1, 0.25, 1] }}
+    <Reveal
+      as="article"
+      variant="card"
+      className={cn(
+        "group relative overflow-hidden rounded-lg border border-border bg-background-card transition-[border-color,box-shadow,transform] duration-300",
+        "hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-[0_22px_48px_-18px_rgba(255,107,0,0.35)]",
+        className,
+      )}
     >
-      <div className="relative aspect-square w-full overflow-hidden">
+      <div className="relative aspect-[4/5] w-full overflow-hidden">
         {production.coverUrl ? (
           <Image
             src={resolveMediaUrl(production.coverUrl)}
             alt={`Portada de ${production.title} por ${production.artistName}`}
             fill
-            className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-            sizes="(max-width:768px) 100vw, 33vw"
+            priority={priority}
+            {...COVER_IMAGE_PROPS}
+            className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           />
         ) : (
-          <PlaceholderCover seed={production.artistName} label={ini} className="h-full w-full" />
+          <PlaceholderCover seed={production.artistName} label={production.artistName} className="absolute inset-0" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/45 to-transparent opacity-90 transition-opacity duration-300 group-hover:opacity-100" />
-        <div className="absolute inset-x-0 bottom-0 flex flex-col gap-2 p-4 pt-16">
-          <h3 className="font-body text-lg font-semibold text-white">{production.title}</h3>
-          <p className="text-sm text-white/80">{production.artistName}</p>
-          <p className="font-mono text-[10px] text-white/50">{loc}</p>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-mono text-xs text-white/45">{production.year}</span>
-            <GenreTag genre={production.genre} />
+
+        {/* Degradado: transparente arriba, casi opaco abajo para la jerarquía de texto. */}
+        <div
+          className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(8,8,8,0.05)_0%,rgba(8,8,8,0)_30%,rgba(8,8,8,0.55)_62%,rgba(8,8,8,0.96)_100%)]"
+          aria-hidden
+        />
+
+        {/* Chips superiores: año y género */}
+        <div className="absolute left-4 top-4 flex flex-wrap items-center gap-2">
+          <span className="rounded-full border border-white/15 bg-black/70 px-2.5 py-1 font-mono text-[10px] tracking-wider text-white/90 backdrop-blur-sm">
+            {production.year}
+          </span>
+          {production.genre ? (
+            <span
+              className="rounded-full border px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider backdrop-blur-sm"
+              style={{ color: color.fg, borderColor: color.border, background: "rgba(8,8,8,0.72)" }}
+            >
+              {production.genre}
+            </span>
+          ) : null}
+        </div>
+
+        {/* Bloque inferior: título, artista, ubicación y enlaces */}
+        <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-4 sm:p-5">
+          <div className="min-w-0">
+            <h3 className="display-title text-balance text-2xl text-white [text-shadow:0_1px_12px_rgba(0,0,0,0.5)] md:text-3xl">
+              {production.title}
+            </h3>
+            <p className="mt-1.5 truncate text-sm font-medium text-white/90">{production.artistName}</p>
+            {loc ? <p className="mt-0.5 truncate font-mono text-[11px] text-white/60">{loc}</p> : null}
           </div>
-          <div className="flex gap-3 pt-1">
-            {production.spotifyUrl ? (
-              <a
-                href={production.spotifyUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cn("text-white/70 transition-colors hover:text-primary")}
-                aria-label={`Spotify: ${production.title}`}
-              >
-                <Music2 className="h-5 w-5" />
-              </a>
-            ) : null}
-            {production.youtubeUrl ? (
-              <a
-                href={production.youtubeUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-white/70 transition-colors hover:text-primary"
-                aria-label={`YouTube: ${production.title}`}
-              >
-                <Youtube className="h-5 w-5" />
-              </a>
-            ) : null}
-          </div>
+          {hasLinks ? (
+            <div className="flex shrink-0 gap-2">
+              {production.spotifyUrl ? (
+                <a
+                  href={production.spotifyUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={iconBtn}
+                  aria-label={`Escuchar ${production.title} en Spotify`}
+                >
+                  <SpotifyIcon className="h-5 w-5" />
+                </a>
+              ) : null}
+              {production.youtubeUrl ? (
+                <a
+                  href={production.youtubeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={iconBtn}
+                  aria-label={`Ver ${production.title} en YouTube`}
+                >
+                  <Youtube className="h-5 w-5" aria-hidden />
+                </a>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </div>
-    </motion.article>
+    </Reveal>
   );
 }

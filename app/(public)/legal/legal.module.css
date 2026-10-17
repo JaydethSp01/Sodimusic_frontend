@@ -1,0 +1,82 @@
+/* Tipografía de los documentos legales. Los bloques con .not-prose (tablas, listas de identificación, índice) no se tocan. */
+.prose {
+  max-width: 68ch;
+  font-size: 17px;
+  line-height: 1.75;
+  color: var(--text-secondary);
+}
+@media (max-width: 640px) {
+  .prose {
+    font-size: 16px;
+  }
+}
+.prose :global(.lead) {
+  font-size: 1.125rem;
+  line-height: 1.7;
+  color: var(--text-primary);
+}
+.prose h2 {
+  margin: 3rem 0 1rem;
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.75rem;
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+  color: var(--text-primary);
+  scroll-margin-top: 7rem;
+}
+@media (min-width: 768px) {
+  .prose h2 {
+    font-size: 2rem;
+  }
+}
+.prose section:first-of-type h2 {
+  margin-top: 1rem;
+}
+.prose h3 {
+  margin: 2rem 0 0.75rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.prose p {
+  margin: 1rem 0;
+}
+.prose ul:not(:where(:global(.not-prose), :global(.not-prose) *)),
+.prose ol:not(:where(:global(.not-prose), :global(.not-prose) *)) {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+}
+.prose ul:not(:where(:global(.not-prose), :global(.not-prose) *)) {
+  list-style: disc;
+}
+.prose ol:not(:where(:global(.not-prose), :global(.not-prose) *)) {
+  list-style: decimal;
+}
+.prose li:not(:where(:global(.not-prose) *)) {
+  margin: 0.4rem 0;
+  padding-left: 0.25rem;
+}
+.prose li::marker {
+  color: var(--primary);
+}
+.prose a:not(:where(:global(.not-prose) *)) {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+}
+.prose a:not(:where(:global(.not-prose) *)):hover {
+  color: var(--primary-hover);
+}
+.prose strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.prose code {
+  border-radius: 4px;
+  background: var(--background-elevated);
+  padding: 0.1em 0.4em;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.85em;
+  color: var(--text-primary);
+}

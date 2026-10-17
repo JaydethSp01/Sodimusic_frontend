@@ -35,14 +35,56 @@ type ReleaseDraft = {
   coverUrl: string | null;
   spotifyUrl: string | null;
   youtubeUrl: string | null;
+  appleUrl: string | null;
+  deezerUrl: string | null;
+  amazonUrl: string | null;
+  tidalUrl: string | null;
+  soundcloudUrl: string | null;
+  /** YYYY-MM-DD (input date); se envía como ISO */
+  releaseDate: string;
   description: string | null;
   featured: boolean;
   upcoming: boolean;
 };
 
+type SmartLinkKey = "spotifyUrl" | "youtubeUrl" | "appleUrl" | "deezerUrl" | "amazonUrl" | "tidalUrl" | "soundcloudUrl";
+
+const SMART_LINKS: { key: SmartLinkKey; label: string; placeholder: string }[] = [
+  { key: "spotifyUrl", label: "Spotify", placeholder: "https://open.spotify.com/…" },
+  { key: "youtubeUrl", label: "YouTube", placeholder: "https://youtube.com/watch?v=…" },
+  { key: "appleUrl", label: "Apple Music", placeholder: "https://music.apple.com/…" },
+  { key: "deezerUrl", label: "Deezer", placeholder: "https://www.deezer.com/…" },
+  { key: "amazonUrl", label: "Amazon Music", placeholder: "https://music.amazon.com/…" },
+  { key: "tidalUrl", label: "Tidal", placeholder: "https://tidal.com/…" },
+  { key: "soundcloudUrl", label: "SoundCloud", placeholder: "https://soundcloud.com/…" },
+];
+
 function normalizeMaybeUrl(v: string): string | null {
   const s = v.trim();
   return s.length ? s : null;
+}
+
+function isHttpUrl(v: string): boolean {
+  try {
+    const u = new URL(v);
+    return u.protocol === "https:" || u.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
+/** ISO → YYYY-MM-DD para `<input type="date">` */
+function isoToDateInput(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
+}
+
+/** YYYY-MM-DD → ISO (mediodía UTC para evitar saltos de día por zona horaria); "" borra la fecha */
+function dateInputToIso(v: string): string {
+  if (!v) return "";
+  const d = new Date(`${v}T12:00:00.000Z`);
+  return Number.isNaN(d.getTime()) ? "" : d.toISOString();
 }
 
 const emptyDraft = (): ReleaseDraft => ({
@@ -54,6 +96,12 @@ const emptyDraft = (): ReleaseDraft => ({
   coverUrl: null,
   spotifyUrl: null,
   youtubeUrl: null,
+  appleUrl: null,
+  deezerUrl: null,
+  amazonUrl: null,
+  tidalUrl: null,
+  soundcloudUrl: null,
+  releaseDate: "",
   description: null,
   featured: false,
   upcoming: true,
@@ -95,6 +143,12 @@ export function AdminReleasesManager({ initialItems }: { initialItems: Release[]
       coverUrl: row.coverUrl,
       spotifyUrl: row.spotifyUrl,
       youtubeUrl: row.youtubeUrl,
+      appleUrl: row.appleUrl ?? null,
+      deezerUrl: row.deezerUrl ?? null,
+      amazonUrl: row.amazonUrl ?? null,
+      tidalUrl: row.tidalUrl ?? null,
+      soundcloudUrl: row.soundcloudUrl ?? null,
+      releaseDate: isoToDateInput(row.releaseDate),
       description: row.description ?? null,
       featured: row.featured,
       upcoming: row.upcoming ?? true,
@@ -108,14 +162,21 @@ export function AdminReleasesManager({ initialItems }: { initialItems: Release[]
       toast.error("Completa título, slug, artista y género");
       return;
     }
+    const badLink = SMART_LINKS.find((l) => draft[l.key] && !isHttpUrl(draft[l.key] as string));
+    if (badLink) {
+      toast.error(`El enlace de ${badLink.label} debe ser una URL válida (https://…)`);
+      return;
+    }
     setSaving(true);
     try {
+      const payload = {
+        ...draft,
+        releaseDate: dateInputToIso(draft.releaseDate),
+      };
       if (mode === "create") {
         const r = await createReleaseAction({
-          ...draft,
+          ...payload,
           coverUrl: draft.coverUrl,
-          spotifyUrl: draft.spotifyUrl,
-          youtubeUrl: draft.youtubeUrl,
           description: draft.description,
           upcoming: draft.upcoming,
           featured: draft.featured,
@@ -128,10 +189,8 @@ export function AdminReleasesManager({ initialItems }: { initialItems: Release[]
         const r = await patchReleaseAction(
           editingId,
           {
-            ...draft,
+            ...payload,
             coverUrl: draft.coverUrl,
-            spotifyUrl: draft.spotifyUrl,
-            youtubeUrl: draft.youtubeUrl,
             description: draft.description,
             upcoming: draft.upcoming,
             featured: draft.featured,
@@ -283,13 +342,30 @@ export function AdminReleasesManager({ initialItems }: { initialItems: Release[]
               <Field label="Género">
                 <Input value={draft.genre} onChange={(e) => setDraft((p) => ({ ...p, genre: e.target.value }))} />
               </Field>
-              <Field label="Año de release">
-                <Input
-                  type="number"
-                  value={draft.releaseYear}
-                  onChange={(e) => setDraft((p) => ({ ...p, releaseYear: Number(e.target.value) || new Date().getFullYear() }))}
-                />
-              </Field>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <Field label="Año de release">
+                  <Input
+                    type="number"
+                    value={draft.releaseYear}
+                    onChange={(e) => setDraft((p) => ({ ...p, releaseYear: Number(e.target.value) || new Date().getFullYear() }))}
+                  />
+                </Field>
+                <Field label="Fecha de lanzamiento (opcional)">
+                  <Input
+                    type="date"
+                    value={draft.releaseDate}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setDraft((p) => ({
+                        ...p,
+                        releaseDate: v,
+                        releaseYear: v ? Number(v.slice(0, 4)) || p.releaseYear : p.releaseYear,
+                      }));
+                    }}
+                  />
+                  <p className="text-[11px] text-[var(--text-muted)]">Si es futura, la página muestra cuenta regresiva.</p>
+                </Field>
+              </div>
               <div className="grid gap-2 sm:grid-cols-2">
                 <Field label="Destacado">
                   <label className="flex items-center gap-2 text-sm">
@@ -336,18 +412,39 @@ export function AdminReleasesManager({ initialItems }: { initialItems: Release[]
                 {uploadingCover ? <p className="mt-1 text-xs text-primary">Subiendo...</p> : null}
               </Field>
 
-              <Field label="Spotify URL (opcional)">
-                <Input
-                  value={draft.spotifyUrl ?? ""}
-                  onChange={(e) => setDraft((p) => ({ ...p, spotifyUrl: normalizeMaybeUrl(e.target.value) }))}
-                />
-              </Field>
-              <Field label="YouTube URL (opcional)">
-                <Input
-                  value={draft.youtubeUrl ?? ""}
-                  onChange={(e) => setDraft((p) => ({ ...p, youtubeUrl: normalizeMaybeUrl(e.target.value) }))}
-                />
-              </Field>
+              <fieldset className="space-y-2 rounded-lg border border-border p-3">
+                <legend className="px-1 text-xs font-medium text-[var(--text-secondary)]">Smart links (opcionales)</legend>
+                <p className="text-[11px] text-[var(--text-muted)]">Solo se muestran los que rellenes.</p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {SMART_LINKS.map((l) => {
+                    const value = draft[l.key] ?? "";
+                    const invalid = value.length > 0 && !isHttpUrl(value);
+                    return (
+                      <div key={l.key} className="space-y-1">
+                        <Label htmlFor={`release-${l.key}`} className="text-[11px] text-[var(--text-secondary)]">
+                          {l.label}
+                        </Label>
+                        <Input
+                          id={`release-${l.key}`}
+                          type="url"
+                          inputMode="url"
+                          placeholder={l.placeholder}
+                          value={value}
+                          aria-invalid={invalid || undefined}
+                          aria-describedby={invalid ? `release-${l.key}-error` : undefined}
+                          className={invalid ? "border-red-500/70" : undefined}
+                          onChange={(e) => setDraft((p) => ({ ...p, [l.key]: normalizeMaybeUrl(e.target.value) }))}
+                        />
+                        {invalid ? (
+                          <p id={`release-${l.key}-error`} role="alert" className="text-[10px] text-red-400">
+                            Debe empezar por https://
+                          </p>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              </fieldset>
 
               <div className="flex flex-wrap gap-2 pt-2 md:justify-end">
                 <Button type="button" variant="outline" disabled={saving} onClick={() => setOpen(false)}>

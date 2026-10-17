@@ -1,6 +1,7 @@
 "use server";
 
-import { revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { publicTags } from "@/lib/api";
 import { fetchAdmin } from "@/lib/api-admin";
 import type { SiteContent } from "@/types/site-content";
 
@@ -22,6 +23,8 @@ export async function publishSiteAction(): Promise<{ ok: boolean; error?: string
   if (!res.ok) {
     return { ok: false, error: "No se pudo publicar" };
   }
-  revalidateTag("site-config");
+  revalidateTag(publicTags.siteConfig);
+  revalidateTag(publicTags.channels);
+  revalidatePath("/", "layout");
   return { ok: true };
 }

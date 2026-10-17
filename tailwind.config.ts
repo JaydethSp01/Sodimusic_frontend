@@ -7,6 +7,7 @@ const config: Config = {
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "./features/**/*.{js,ts,jsx,tsx,mdx}",
+    "./content/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
@@ -20,14 +21,18 @@ const config: Config = {
           DEFAULT: "var(--primary)",
           hover: "var(--primary-hover)",
           muted: "var(--primary-muted)",
+          foreground: "var(--primary-foreground)",
         },
+        whatsapp: "var(--whatsapp)",
         gold: {
           DEFAULT: "var(--gold)",
           muted: "var(--gold-muted)",
         },
         muted: "var(--text-muted)",
+        secondary: "var(--text-secondary)",
         border: "var(--border)",
         "border-hover": "var(--border-hover)",
+        "border-accent": "var(--border-accent)",
       },
       borderRadius: {
         DEFAULT: "var(--radius)",

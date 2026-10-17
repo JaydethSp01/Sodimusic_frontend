@@ -1,6 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { publicTags } from "@/lib/api";
 import { fetchAdmin } from "@/lib/api-admin";
 import type { Release } from "@/types/models";
 
@@ -13,6 +14,13 @@ type CreateReleaseInput = {
   coverUrl?: string | null;
   spotifyUrl?: string | null;
   youtubeUrl?: string | null;
+  appleUrl?: string | null;
+  deezerUrl?: string | null;
+  amazonUrl?: string | null;
+  tidalUrl?: string | null;
+  soundcloudUrl?: string | null;
+  /** ISO 8601 o "" para borrar */
+  releaseDate?: string | null;
   description?: string | null;
   featured?: boolean;
   upcoming?: boolean;
@@ -34,8 +42,10 @@ export async function createReleaseAction(
     return { ok: false, error: j.error ?? "Error al crear release" };
   }
   const row = (await res.json()) as Release;
+  revalidateTag(publicTags.releases);
   revalidatePath("/admin/dashboard/releases");
   revalidatePath("/releases");
+  revalidatePath("/");
   revalidatePath(`/releases/${row.slug}`);
   return { ok: true, row };
 }
@@ -54,8 +64,10 @@ export async function patchReleaseAction(
     return { ok: false, error: j.error ?? "Error al editar release" };
   }
   const row = (await res.json()) as { slug: string };
+  revalidateTag(publicTags.releases);
   revalidatePath("/admin/dashboard/releases");
   revalidatePath("/releases");
+  revalidatePath("/");
   revalidatePath(`/releases/${row.slug}`);
   if (previousSlug && previousSlug !== row.slug) {
     revalidatePath(`/releases/${previousSlug}`);
@@ -69,8 +81,10 @@ export async function deleteReleaseAction(id: string, slug?: string): Promise<{ 
     const j = (await res.json().catch(() => ({}))) as { error?: string };
     return { ok: false, error: j.error ?? "Error al borrar release" };
   }
+  revalidateTag(publicTags.releases);
   revalidatePath("/admin/dashboard/releases");
   revalidatePath("/releases");
+  revalidatePath("/");
   if (slug) {
     revalidatePath(`/releases/${slug}`);
   }

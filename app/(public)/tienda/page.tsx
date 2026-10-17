@@ -4,7 +4,7 @@ import { HomeStagger, HomeStaggerItem } from "@/components/landing/home-page-mot
 import { WhatsAppIcon } from "@/components/shared/whatsapp-icon";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/features/shop/components/product-card";
-import { CategoryChips } from "@/features/shop/components/category-chips";
+import { ShopCategoryChips } from "@/features/shop/components/shop-category-chips";
 import { fetchProducts } from "@/features/shop/api";
 import { getSiteContent } from "@/lib/site-config-server";
 import { resolveMediaUrl } from "@/lib/resolve-media-url";
@@ -36,6 +36,7 @@ export default async function ShopPage({
   const categories =
     data.categories.length || !category ? data.categories : (await fetchProducts({ pageSize: 1 })).categories;
   const whatsappUrl = `https://wa.me/${site.contact.whatsapp}`;
+  const ivaIncluded = site.legal?.ivaIncluded ?? true;
 
   return (
     <div>
@@ -49,7 +50,7 @@ export default async function ShopPage({
       <section className="mx-auto max-w-7xl px-4 py-12 lg:px-8" aria-label="Catálogo de productos">
         {categories.length ? (
           <div className="mb-8">
-            <CategoryChips categories={categories} active={category} />
+            <ShopCategoryChips categories={categories} active={category} />
           </div>
         ) : null}
 
@@ -71,22 +72,31 @@ export default async function ShopPage({
           </div>
         ) : (
           <>
-            <p className="mb-6 font-mono text-xs uppercase tracking-widest text-[var(--text-muted)]">
-              {data.items.length} {data.items.length === 1 ? "producto" : "productos"}
-              {category ? ` · ${category}` : ""}
-            </p>
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
+              <p className="font-mono text-xs uppercase tracking-widest text-[var(--text-muted)]">
+                {data.items.length} {data.items.length === 1 ? "producto" : "productos"}
+                {category ? ` · ${category}` : ""}
+              </p>
+              {ivaIncluded ? (
+                <p className="font-mono text-xs uppercase tracking-widest text-[var(--text-muted)]">Precios en COP · IVA incluido</p>
+              ) : (
+                <p className="font-mono text-xs uppercase tracking-widest text-[var(--text-muted)]">Precios en COP</p>
+              )}
+            </div>
             <HomeStagger className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
               {data.items.map((p, i) => (
                 <HomeStaggerItem key={p.id} className="h-full">
-                  <ProductCard product={p} priority={i < 4} />
+                  <ProductCard product={p} priority={i < 4} ivaIncluded={ivaIncluded} />
                 </HomeStaggerItem>
               ))}
             </HomeStagger>
           </>
         )}
 
-        {site.shop.shippingNote?.trim() && data.items.length > 0 ? (
-          <p className="mt-10 text-center font-mono text-xs text-[var(--text-muted)]">{site.shop.shippingNote}</p>
+        {data.items.length > 0 ? (
+          <p className="mt-10 text-center font-mono text-xs leading-relaxed text-[var(--text-muted)]">
+            {site.shop.shippingNote?.trim() || "Envío a toda Colombia: se cotiza por WhatsApp según tu ciudad antes de confirmar el pedido."}
+          </p>
         ) : null}
       </section>
     </div>

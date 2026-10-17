@@ -1,6 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { publicTags } from "@/lib/api";
 import { fetchAdmin } from "@/lib/api-admin";
 import type { Production } from "@/types/models";
 
@@ -31,6 +32,7 @@ export async function createProductionAction(
     return { ok: false, error: j.error ?? "Error al crear producción" };
   }
   const row = (await res.json()) as Production;
+  revalidateTag(publicTags.productions);
   revalidatePath("/admin/dashboard/productions");
   revalidatePath("/productions");
   revalidatePath("/");
@@ -46,6 +48,7 @@ export async function patchProductionAction(id: string, input: PatchProductionIn
     const j = (await res.json().catch(() => ({}))) as { error?: string };
     return { ok: false, error: j.error ?? "Error al editar producción" };
   }
+  revalidateTag(publicTags.productions);
   revalidatePath("/admin/dashboard/productions");
   revalidatePath("/productions");
   revalidatePath("/");
@@ -58,6 +61,7 @@ export async function deleteProductionAction(id: string): Promise<{ ok: boolean;
     const j = (await res.json().catch(() => ({}))) as { error?: string };
     return { ok: false, error: j.error ?? "Error al borrar producción" };
   }
+  revalidateTag(publicTags.productions);
   revalidatePath("/admin/dashboard/productions");
   revalidatePath("/productions");
   revalidatePath("/");

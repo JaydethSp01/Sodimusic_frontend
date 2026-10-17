@@ -19,3 +19,78 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build
+
+  e2e:
+    # Suite Playwright completa (público + admin + a11y + visual) contra backend + Postgres de seed.
+    runs-on: ubuntu-latest
+    needs: lint-build
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: sodimusic
+          POSTGRES_PASSWORD: sodimusic
+          POSTGRES_DB: sodimusic
+        ports: ["5434:5432"]
+        options: >-
+          --health-cmd "pg_isready -U sodimusic"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://sodimusic:sodimusic@127.0.0.1:5434/sodimusic?schema=public
+      DIRECT_URL: postgresql://sodimusic:sodimusic@127.0.0.1:5434/sodimusic?schema=public
+      JWT_SECRET: ci-jwt-secret-at-least-32-characters-long
+      FRONTEND_URL: http://localhost:3000
+      SITE_URL: http://localhost:3000
+      CALENDAR_TZ: America/Bogota
+      PORT: "4000"
+      BACKEND_URL: http://localhost:4000
+      NEXT_PUBLIC_API_URL: http://localhost:4000
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: ci-nextauth-secret-at-least-32-characters-long
+      NEXT_PUBLIC_WHATSAPP: "573215368590"
+      PLAYWRIGHT_BASE_URL: http://localhost:3000
+      PLAYWRIGHT_API_URL: http://localhost:4000
+      PLAYWRIGHT_DATABASE_URL: postgresql://sodimusic:sodimusic@127.0.0.1:5434/sodimusic
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: Sodimusic_frontend
+      - uses: actions/checkout@v4
+        with:
+          repository: JaydethSp01/Sodimusic_backend
+          path: Sodimusic_backend
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Backend · instalar, migrar, seed y arrancar
+        working-directory: Sodimusic_backend
+        run: |
+          npm ci
+          npx prisma migrate deploy
+          npx prisma db seed
+          nohup npm run dev > backend.log 2>&1 &
+          npx wait-on -t 120000 http://localhost:4000/health
+      - name: Frontend · instalar y arrancar
+        working-directory: Sodimusic_frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          nohup npm run dev > frontend.log 2>&1 &
+          npx wait-on -t 180000 http://localhost:3000
+      - name: Playwright e2e
+        working-directory: Sodimusic_frontend
+        run: npx playwright test --project=setup --project=chromium --project=mobile
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: |
+            Sodimusic_frontend/playwright-report
+            Sodimusic_frontend/test-results
+            Sodimusic_frontend/frontend.log
+            Sodimusic_backend/backend.log
+          retention-days: 7

@@ -1,6 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { publicTags } from "@/lib/api";
 import { fetchAdmin } from "@/lib/api-admin";
 import type { Product, ProductStatus } from "@/types/models";
 
@@ -22,8 +23,10 @@ export type CreateProductInput = {
 export type PatchProductInput = Partial<CreateProductInput>;
 
 function revalidateShop() {
+  revalidateTag(publicTags.products);
   revalidatePath("/admin/dashboard/tienda");
   revalidatePath("/tienda");
+  revalidatePath("/tienda/[slug]", "page");
   revalidatePath("/");
 }
 

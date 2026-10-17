@@ -1,74 +1,83 @@
-"use client";
-
-import { motion } from "framer-motion";
-import { fadeInUp, staggerContainer } from "@/lib/animations";
+import { genreColor } from "@/lib/genre-colors";
+import { Reveal } from "@/components/shared/reveal";
+import { RevealItem } from "@/components/shared/reveal-item";
 import { cn } from "@/lib/utils";
 
 const genres = [
   {
-    name: "CHAMPETA",
+    name: "Champeta",
     desc: "Donde empezó todo: María La Baja y la costa cerca de Cartagena, cuna del género y los ritmos africanos en el barrio.",
-    border: "border-[#E85D04]/20 hover:border-[#E85D04]/60",
-    bg: "bg-[rgba(232,93,4,0.06)]",
-    color: "#E85D04",
   },
   {
-    name: "TRAP",
+    name: "Trap",
     desc: "El mismo barrio, otra piel: la champeta en el ADN y el trap como proyección global.",
-    border: "border-[#FF6B00]/20 hover:border-[#FF6B00]/60",
-    bg: "bg-[rgba(255,107,0,0.05)]",
-    color: "#FF6B00",
   },
   {
-    name: "REGGAETON",
-    desc: "Caribe urbano con cadencia de picó y calle",
-    border: "border-[#9B59B6]/20 hover:border-[#9B59B6]/60",
-    bg: "bg-[rgba(155,89,182,0.05)]",
-    color: "#9B59B6",
+    name: "Reggaeton",
+    desc: "Caribe urbano con cadencia de picó y calle.",
   },
   {
-    name: "AFROBEAT",
-    desc: "La raíz africana que ya sonaba en la costa, en ritmo actual",
-    border: "border-[#D4A017]/20 hover:border-[#D4A017]/60",
-    bg: "bg-[rgba(212,160,23,0.05)]",
-    color: "#D4A017",
+    name: "Afrobeat",
+    desc: "La raíz africana que ya sonaba en la costa, en ritmo actual.",
   },
   {
-    name: "DANCEHALL",
-    desc: "Reggae y caribe que conviven con la champeta en la misma esquina sonora",
-    border: "border-[#27AE60]/20 hover:border-[#27AE60]/60",
-    bg: "bg-[rgba(39,174,96,0.05)]",
-    color: "#27AE60",
+    name: "Dancehall",
+    desc: "Reggae y caribe que conviven con la champeta en la misma esquina sonora.",
   },
 ];
 
+/**
+ * Evita medias filas vacías: en 3 columnas (lg) y 2 (sm) el último ítem
+ * se estira para completar la fila cuando sobra espacio.
+ */
+function spanClasses(index: number, total: number): string {
+  const isLast = index === total - 1;
+  if (!isLast) {
+    return "";
+  }
+  const restLg = total % 3; // 0 → completo, 1 → sobra 2, 2 → sobra 1
+  const restSm = total % 2;
+  return cn(restSm === 1 && "sm:col-span-2", restLg === 1 && "lg:col-span-3", restLg === 2 && "lg:col-span-2");
+}
+
 export function GenresGrid() {
   return (
-    <motion.div
-      className="grid grid-cols-1 gap-4 md:grid-cols-2"
-      variants={staggerContainer}
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: "-40px" }}
-    >
-      {genres.map((g) => (
-        <motion.article
-          key={g.name}
-          variants={fadeInUp}
-          whileHover={{ y: -4 }}
-          transition={{ type: "spring", stiffness: 400, damping: 25 }}
-          className={cn(
-            "rounded-lg border p-6 shadow-sm transition-colors duration-300",
-            g.border,
-            g.bg,
-          )}
-        >
-          <h3 className="font-display text-5xl tracking-wide" style={{ color: g.color }}>
-            {g.name}
-          </h3>
-          <p className="mt-3 font-body text-sm text-[var(--text-muted)]">{g.desc}</p>
-        </motion.article>
-      ))}
-    </motion.div>
+    <Reveal as="ul" variant="stagger" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {genres.map((g, i) => {
+        const c = genreColor(g.name);
+        return (
+          <RevealItem
+            as="li"
+            key={g.name}
+            className={cn(
+              "group relative overflow-hidden rounded-lg border p-6 transition-[border-color,box-shadow,transform] duration-300 sm:p-7",
+              "hover:shadow-[0_18px_40px_-20px_var(--genre-fg)] motion-safe:hover:-translate-y-1",
+              spanClasses(i, genres.length),
+            )}
+            style={
+              {
+                "--genre-fg": c.fg,
+                borderColor: c.border,
+                background: `linear-gradient(135deg, ${c.bg} 0%, rgba(22,22,22,0.6) 100%)`,
+              } as React.CSSProperties
+            }
+          >
+            <span
+              className="pointer-events-none absolute -right-6 -top-10 font-display text-[140px] leading-none opacity-[0.05] transition-opacity duration-300 group-hover:opacity-10"
+              style={{ color: c.fg }}
+              aria-hidden
+            >
+              {String(i + 1).padStart(2, "0")}
+            </span>
+            <h3 className="display-title relative text-5xl md:text-6xl" style={{ color: c.fg }}>
+              {g.name}
+            </h3>
+            <p className="relative mt-3 max-w-prose text-sm leading-relaxed text-[var(--text-secondary)] sm:text-[15px]">
+              {g.desc}
+            </p>
+          </RevealItem>
+        );
+      })}
+    </Reveal>
   );
 }

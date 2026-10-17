@@ -1,21 +1,46 @@
 "use client";
 
+import Link from "next/link";
 import { useInView } from "framer-motion";
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
-import CountUp from "react-countup";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  ArrowRight,
   BarChart3,
   CalendarPlus,
   CalendarRange,
   ClipboardList,
   Eye,
+  Heart,
+  Inbox,
   LayoutGrid,
+  Mail,
   Music2,
   ShoppingBag,
+  Tv,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { ContactMessage } from "@/types/models";
+
+/** Contador con rAF y ease-out (sustituye a react-countup; mismo formato con separador de miles). */
+function CountUpNumber({ end, durationMs = 1200 }: { end: number; durationMs?: number }) {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    let raf = 0;
+    const t0 = performance.now();
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - t0) / durationMs);
+      setN(Math.round((1 - Math.pow(1 - p, 3)) * end));
+      if (p < 1) {
+        raf = requestAnimationFrame(tick);
+      }
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [end, durationMs]);
+  return <>{n.toLocaleString("en-US")}</>;
+}
 
 const fadeIn = {
   hidden: { opacity: 0, y: 12 },
@@ -36,6 +61,14 @@ export type DashboardStatsPayload = {
   productionsTotal: number;
   /** Opcional: solo si el backend lo devuelve */
   productsActive?: number;
+  /** v3: canales de YouTube activos */
+  channelsActive?: number;
+  /** v3: mensajes de contacto en estado NEW */
+  messagesNew?: number;
+  /** v3: suscriptores sin baja */
+  subscribersActive?: number;
+  /** v3: intereses en beats en los últimos 30 días */
+  beatInterests30d?: number;
   pageViewsTotal: number;
   pageViewsLast7Days: number;
   pageViewsByDay: { date: string; count: number }[];
@@ -150,7 +183,58 @@ function StatusDistribution({ rows }: { rows: { status: string; count: number }[
 const panelCard =
   "border border-white/[0.08] bg-gradient-to-br from-[#181818]/95 to-[#101010]/98 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.7)] backdrop-blur-sm";
 
-export function AdminDashboardInsights({ data }: { data: DashboardStatsPayload }) {
+const SUBJECT_LABEL: Record<string, string> = {
+  PRENSA: "Prensa",
+  DEMO: "Demo",
+  BOOKING_ARTISTA: "Booking",
+  COLABORACION: "Colaboración",
+  OTRO: "Otro",
+};
+
+const recentDateFmt = new Intl.DateTimeFormat("es-CO", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+
+export type RecentMessage = Pick<ContactMessage, "id" | "name" | "email" | "subject" | "message" | "createdAt">;
+
+function RecentMessagesList({ rows }: { rows: RecentMessage[] }) {
+  if (rows.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-2 py-8 text-center">
+        <Inbox className="h-6 w-6 text-[var(--text-muted)]" aria-hidden />
+        <p className="text-sm text-[var(--text-muted)]">Bandeja al día: no hay mensajes nuevos.</p>
+      </div>
+    );
+  }
+  return (
+    <ul className="divide-y divide-white/[0.06]">
+      {rows.map((m) => (
+        <li key={m.id} className="py-3 first:pt-0 last:pb-0">
+          <div className="flex items-baseline justify-between gap-3">
+            <p className="truncate text-sm font-medium text-foreground">{m.name}</p>
+            <time suppressHydrationWarning dateTime={m.createdAt} className="shrink-0 font-mono text-[10px] uppercase text-[var(--text-muted)]">
+              {recentDateFmt.format(new Date(m.createdAt))}
+            </time>
+          </div>
+          <p className="mt-0.5 flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+            <span className="rounded border border-primary/20 bg-primary/10 px-1.5 py-px font-mono text-[10px] uppercase text-primary">
+              {SUBJECT_LABEL[m.subject] ?? m.subject}
+            </span>
+            <span className="truncate">{m.email}</span>
+          </p>
+          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[var(--text-muted)]">{m.message}</p>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function AdminDashboardInsights({
+  data,
+  recentMessages = [],
+}: {
+  data: DashboardStatsPayload;
+  /** Últimos mensajes de contacto en estado NEW (máx. 5) */
+  recentMessages?: RecentMessage[];
+}) {
   const kpiRef = useRef(null);
   const kpiInView = useInView(kpiRef, { once: true, margin: "-40px" });
   const [kpiStart, setKpiStart] = useState(false);
@@ -194,9 +278,22 @@ export function AdminDashboardInsights({ data }: { data: DashboardStatsPayload }
           },
         ]
       : []),
+    ...(typeof data.channelsActive === "number"
+      ? [{ title: "Canales activos", value: data.channelsActive, icon: Tv, hint: "YouTube visibles" }]
+      : []),
+    ...(typeof data.messagesNew === "number"
+      ? [{ title: "Mensajes nuevos", value: data.messagesNew, icon: Inbox, hint: "Sin leer", href: "/admin/dashboard/mensajes" }]
+      : []),
+    ...(typeof data.subscribersActive === "number"
+      ? [{ title: "Suscriptores", value: data.subscribersActive, icon: Mail, hint: "Boletín activo", href: "/admin/dashboard/suscriptores" }]
+      : []),
+    ...(typeof data.beatInterests30d === "number"
+      ? [{ title: "Intereses en beats", value: data.beatInterests30d, icon: Heart, hint: "Últimos 30 días", href: "/admin/dashboard/mensajes?tab=beats" }]
+      : []),
   ];
 
-  const kpiGridClass = kpiItems.length >= 5 ? "lg:grid-cols-5" : "lg:grid-cols-4";
+  const kpiGridClass =
+    kpiItems.length >= 8 ? "lg:grid-cols-3 xl:grid-cols-5" : kpiItems.length >= 5 ? "lg:grid-cols-5" : "lg:grid-cols-4";
 
   return (
     <div className="space-y-8">
@@ -231,14 +328,51 @@ export function AdminDashboardInsights({ data }: { data: DashboardStatsPayload }
                   {item.hint}
                 </span>
               </div>
-              <p className="relative mt-4 text-sm font-medium text-[var(--text-secondary)]">{item.title}</p>
+              <p className="relative mt-4 text-sm font-medium text-[var(--text-secondary)]">
+                {"href" in item && item.href ? (
+                  <Link href={item.href} className="after:absolute after:inset-0 hover:text-foreground">
+                    {item.title}
+                  </Link>
+                ) : (
+                  item.title
+                )}
+              </p>
               <p className="relative mt-2 font-display text-4xl tabular-nums tracking-tight text-primary">
-                {kpiStart ? <CountUp end={item.value} duration={1.2} /> : "0"}
+                {kpiStart ? <CountUpNumber end={item.value} durationMs={1200} /> : "0"}
               </p>
             </div>
           </motion.div>
         ))}
       </motion.div>
+
+      {typeof data.messagesNew === "number" ? (
+        <motion.div variants={fadeIn} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-24px" }}>
+          <Card className={cn("rounded-2xl border-0 shadow-none", panelCard)}>
+            <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0 border-b border-white/[0.06] pb-4">
+              <div className="flex items-center gap-3">
+                <div className="rounded-lg border border-primary/20 bg-primary/10 p-2 text-primary">
+                  <Inbox className="h-4 w-4" aria-hidden />
+                </div>
+                <div>
+                  <CardTitle className="font-display text-lg font-normal tracking-wide">Mensajes nuevos</CardTitle>
+                  <p className="text-xs text-[var(--text-muted)]">
+                    {data.messagesNew} sin leer · últimos {Math.min(5, recentMessages.length)}
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/admin/dashboard/mensajes"
+                className="inline-flex min-h-[36px] items-center gap-1 rounded-md px-2 text-sm text-primary hover:underline"
+              >
+                Ver todos <ArrowRight className="h-4 w-4" aria-hidden />
+              </Link>
+            </CardHeader>
+            <CardContent className="pt-5">
+              <RecentMessagesList rows={recentMessages.slice(0, 5)} />
+            </CardContent>
+          </Card>
+        </motion.div>
+      ) : null}
 
       <div className="grid gap-5 lg:grid-cols-3">
         <motion.div variants={fadeIn} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-24px" }}>

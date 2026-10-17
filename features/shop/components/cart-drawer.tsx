@@ -3,12 +3,15 @@
 import Image from "next/image";
 import Link from "next/link";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { useEffect, useRef, useState } from "react";
 import { Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
+import { getPublicApiUrl } from "@/lib/api";
+import type { Product } from "@/types/models";
 import { Button } from "@/components/ui/button";
 import { WhatsAppIcon } from "@/components/shared/whatsapp-icon";
 import { PlaceholderCover } from "@/components/shared/placeholder-cover";
 import { cartLineKey, selectCount, selectSubtotal, useCartHydrated, useCartStore } from "@/features/shop/stores/cart-store";
-import { buildWhatsAppOrderUrl } from "@/lib/whatsapp-order";
+import { buildWhatsAppOrderUrl, SHOP_TERMS_PATH } from "@/lib/whatsapp-order";
 import { formatCOP } from "@/lib/format-cop";
 import { resolveMediaUrl } from "@/lib/resolve-media-url";
 import { cn } from "@/lib/utils";
@@ -21,9 +24,19 @@ interface CartDrawerProps {
   siteUrl: string;
   /** Texto del enlace a la tienda en el estado vacío */
   shopLabel: string;
+  /** legal.ivaIncluded: añade "IVA incluido" al resumen y al mensaje */
+  ivaIncluded?: boolean;
 }
 
-export function CartDrawer({ whatsappPhone, whatsappIntro, orderCtaLabel, shippingNote, siteUrl, shopLabel }: CartDrawerProps) {
+export function CartDrawer({
+  whatsappPhone,
+  whatsappIntro,
+  orderCtaLabel,
+  shippingNote,
+  siteUrl,
+  shopLabel,
+  ivaIncluded = true,
+}: CartDrawerProps) {
   const hydrated = useCartHydrated();
   const open = useCartStore((s) => s.open);
   const setOpen = useCartStore((s) => s.setOpen);
@@ -31,6 +44,61 @@ export function CartDrawer({ whatsappPhone, whatsappIntro, orderCtaLabel, shippi
   const setQty = useCartStore((s) => s.setQty);
   const remove = useCartStore((s) => s.remove);
   const clear = useCartStore((s) => s.clear);
+  const syncProducts = useCartStore((s) => s.syncProducts);
+  const [priceNotice, setPriceNotice] = useState<string | null>(null);
+  const syncedRef = useRef(false);
+
+  // Al abrir el carrito, refrescamos nombre/precio desde la API: el pedido por WhatsApp
+  // viaja como oferta aceptada y no debe llevar precios guardados hace días en localStorage.
+  useEffect(() => {
+    if (!open || !hydrated || items.length === 0 || syncedRef.current) {
+      return;
+    }
+    syncedRef.current = true;
+    const base = getPublicApiUrl().replace(/\/$/, "");
+    const slugs = Array.from(new Set(items.map((x) => x.slug)));
+    let cancelled = false;
+    void (async () => {
+      const updates: Record<string, { name: string; priceCOP: number } | null> = {};
+      await Promise.all(
+        slugs.map(async (slug) => {
+          const line = items.find((x) => x.slug === slug);
+          if (!line) return;
+          try {
+            const res = await fetch(`${base}/api/products/by-slug/${encodeURIComponent(slug)}`, { cache: "no-store" });
+            if (res.status === 404) {
+              updates[line.productId] = null;
+              return;
+            }
+            if (!res.ok) return;
+            const p = (await res.json()) as Product;
+            updates[line.productId] = { name: p.name, priceCOP: p.priceCOP };
+          } catch {
+            /* sin red: dejamos los precios guardados */
+          }
+        }),
+      );
+      if (cancelled) return;
+      const changed = syncProducts(updates);
+      if (changed > 0) {
+        setPriceNotice(
+          changed === 1
+            ? "Actualizamos el precio o disponibilidad de un producto de tu pedido."
+            : `Actualizamos el precio o disponibilidad de ${changed} productos de tu pedido.`,
+        );
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, hydrated, items, syncProducts]);
+
+  useEffect(() => {
+    if (!open) {
+      syncedRef.current = false;
+      setPriceNotice(null);
+    }
+  }, [open]);
 
   const count = selectCount({ items });
   const subtotal = selectSubtotal({ items });
@@ -40,6 +108,7 @@ export function CartDrawer({ whatsappPhone, whatsappIntro, orderCtaLabel, shippi
     items: items.map((x) => ({ name: x.name, qty: x.qty, priceCOP: x.priceCOP, size: x.size, slug: x.slug })),
     subtotal,
     siteUrl,
+    ivaIncluded,
   });
 
   return (
@@ -81,6 +150,12 @@ export function CartDrawer({ whatsappPhone, whatsappIntro, orderCtaLabel, shippi
                 </Button>
               </div>
             ) : (
+              <>
+                {priceNotice ? (
+                  <p role="status" className="mb-3 rounded-md border border-[var(--gold)]/40 bg-[var(--gold)]/10 px-3 py-2 text-xs text-[var(--gold)]">
+                    {priceNotice}
+                  </p>
+                ) : null}
               <ul className="divide-y divide-border">
                 {items.map((it) => (
                   <li key={cartLineKey(it.productId, it.size)} className="flex gap-3 py-4">
@@ -147,6 +222,7 @@ export function CartDrawer({ whatsappPhone, whatsappIntro, orderCtaLabel, shippi
                   </li>
                 ))}
               </ul>
+              </>
             )}
           </div>
 
@@ -159,9 +235,13 @@ export function CartDrawer({ whatsappPhone, whatsappIntro, orderCtaLabel, shippi
                 <span className="font-mono text-xs uppercase tracking-widest text-[var(--text-muted)]">Subtotal</span>
                 <span className="font-display text-3xl text-foreground">{formatCOP(subtotal)}</span>
               </div>
-              {shippingNote?.trim() ? (
-                <p className="mt-2 text-xs leading-relaxed text-[var(--text-secondary)]">{shippingNote}</p>
-              ) : null}
+              <p className="mt-1 flex justify-between font-mono text-[11px] uppercase tracking-wider text-[var(--text-muted)]">
+                <span>{ivaIncluded ? "IVA incluido" : "Precios en COP"}</span>
+                <span>Envío: por cotizar</span>
+              </p>
+              <p className="mt-2 text-xs leading-relaxed text-[var(--text-secondary)]">
+                {shippingNote?.trim() || "El envío se cotiza por WhatsApp según tu ciudad antes de confirmar."}
+              </p>
               <Button
                 asChild
                 size="lg"
@@ -172,6 +252,13 @@ export function CartDrawer({ whatsappPhone, whatsappIntro, orderCtaLabel, shippi
                   {orderCtaLabel}
                 </a>
               </Button>
+              <p className="mt-3 text-center text-[11px] leading-relaxed text-[var(--text-muted)]">
+                Al enviar aceptas los{" "}
+                <Link href={SHOP_TERMS_PATH} onClick={() => setOpen(false)} className="text-primary underline underline-offset-2">
+                  Términos de la tienda
+                </Link>
+                .
+              </p>
               <button
                 type="button"
                 onClick={clear}

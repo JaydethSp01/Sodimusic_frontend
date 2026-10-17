@@ -1,15 +1,17 @@
 "use client";
 
-import { SessionProvider } from "next-auth/react";
-import { Toaster } from "sonner";
 import { GlobalUX } from "@/components/shared/global-ux";
 
+/**
+ * Proveedores de la raíz. `SessionProvider` (next-auth) y el `Toaster` de sonner ya no viven aquí:
+ * el admin los monta en `components/admin-providers.tsx` y lo público usa `LazyToaster`
+ * solo en los componentes que llaman a `toast` (tienda, beats, booking).
+ */
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <SessionProvider>
+    <>
       <GlobalUX />
       {children}
-      <Toaster richColors position="top-center" theme="dark" />
-    </SessionProvider>
+    </>
   );
 }

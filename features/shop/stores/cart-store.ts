@@ -30,6 +30,8 @@ interface CartState {
   setQty: (productId: string, size: string | undefined, qty: number) => void;
   clear: () => void;
   setOpen: (open: boolean) => void;
+  /** Actualiza nombre/precio desde la API; `null` elimina la línea (producto retirado). Devuelve cuántas líneas cambiaron. */
+  syncProducts: (updates: Record<string, { name: string; priceCOP: number } | null>) => number;
 }
 
 export const useCartStore = create<CartState>()(
@@ -70,6 +72,31 @@ export const useCartStore = create<CartState>()(
         }),
       clear: () => set({ items: [] }),
       setOpen: (open) => set({ open }),
+      syncProducts: (updates) => {
+        let changed = 0;
+        set((s) => {
+          const next: CartItem[] = [];
+          for (const it of s.items) {
+            if (!(it.productId in updates)) {
+              next.push(it);
+              continue;
+            }
+            const u = updates[it.productId];
+            if (u === null) {
+              changed += 1;
+              continue;
+            }
+            if (u.priceCOP !== it.priceCOP || u.name !== it.name) {
+              changed += 1;
+              next.push({ ...it, priceCOP: u.priceCOP, name: u.name });
+            } else {
+              next.push(it);
+            }
+          }
+          return changed ? { items: next } : {};
+        });
+        return changed;
+      },
     }),
     {
       name: CART_STORAGE_KEY,

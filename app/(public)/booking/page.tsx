@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { PageHero } from "@/components/shared/page-hero";
-import { BookingWizard } from "@/features/booking/components/booking-wizard";
+import { BookingWizardLazy } from "@/features/booking/components/booking-wizard-lazy";
 import { getSiteContent } from "@/lib/site-config-server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -13,10 +13,17 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function BookingPage() {
   const site = await getSiteContent();
+  const legal = {
+    businessName: site.legal?.businessName ?? "Sodimusic Company",
+    depositPercent: site.legal?.depositPercent ?? 30,
+    cancellationHours: site.legal?.cancellationHours ?? 24,
+    policyVersion: site.legal?.policyVersion ?? "2026-10-17",
+    ivaIncluded: site.legal?.ivaIncluded ?? true,
+  };
   return (
     <div>
       <PageHero title={site.booking.heroTitle} description={site.booking.heroDescription} />
-      <BookingWizard booking={site.booking} />
+      <BookingWizardLazy booking={site.booking} legal={legal} />
     </div>
   );
 }

@@ -11,16 +11,23 @@
   --primary: #ff6b00;
   --primary-hover: #ff8c33;
   --primary-muted: rgba(255, 107, 0, 0.15);
+  /* Texto sobre superficies naranja (6.9:1 sobre --primary; blanco solo daba 2.9:1). */
+  --primary-foreground: #120a04;
 
   --gold: #d4a017;
   --gold-muted: rgba(212, 160, 23, 0.15);
 
   --text-primary: #f0ede8;
-  --text-secondary: #a09890;
-  --text-muted: #5a5550;
+  /* 9.5:1 sobre --background, 7.9:1 sobre --background-elevated */
+  --text-secondary: #b8b2a8;
+  /* 5.8:1 sobre --background, 4.9:1 sobre --background-elevated (antes #5a5550 = 2.7:1) */
+  --text-muted: #8f8a82;
 
-  --border: rgba(255, 107, 0, 0.12);
-  --border-hover: rgba(255, 107, 0, 0.35);
+  --whatsapp: #25d366;
+
+  --border: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 107, 0, 0.45);
+  --border-accent: rgba(255, 107, 0, 0.18);
 
   --radius: 4px;
   --radius-lg: 8px;
@@ -115,8 +122,43 @@
 }
 
 @layer utilities {
+  /* Contraste de botones primarios: cualquier superficie naranja usa texto oscuro.
+     Cubre `Button` (variant default) sin tocar components/ui/button.tsx. */
+  .bg-primary.text-white,
+  .bg-primary {
+    color: var(--primary-foreground);
+  }
+
   .text-balance {
     text-wrap: balance;
+  }
+
+  /* Titulares display: Bebas Neue con tracking amplio. */
+  .display-title {
+    @apply font-display uppercase leading-[0.95] tracking-[0.04em];
+  }
+
+  /* Eyebrow con línea de acento a la izquierda. */
+  .eyebrow {
+    @apply inline-flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.28em] text-primary;
+  }
+
+  .eyebrow::before {
+    content: "";
+    @apply h-px w-6 bg-primary;
+  }
+
+  /* Separador suave entre secciones (en lugar de bordes duros). */
+  /* Superficie de tarjeta/formulario (la usan contacto y prensa). */
+  .card-surface {
+    @apply rounded-lg border border-border;
+    background: rgba(22, 22, 22, 0.8);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  }
+
+  .section-divider {
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.1) 20%, rgba(255, 107, 0, 0.3) 50%, rgba(255, 255, 255, 0.1) 80%, transparent 100%);
+    height: 1px;
   }
 
   .no-scrollbar {
@@ -162,7 +204,8 @@
   }
 
   .nav-link-underline:hover::after,
-  .nav-link-underline:focus-visible::after {
+  .nav-link-underline:focus-visible::after,
+  .nav-link-underline.is-active::after {
     @apply scale-x-100;
   }
 
@@ -174,5 +217,42 @@
 
   .booking-calendar .rdp-day_button:not([disabled]):not([aria-selected="true"]):hover {
     background-color: rgba(255, 107, 0, 0.2);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Reveal al entrar en vista (components/shared/reveal.tsx) y entrada del hero.
+   Sustituyen a framer-motion. El reveal se anima con la Web Animations API desde
+   `Reveal` (como hacía framer, por JS): aquí solo va el estado oculto inicial,
+   que coincide con el HTML del servidor. Sin JS: <noscript> en RevealNoScriptFallback.
+   --------------------------------------------------------------------------- */
+@keyframes heroEnter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--enter-y, 24px));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Oculto hasta que el observer marca "in". Los contenedores escalonados no se ocultan (solo sus ítems). */
+[data-reveal]:not([data-reveal="in"]):not([data-reveal-variant="stagger"]),
+[data-reveal-item]:not([data-reveal-item="in"]) {
+  opacity: 0;
+}
+
+/* Entrada del hero (server component): 0.8 s · cubic-bezier(0.25,0.1,0.25,1) con retardo por elemento. */
+.hero-enter {
+  animation: heroEnter 0.8s cubic-bezier(0.25, 0.1, 0.25, 1) var(--enter-delay, 0s) backwards;
+}
+
+/* Con movimiento reducido todo es visible de inmediato (la regla global ya anula las animaciones). */
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal],
+  [data-reveal-item] {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }

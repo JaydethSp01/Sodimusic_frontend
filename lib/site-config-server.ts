@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
-import { fetchPublic } from "@/lib/api";
+import { fetchPublic, publicTags, PUBLIC_REVALIDATE_SLOW } from "@/lib/api";
 import { fetchAdmin } from "@/lib/api-admin";
 import type { SiteContent } from "@/types/site-content";
 import { SITE_CONTENT_DEFAULTS } from "@/lib/site-defaults";
@@ -18,7 +18,7 @@ export const getSiteContent = cache(async (): Promise<SiteContent> => {
     }
   }
   const res = await fetchPublic("/api/site-config", {
-    next: { tags: ["site-config"], revalidate: 60 },
+    next: { tags: [publicTags.siteConfig], revalidate: PUBLIC_REVALIDATE_SLOW },
   });
   if (!res.ok) {
     return SITE_CONTENT_DEFAULTS;

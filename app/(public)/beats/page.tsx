@@ -32,7 +32,14 @@ export default async function BeatsPage() {
         description={heroDescription}
         backgroundImageUrl={site.beatsPage.heroImageUrl}
       />
-      <BeatsStore initialItems={data.items} />
+      <BeatsStore
+        initialItems={data.items}
+        legal={{
+          businessName: site.legal?.businessName ?? "Sodimusic Company",
+          policyVersion: site.legal?.policyVersion ?? "2026-10-17",
+          ivaIncluded: site.legal?.ivaIncluded ?? true,
+        }}
+      />
     </div>
   );
 }

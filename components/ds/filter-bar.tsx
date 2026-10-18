@@ -20,7 +20,8 @@ export function FilterBar({ children, end, sticky = false, className, label = "F
       aria-label={label}
       className={cn(
         "border-b border-line-1 py-3",
-        sticky && "sticky top-[var(--nav-h,72px)] z-40 bg-ink-0/85 backdrop-blur-md",
+        // `sticky` se conserva en la API pero ya no fija la barra: va en el flujo, arriba del listado.
+        sticky && "bg-ink-0/85",
         className,
       )}
     >

@@ -19,7 +19,7 @@ test.describe("Producciones", () => {
     for (const chips of genres) expect(chips).toContain("Trap");
 
     // Combinar filtros conserva el género y reinicia la página.
-    await page.getByRole("navigation", { name: "Filtrar por país" }).getByRole("link", { name: "Colombia" }).click();
+    await page.getByLabel("Filtrar por país").selectOption("Colombia");
     await expect(page).toHaveURL(/genre=Trap/);
     await expect(page).toHaveURL(/country=Colombia/);
     await expect(page.getByRole("link", { name: /limpiar filtros/i })).toBeVisible();
@@ -43,17 +43,17 @@ test.describe("Producciones", () => {
     await page.goto("/productions");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 
-    const yearNav = page.getByRole("navigation", { name: "Filtrar por año" });
+    const yearSelect = page.getByLabel("Filtrar por año");
     if (years.length > 1) {
-      await expect(yearNav.getByRole("link")).toHaveText(["Todos", ...years.map(String)]);
+      await expect(yearSelect.locator("option")).toHaveText(["Año: todos", ...years.map(String)]);
     } else {
-      await expect(yearNav).toHaveCount(0);
+      await expect(yearSelect).toHaveCount(0);
     }
-    const countryNav = page.getByRole("navigation", { name: "Filtrar por país" });
+    const countrySelect = page.getByLabel("Filtrar por país");
     if (countries.length > 1) {
-      await expect(countryNav.getByRole("link")).toHaveText(["Todos", ...countries]);
+      await expect(countrySelect.locator("option")).toHaveText(["País: todos", ...countries]);
     } else {
-      await expect(countryNav).toHaveCount(0);
+      await expect(countrySelect).toHaveCount(0);
     }
   });
 

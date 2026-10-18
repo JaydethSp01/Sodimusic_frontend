@@ -70,14 +70,6 @@ export function Footer({ site }: { site: FooterSite }) {
 
   return (
     <footer className="relative z-[2] overflow-hidden border-t border-line-1 bg-ink-1" role="contentinfo">
-      {/* Firma: wordmark gigante recortado al 50 % (decorativo). Va en un pseudoelemento (content: attr)
-          para que no sea texto del DOM: axe no lo evalúa como contraste y los lectores no lo anuncian. */}
-      <div aria-hidden className="container-page pointer-events-none select-none">
-        <div
-          data-wordmark={site.brand.logoText}
-          className="relative h-[0.5em] overflow-hidden font-display text-display-xl font-black text-text-1/[0.07] before:absolute before:left-0 before:top-0 before:whitespace-nowrap before:leading-none before:content-[attr(data-wordmark)]"
-        />
-      </div>
       <div className="container-page pb-14 pt-10">
         <div className="grid gap-8 md:grid-cols-2 md:gap-10 lg:grid-cols-[1.25fr_0.75fr_0.85fr_1.25fr] lg:gap-12">
           {/* Marca */}

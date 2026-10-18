@@ -54,6 +54,8 @@ export const metadata: Metadata = {
     default: "Sodimusic Company — Sello Urbano Afro-Caribeño | Colombia",
     template: "%s | Sodimusic Company",
   },
+  // Código de verificación de Google Search Console (método «Etiqueta HTML»): variable de entorno en Vercel.
+  verification: process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : undefined,
   description:
     "Sello discográfico independiente desde 2016 en María La Baja, Bolívar. Trap, afrobeat, reggaeton y dancehall con raíces afrocolombianas.",
   icons: {

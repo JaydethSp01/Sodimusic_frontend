@@ -65,7 +65,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const site = await getSiteContent();
   const base = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://sodimusic.com").replace(/\/$/, "");
   return {
-    title: site.seo.homeTitle,
+    title: { absolute: site.seo.homeTitle },
     description: site.seo.homeDescription,
     alternates: { canonical: base },
     openGraph: {

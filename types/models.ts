@@ -176,3 +176,59 @@ export interface Subscriber {
   unsubscribedAt: string | null;
   createdAt: string;
 }
+
+/* ------------------------------------------------------------------ */
+/* Novedades (feed social)                                             */
+/* ------------------------------------------------------------------ */
+
+export type SocialPostKind = "YOUTUBE_VIDEO" | "FACEBOOK_POST" | "LINK";
+
+export interface SocialPost {
+  id: string;
+  sourceId: string | null;
+  kind: SocialPostKind;
+  /** `yt:<videoId>` | `fb:<postId>` | `link:<sha1(url)>` */
+  externalId: string;
+  title: string;
+  text: string | null;
+  url: string;
+  imageUrl: string | null;
+  author: string | null;
+  /** ISO date */
+  publishedAt: string;
+  status: "VISIBLE" | "HIDDEN";
+  pinned: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type SocialSourceKind = "YOUTUBE_CHANNEL" | "FACEBOOK_PAGE" | "YOUTUBE_SEARCH";
+
+export interface SocialSource {
+  id: string;
+  kind: SocialSourceKind;
+  label: string;
+  /** `UC…` | id o username de la página | texto de búsqueda */
+  externalId: string;
+  url: string | null;
+  enabled: boolean;
+  lastFetchedAt: string | null;
+  lastError: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SocialSyncSummary {
+  ok: boolean;
+  startedAt: string;
+  finishedAt: string;
+  added: number;
+  updated: number;
+  sources: Array<{ id: string; label: string; kind: SocialSourceKind; added: number; updated: number; error?: string }>;
+}
+
+export interface SocialStatus {
+  lastSyncAt: string | null;
+  env: { youtubeApiKey: boolean; facebookPageToken: boolean; cronSecret: boolean };
+  counts: { sources: number; posts: number; hidden: number };
+}

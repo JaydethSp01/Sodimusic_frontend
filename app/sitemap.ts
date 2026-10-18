@@ -12,7 +12,7 @@ const LEGAL_PATHS = [
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const main = ["", "/productions", "/beats", "/releases", "/booking", "/artists", "/tienda", "/canales", "/contacto"];
+  const main = ["", "/productions", "/beats", "/releases", "/booking", "/artists", "/tienda", "/canales", "/novedades", "/contacto"];
   const now = new Date();
   return [
     ...main.map((p) => ({

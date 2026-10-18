@@ -29,6 +29,7 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
     { href: "/admin/dashboard/mensajes", label: "Mensajes", icon: "inbox", badge: messagesNew },
     { href: "/admin/dashboard/suscriptores", label: "Suscriptores", icon: "mail" },
     { href: "/admin/dashboard/canales", label: "Canales", icon: "channels" },
+    { href: "/admin/dashboard/novedades", label: "Novedades", icon: "news" },
     { href: "/admin/dashboard/calendar", label: "Calendario", icon: "calendar" },
     { href: "/admin/dashboard/qr", label: "Código QR", icon: "qr" },
   ];

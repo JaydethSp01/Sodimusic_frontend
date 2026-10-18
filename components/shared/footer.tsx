@@ -58,6 +58,7 @@ export function Footer({ site }: { site: FooterSite }) {
     ...site.nav.links,
     ...(shopEnabled && !hasShopLink ? [{ href: "/tienda", label: site.shop?.navLabel || "Tienda" }] : []),
     { href: "/canales", label: "Canales" },
+    { href: "/novedades", label: "Novedades" },
     { href: "/contacto", label: "Contacto y prensa" },
     { href: site.nav.ctaHref, label: "Agendar" },
   ];

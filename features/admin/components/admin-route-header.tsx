@@ -12,6 +12,7 @@ const routes = [
   { match: "/admin/dashboard/releases", title: "Releases" },
   { match: "/admin/dashboard/tienda", title: "Tienda" },
   { match: "/admin/dashboard/canales", title: "Canales" },
+  { match: "/admin/dashboard/novedades", title: "Novedades" },
   { match: "/admin/dashboard/mensajes", title: "Mensajes" },
   { match: "/admin/dashboard/suscriptores", title: "Suscriptores" },
   { match: "/admin/dashboard/calendar", title: "Calendario" },

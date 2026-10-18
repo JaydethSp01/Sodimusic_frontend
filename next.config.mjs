@@ -59,6 +59,8 @@ const nextConfig = {
       { protocol: "https", hostname: "images.unsplash.com", pathname: "/**" },
       { protocol: "https", hostname: "i.ytimg.com", pathname: "/**" },
       { protocol: "https", hostname: "img.youtube.com", pathname: "/**" },
+      { protocol: "https", hostname: "**.fbcdn.net", pathname: "/**" },
+      { protocol: "https", hostname: "scontent*.xx.fbcdn.net", pathname: "/**" },
       { protocol: "https", hostname: "i.scdn.co", pathname: "/**" },
       { protocol: "https", hostname: "mosaic.scdn.co", pathname: "/**" },
       { protocol: "https", hostname: "**.public.blob.vercel-storage.com", pathname: "/**" },

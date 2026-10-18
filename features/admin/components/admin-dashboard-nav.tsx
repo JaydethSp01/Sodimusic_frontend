@@ -13,6 +13,7 @@ import {
   Mail,
   Menu,
   Music2,
+  Newspaper,
   QrCode,
   ShoppingBag,
   Users,
@@ -33,6 +34,7 @@ export type AdminNavIcon =
   | "releases"
   | "shop"
   | "channels"
+  | "news"
   | "calendar"
   | "qr"
   | "inbox"
@@ -49,6 +51,7 @@ const NAV_ICONS: Record<AdminNavIcon, LucideIcon> = {
   releases: Disc3,
   shop: ShoppingBag,
   channels: Youtube,
+  news: Newspaper,
   calendar: CalendarDays,
   qr: QrCode,
   inbox: Inbox,

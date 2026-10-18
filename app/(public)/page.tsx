@@ -12,6 +12,7 @@ import { HomeStoryTimeline } from "@/components/landing/home-story-timeline";
 import { HomeServicesSection } from "@/components/landing/home-services-section";
 import { HomeShopSection, stripTrailingArrow } from "@/components/landing/home-shop-section";
 import { HomeChannelsSection } from "@/features/channels/components/home-channels-section";
+import { HomeNewsSection } from "@/features/social/components/home-news-section";
 import { SectionTitle } from "@/components/shared/section-title";
 import { WhatsAppIcon } from "@/components/shared/whatsapp-icon";
 import { ProductionCard, SpotifyIcon } from "@/features/productions/components/production-card";
@@ -224,6 +225,8 @@ export default async function HomePage() {
           </div>
         </div>
       </HomeFadeSection>
+
+      <HomeNewsSection className="border-t border-border" />
 
       {showYoutube ? (
         <HomeChannelsSection youtube={site.youtube} className="border-t border-border" />

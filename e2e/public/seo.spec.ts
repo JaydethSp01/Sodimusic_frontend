@@ -8,6 +8,7 @@ const PUBLIC_ROUTES = [
   "/artists",
   "/tienda",
   "/canales",
+  "/novedades",
   "/contacto",
   "/booking",
   "/legal/privacidad",

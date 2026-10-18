@@ -1,10 +1,18 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowDown } from "lucide-react";
+import { ArrowDown, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { SiteContent } from "@/types/site-content";
 import { resolveMediaUrl } from "@/lib/resolve-media-url";
+
+/** Lanzamiento más reciente para el pill «Lo último» del hero. `upcoming` = fecha de salida en el futuro. */
+export interface HeroLatest {
+  title: string;
+  artistName: string;
+  slug: string;
+  upcoming: boolean;
+}
 
 /**
  * Entrada del hero en CSS (`.hero-enter` en globals.css): opacity 0→1 y translateY(--enter-y)→0 en 0.8 s
@@ -14,8 +22,10 @@ import { resolveMediaUrl } from "@/lib/resolve-media-url";
 const enter = (y: number, delay: number) =>
   ({ "--enter-y": `${y}px`, "--enter-delay": `${delay}s` }) as React.CSSProperties;
 
-export function HeroSection({ hero }: { hero: SiteContent["hero"] }) {
+export function HeroSection({ hero, latest }: { hero: SiteContent["hero"]; latest?: HeroLatest | null }) {
   const heroSrc = resolveMediaUrl(hero.heroImageUrl);
+  const latestHref = latest?.slug ? `/releases/${latest.slug}` : "/releases";
+  const latestLabel = latest?.upcoming ? "Próximamente" : "Nuevo";
 
   return (
     <section
@@ -42,6 +52,25 @@ export function HeroSection({ hero }: { hero: SiteContent["hero"] }) {
       </div>
 
       <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col items-center px-4 pb-14 pt-32 text-center sm:pb-16 lg:px-8">
+        {latest ? (
+          <Link
+            href={latestHref}
+            data-testid="hero-latest"
+            className="hero-enter mb-6 inline-flex min-h-[44px] max-w-full items-center gap-2.5 rounded-full border border-white/15 bg-black/35 px-4 py-1.5 font-mono text-[11px] uppercase tracking-wider text-white/90 backdrop-blur transition-colors hover:border-primary/60 hover:text-white"
+            style={enter(12, 0)}
+          >
+            <span className="h-2 w-2 shrink-0 rounded-full bg-primary motion-safe:animate-pulse" aria-hidden />
+            <span className="shrink-0 text-primary">{latestLabel}</span>
+            <span className="shrink-0 text-white/40" aria-hidden>
+              ·
+            </span>
+            <span className="min-w-0 truncate">
+              {latest.title}
+              <span className="hidden sm:inline"> — {latest.artistName}</span>
+            </span>
+            <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          </Link>
+        ) : null}
         <p className="hero-enter eyebrow text-[11px] text-white/80 sm:text-xs" style={enter(12, 0.05)}>
           {hero.eyebrow}
         </p>

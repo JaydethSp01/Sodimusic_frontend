@@ -11,6 +11,7 @@ import { CalendarDays, Sparkles } from "lucide-react";
 import { resolveMediaUrl } from "@/lib/resolve-media-url";
 import { COVER_IMAGE_PROPS } from "@/lib/image-blur";
 import { SmartLinks } from "./_components/smart-links";
+import { FeaturedRelease, pickFeaturedRelease } from "./_components/featured-release";
 import { formatReleaseDate, isFutureRelease, parseReleaseDate } from "./_components/release-date";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -39,6 +40,8 @@ export default async function ReleasesPage({
   const site = await getSiteContent();
   const res = await fetchPublic(`/api/releases?${params.toString()}`);
   const data = res.ok ? ((await res.json()) as { items: Release[] }) : { items: [] as Release[] };
+  const headliner = pickFeaturedRelease(data.items);
+  const rest = headliner ? data.items.filter((r) => r.id !== headliner.id) : data.items;
 
   return (
     <div>
@@ -49,13 +52,16 @@ export default async function ReleasesPage({
         backgroundImageUrl={site.releasesPage.heroImageUrl}
       />
       <section className="mx-auto max-w-7xl px-4 py-12 lg:px-8" aria-label="Lanzamientos">
-        {data.items.length === 0 ? (
+        {headliner ? (
+          <FeaturedRelease release={headliner} />
+        ) : (
           <p className="rounded-lg border border-dashed border-border px-6 py-14 text-center text-[var(--text-secondary)]">
             {site.releasesPage.emptyStateMessage}
           </p>
-        ) : (
-          <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {data.items.map((r, i) => {
+        )}
+        {rest.length ? (
+          <ul className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3" aria-label="Más lanzamientos">
+            {rest.map((r, i) => {
               const date = parseReleaseDate(r);
               const future = isFutureRelease(r);
               return (
@@ -67,7 +73,7 @@ export default async function ReleasesPage({
                           src={resolveMediaUrl(r.coverUrl)}
                           alt={`Portada de ${r.title} de ${r.artistName}`}
                           fill
-                          priority={i < 3}
+                          priority={i < 2}
                           {...COVER_IMAGE_PROPS}
                           className="object-cover transition-transform duration-500 group-hover:scale-[1.04] motion-reduce:transition-none"
                           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
@@ -128,7 +134,7 @@ export default async function ReleasesPage({
               );
             })}
           </ul>
-        )}
+        ) : null}
       </section>
     </div>
   );

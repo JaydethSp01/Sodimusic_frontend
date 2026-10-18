@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { PageHero } from "@/components/shared/page-hero";
 import { BookingWizardLazy } from "@/features/booking/components/booking-wizard-lazy";
+import { FaqSection } from "@/components/shared/faq-section";
+import { bookingFaq } from "@/content/faq";
 import { getSiteContent } from "@/lib/site-config-server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -24,6 +26,10 @@ export default async function BookingPage() {
     <div>
       <PageHero title={site.booking.heroTitle} description={site.booking.heroDescription} />
       <BookingWizardLazy booking={site.booking} legal={legal} />
+      <FaqSection
+        items={bookingFaq({ depositPercent: legal.depositPercent, cancellationHours: legal.cancellationHours })}
+        subtitle="Anticipo, cancelaciones, entrega de archivos y derechos: lo que más nos preguntan antes de reservar."
+      />
     </div>
   );
 }

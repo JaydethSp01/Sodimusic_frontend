@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { PageHero } from "@/components/shared/page-hero";
 import { BeatsStore } from "@/features/beats/components/beats-store";
+import { FaqSection } from "@/components/shared/faq-section";
+import { BEATS_FAQ } from "@/content/faq";
 import { fetchPublic } from "@/lib/api";
 import { getSiteContent } from "@/lib/site-config-server";
 import { replaceCatalogTemplate } from "@/lib/site-template";
@@ -39,6 +41,10 @@ export default async function BeatsPage() {
           policyVersion: site.legal?.policyVersion ?? "2026-10-17",
           ivaIncluded: site.legal?.ivaIncluded ?? true,
         }}
+      />
+      <FaqSection
+        items={BEATS_FAQ}
+        subtitle="Licencias MP3, WAV, Stems y exclusiva, entrega, créditos y lo que puedes hacer con cada beat."
       />
     </div>
   );

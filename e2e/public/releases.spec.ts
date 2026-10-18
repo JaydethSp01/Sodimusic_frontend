@@ -42,6 +42,38 @@ test.describe("Lanzamientos", () => {
     await expect(page).toHaveURL(new RegExp(`/releases/${first.slug}$`), { timeout: 30_000 });
   });
 
+  test("lanzamiento destacado en formato ancho con título enlazado, fecha y smart links", async ({ page, request }) => {
+    const data = (await (await request.get(`${API_URL}/api/releases`)).json()) as { items: Release[] };
+    test.skip(data.items.length === 0, "Sin lanzamientos en el seed");
+    await page.goto("/releases");
+    const list = page.getByRole("region", { name: "Lanzamientos" });
+    const featured = list.getByTestId("featured-release");
+    await expect(featured).toBeVisible();
+    await expect(featured).toContainText(/próximo lanzamiento|último lanzamiento/i);
+    const title = featured.getByRole("heading", { level: 2 });
+    await expect(title).toBeVisible();
+    const titleText = (await title.textContent())?.trim() ?? "";
+    const match = data.items.find((r) => r.title === titleText);
+    expect(match, `el destacado «${titleText}» debe ser un lanzamiento de la API`).toBeTruthy();
+    await expect(featured.getByRole("link", { name: titleText, exact: true })).toHaveAttribute("href", `/releases/${match!.slug}`);
+    if (match!.releaseDate) {
+      await expect(featured.locator("time")).toHaveAttribute("datetime", /\d{4}-\d{2}-\d{2}/);
+      if (new Date(match!.releaseDate).getTime() > Date.now()) {
+        await expect(featured.getByRole("timer")).toBeVisible();
+      }
+    }
+    const hasLinks = PLATFORMS.some(([key]) => typeof match![key] === "string" && /^https?:\/\//.test(match![key] as string));
+    if (hasLinks) {
+      await expect(featured.getByRole("navigation", { name: "Escuchar en plataformas" })).toBeVisible();
+    }
+    // Con un solo lanzamiento no se pinta la grilla «Más lanzamientos».
+    if (data.items.length === 1) {
+      await expect(list.getByRole("list", { name: "Más lanzamientos" })).toHaveCount(0);
+    } else {
+      await expect(list.getByRole("list", { name: "Más lanzamientos" }).locator("article")).toHaveCount(data.items.length - 1);
+    }
+  });
+
   test("detalle: solo los smart links existentes, fecha y cuenta regresiva si es futura", async ({ page, request }) => {
     const data = (await (await request.get(`${API_URL}/api/releases`)).json()) as { items: Release[] };
     test.skip(data.items.length === 0, "Sin lanzamientos en el seed");

@@ -64,6 +64,8 @@ test.describe("Booking (wizard de 5 pasos)", () => {
     await next.click();
     await expect(page.getByRole("alert").filter({ hasText: /elige al menos un servicio/i })).toBeVisible();
     const service = page.getByRole("button", { name: /grabación vocal/i });
+    // Icono Lucide (svg) en vez de emoji, coherente con la portada.
+    await expect(service.locator("svg").first()).toBeVisible();
     await service.click();
     await expect(service).toHaveAttribute("aria-pressed", "true");
     await expect(page.locator("p[role='alert']")).toHaveCount(0);

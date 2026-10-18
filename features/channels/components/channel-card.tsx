@@ -161,7 +161,7 @@ export function ChannelCard({
             href={subscribeUrl(channel.url)}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex min-h-11 items-center gap-2 rounded-md bg-[#c4302b] px-4 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-px hover:bg-[#a8271f] hover:shadow-[0_8px_24px_rgba(196,48,43,0.3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transition-none"
+            className="inline-flex min-h-11 items-center gap-2 rounded-md bg-[#d90000] px-4 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-px hover:bg-[#ff0000] hover:shadow-[0_8px_24px_rgba(217,0,0,0.3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transition-none"
             aria-label={`${subscribeLabel}: ${channel.name} en YouTube`}
           >
             <Youtube className="h-5 w-5" aria-hidden />
@@ -187,7 +187,7 @@ export function ChannelCard({
               href={channel.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="nav-link-underline inline-flex min-h-11 items-center px-1 text-sm text-[var(--text-secondary)] transition-colors hover:text-primary"
+              className="nav-link-underline inline-flex min-h-11 items-center rounded-md px-1 text-sm text-[var(--text-secondary)] transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               Ver canal
             </a>

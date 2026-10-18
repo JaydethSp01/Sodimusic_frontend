@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import type { Beat, BeatLicenseType } from "@/types/models";
@@ -11,8 +11,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { GENRE_FILTER_VALUES } from "@/lib/constants";
-import { BeatCard } from "@/features/beats/components/beat-card";
+import { BeatCard, beatToTrack } from "@/features/beats/components/beat-card";
 import { BeatLicenseModal } from "@/features/beats/components/beat-license-modal";
+import { usePlayerStore, type PlayerTrack } from "@/features/beats/stores/player-store";
 
 /** Formulario "Me interesa" (zod + react-hook-form): se descarga solo al elegir licencia. */
 const BeatInterestModal = dynamic(
@@ -82,6 +83,37 @@ export function BeatsStore({ initialItems, legal }: BeatsStoreProps) {
     });
   }, [initialItems, genre, bpmMin, bpmMax, mood, onlyAvail]);
 
+  /** Cola de la barra global: los beats visibles con preview, en el orden de la lista. */
+  const queue = useMemo(() => filtered.map(beatToTrack).filter((t): t is PlayerTrack => t !== null), [filtered]);
+
+  /* "Elegir licencia" desde la barra global abre el modal aquí (sin navegar). */
+  useEffect(() => {
+    const { setChooseLicenseHandler } = usePlayerStore.getState();
+    setChooseLicenseHandler((id) => {
+      const beat = initialItems.find((b) => b.id === id);
+      if (beat && beat.status !== "SOLD") {
+        setLicenseBeat(beat);
+      }
+    });
+    return () => setChooseLicenseHandler(undefined);
+  }, [initialItems]);
+
+  /* Enlace `/beats?licencia=<id>` (p. ej. desde la barra en otra ruta): abre el modal y limpia la URL. */
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("licencia");
+    if (!id) {
+      return;
+    }
+    const beat = initialItems.find((b) => b.id === id);
+    if (beat && beat.status !== "SOLD") {
+      setLicenseBeat(beat);
+    }
+    params.delete("licencia");
+    const qs = params.toString();
+    window.history.replaceState(window.history.state, "", `${window.location.pathname}${qs ? `?${qs}` : ""}${window.location.hash}`);
+  }, [initialItems]);
+
   const ivaIncluded = legal.ivaIncluded ?? true;
 
   return (
@@ -143,9 +175,16 @@ export function BeatsStore({ initialItems, legal }: BeatsStoreProps) {
       </div>
 
       {filtered.length ? (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
           {filtered.map((beat, i) => (
-            <BeatCard key={beat.id} beat={beat} ivaIncluded={ivaIncluded} priority={i < 3} onChooseLicense={() => setLicenseBeat(beat)} />
+            <BeatCard
+              key={beat.id}
+              beat={beat}
+              ivaIncluded={ivaIncluded}
+              priority={i < 3}
+              queue={queue}
+              onChooseLicense={() => setLicenseBeat(beat)}
+            />
           ))}
         </div>
       ) : (

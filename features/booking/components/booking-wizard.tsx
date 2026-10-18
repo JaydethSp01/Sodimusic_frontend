@@ -27,6 +27,7 @@ import { pageTransition } from "@/lib/animations";
 import { getPublicApiUrl } from "@/lib/api";
 import { formatCOP } from "@/lib/format-cop";
 import { genreColor } from "@/lib/genre-colors";
+import { serviceIcon } from "@/lib/service-icons";
 import { TIME_SLOT_LABELS } from "@/lib/constants";
 import type { ServiceType } from "@/types/enums";
 import type { SiteContent, SiteLegal } from "@/types/site-content";
@@ -412,6 +413,7 @@ export function BookingWizard({ booking, legal }: { booking: BookingConfig; lega
                   const selected = s.serviceTypes.includes(type);
                   const n = String(idx + 1).padStart(2, "0");
                   const price = servicePriceLine(svc);
+                  const Icon = serviceIcon(svc.type);
                   return (
                     <button
                       key={svc.type}
@@ -435,8 +437,14 @@ export function BookingWizard({ booking, legal }: { booking: BookingConfig; lega
                         {n}
                       </span>
                       <div className="relative flex items-start justify-between gap-2">
-                        <span className="flex h-11 w-11 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-2xl" aria-hidden>
-                          {svc.icon}
+                        <span
+                          className={cn(
+                            "flex h-12 w-12 items-center justify-center rounded-md border border-primary/25 transition-colors duration-200",
+                            selected ? "bg-primary text-[var(--primary-foreground)]" : "bg-primary/10 text-primary",
+                          )}
+                          aria-hidden
+                        >
+                          <Icon className="h-6 w-6" strokeWidth={1.75} />
                         </span>
                         <AnimatePresence>
                           {selected ? (

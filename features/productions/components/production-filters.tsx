@@ -7,7 +7,6 @@ import { X } from "lucide-react";
 import { FilterChips, type FilterChip } from "@/components/shared/filter-chips";
 
 const ALL = "";
-const FIRST_YEAR = 2016;
 
 const GENRES: FilterChip[] = [
   { value: ALL, label: "Todos" },
@@ -18,34 +17,40 @@ const GENRES: FilterChip[] = [
   { value: "Dancehall", label: "Dancehall" },
 ];
 
-const COUNTRIES: FilterChip[] = [
-  { value: ALL, label: "Todos" },
-  { value: "Colombia", label: "Colombia" },
-  { value: "México", label: "México" },
-  { value: "Otro", label: "Otro" },
-];
-
-function yearChips(): FilterChip[] {
-  const current = new Date().getFullYear();
-  const years: FilterChip[] = [{ value: ALL, label: "Todos" }];
-  for (let y = current; y >= FIRST_YEAR; y--) {
-    years.push({ value: String(y), label: String(y) });
+/**
+ * Chips «Todos» + valores del catálogo. Si el valor activo (desde la URL) no está
+ * entre las opciones se añade al final para que el filtro aplicado sea visible.
+ */
+function toChips(values: Array<string | number>, active: string): FilterChip[] {
+  const list = values.map(String);
+  if (active && !list.includes(active)) {
+    list.push(active);
   }
-  return years;
+  return [{ value: ALL, label: "Todos" }, ...list.map((v) => ({ value: v, label: v }))];
 }
 
-const YEARS = yearChips();
+export interface ProductionFiltersProps {
+  /** Años presentes en el catálogo (derivados en el servidor; ver `features/productions/facets.ts`). */
+  years?: number[];
+  /** Países presentes en el catálogo (Colombia, México, Otro). */
+  countries?: string[];
+}
 
 /**
  * Filtros de /productions con chips unificados en modo enlace (`hrefFor`):
  * cada chip es un `<Link>` que conserva los demás filtros y reinicia la página.
  */
-export function ProductionFilters() {
+export function ProductionFilters({ years = [], countries = [] }: ProductionFiltersProps) {
   const sp = useSearchParams();
   const genre = sp.get("genre") ?? ALL;
   const year = sp.get("year") ?? ALL;
   const country = sp.get("country") ?? ALL;
   const hasFilters = !!(genre || year || country);
+  // Una fila con una sola opción (además de «Todos») no filtra nada: se oculta entera.
+  const yearChips = toChips(years, year);
+  const countryChips = toChips(countries, country);
+  const showYears = yearChips.length > 2;
+  const showCountries = countryChips.length > 2;
 
   const hrefFor = useCallback(
     (key: "genre" | "year" | "country") => (value: string) => {
@@ -66,9 +71,13 @@ export function ProductionFilters() {
     <div className="sticky top-[60px] z-30 border-b border-white/[0.06] bg-[#080808]/85 py-4 backdrop-blur-md md:top-[68px]">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 lg:px-8">
         <FilterRow label="Género" chips={GENRES} active={genre} hrefFor={hrefFor("genre")} />
-        <FilterRow label="Año" chips={YEARS} active={year} hrefFor={hrefFor("year")} />
+        {showYears ? <FilterRow label="Año" chips={yearChips} active={year} hrefFor={hrefFor("year")} /> : null}
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <FilterRow label="País" chips={COUNTRIES} active={country} hrefFor={hrefFor("country")} className="min-w-0 flex-1" />
+          {showCountries ? (
+            <FilterRow label="País" chips={countryChips} active={country} hrefFor={hrefFor("country")} className="min-w-0 flex-1" />
+          ) : (
+            <span aria-hidden className="min-w-0 flex-1" />
+          )}
           {hasFilters ? (
             <Link
               href="/productions"

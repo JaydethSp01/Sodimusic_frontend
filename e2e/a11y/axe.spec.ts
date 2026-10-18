@@ -11,20 +11,8 @@ import { test, expect, ADMIN_STORAGE_STATE, API_URL } from "../fixtures";
  * Clave: ruta; valor: regla axe + descripción.
  */
 const KNOWN_ISSUES: Record<string, { rule: string; description: string }[]> = {
-  "/canales": [
-    {
-      rule: "color-contrast",
-      description:
-        "BUG a11y: el botón «Suscribirse» de la tarjeta de canal (features/channels/components/channel-card.tsx, bg-[#ff0000] con texto blanco) da 3.99:1 (< 4.5:1); axe también marca título/descripción durante el revelado.",
-    },
-  ],
-  "/tienda": [
-    {
-      rule: "color-contrast",
-      description:
-        "BUG a11y: en las tarjetas de producto (features/shop/components/product-card.tsx) la categoría y «IVA incluido» usan text-[10px] con --text-muted (#8f8a82) sobre bg-background-card: axe lo reporta como contraste insuficiente (serious).",
-    },
-  ],
+  // Vacío: los contrastes de /canales («Suscribirse», ahora bg #d90000 = 5.3:1) y /tienda
+  // (categoría e «IVA incluido» en 11px con --text-secondary) se corrigieron; axe vuelve a bloquear.
 };
 
 async function runAxe(page: Page, route: string) {
@@ -64,6 +52,10 @@ async function firstProductSlug(request: import("@playwright/test").APIRequestCo
 }
 
 test.describe("Accesibilidad (axe) · público", () => {
+  // Sin animaciones de revelado: axe mide el contraste durante el fade-in (opacidad < 1) y da falsos positivos.
+  test.beforeEach(async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+  });
   const routes = ["/", "/beats", "/tienda", "/booking", "/canales", "/contacto", "/legal/privacidad"];
   for (const route of routes) {
     test(`${route} sin violaciones serious/critical`, async ({ page }) => {
@@ -84,6 +76,9 @@ test.describe("Accesibilidad (axe) · público", () => {
 
 test.describe("Accesibilidad (axe) · admin", () => {
   test.use({ storageState: ADMIN_STORAGE_STATE });
+  test.beforeEach(async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+  });
   test("/admin/dashboard (logueado) sin violaciones serious/critical", async ({ page, isMobile }) => {
     test.skip(isMobile, "El admin solo se prueba en escritorio");
     await page.goto("/admin/dashboard");

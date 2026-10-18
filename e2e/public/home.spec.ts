@@ -21,6 +21,34 @@ test.describe("Inicio", () => {
     await expect(page).toHaveURL(/\/productions$/, { timeout: 30_000 });
   });
 
+  test("pill «Lo último» del hero enlaza a /releases y cinta (marquee) de géneros", async ({ page, request }) => {
+    const data = (await (await request.get(`${API_URL}/api/releases`)).json()) as {
+      items: { slug: string; title: string }[];
+    };
+    await page.goto("/");
+    const hero = page.getByRole("region", { name: "Presentación" });
+    const pill = hero.getByTestId("hero-latest");
+    if (data.items.length === 0) {
+      await expect(pill).toHaveCount(0);
+    } else {
+      await expect(pill).toBeVisible();
+      await expect(pill).toHaveAttribute("href", /^\/releases(\/[^/]+)?$/);
+      await expect(pill).toContainText(/nuevo|próximamente/i);
+      // Altura táctil mínima (44 px).
+      const box = await pill.boundingBox();
+      expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+    }
+
+    const marquee = page.getByTestId("marquee-strip");
+    await expect(marquee).toBeVisible();
+    // Un grupo visible (el duplicado es aria-hidden) con los géneros sin «Otro» y los textos fijos.
+    const visibleItems = marquee.locator("ul:not([aria-hidden='true']) li");
+    for (const name of ["Champeta", "Trap", "Reggaeton", "Afrobeat", "Dancehall", "Est. 2016"]) {
+      await expect(visibleItems.filter({ hasText: name }).first()).toBeAttached();
+    }
+    await expect(visibleItems.filter({ hasText: /^Otro/ })).toHaveCount(0);
+  });
+
   test("cifras visibles con su valor final (SSR) y grilla de géneros", async ({ page, request }) => {
     const cfg = (await (await request.get(`${API_URL}/api/site-config`)).json()) as {
       content: { home: { stats: { value: number; suffix: string; label: string }[] } };
@@ -162,10 +190,19 @@ test.describe("Navegación", () => {
 });
 
 test.describe("Pie de página", () => {
-  test("enlaces legales, datos del comerciante y enlace a la SIC", async ({ page }) => {
+  test("enlaces legales, datos del comerciante y enlace a la SIC", async ({ page, isMobile }) => {
     await page.goto("/");
     const footer = page.getByRole("contentinfo");
     await footer.scrollIntoViewIfNeeded();
+    if (isMobile) {
+      // En móvil las columnas "Explorar" y "Legal" van colapsadas (FooterColumn).
+      for (const name of ["Legal", "Explorar"]) {
+        const toggle = footer.getByRole("button", { name });
+        await expect(toggle).toHaveAttribute("aria-expanded", "false");
+        await toggle.click();
+        await expect(toggle).toHaveAttribute("aria-expanded", "true");
+      }
+    }
 
     const legalNav = footer.getByRole("navigation", { name: "Legal" });
     const expected: Array<[string, string]> = [

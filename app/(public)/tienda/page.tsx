@@ -5,6 +5,8 @@ import { WhatsAppIcon } from "@/components/shared/whatsapp-icon";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/features/shop/components/product-card";
 import { ShopCategoryChips } from "@/features/shop/components/shop-category-chips";
+import { FaqSection } from "@/components/shared/faq-section";
+import { SHOP_FAQ } from "@/content/faq";
 import { fetchProducts } from "@/features/shop/api";
 import { getSiteContent } from "@/lib/site-config-server";
 import { resolveMediaUrl } from "@/lib/resolve-media-url";
@@ -99,6 +101,11 @@ export default async function ShopPage({
           </p>
         ) : null}
       </section>
+
+      <FaqSection
+        items={SHOP_FAQ}
+        subtitle="Pedidos por WhatsApp, pagos, envíos a toda Colombia, retracto, garantía y cambios de talla."
+      />
     </div>
   );
 }

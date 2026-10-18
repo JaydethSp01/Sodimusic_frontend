@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { PageHero } from "@/components/shared/page-hero";
 import { ProductionCard } from "@/features/productions/components/production-card";
 import { ProductionFilters } from "@/features/productions/components/production-filters";
+import { fetchProductionFacets } from "@/features/productions/facets";
 import { LoadingSkeleton } from "@/components/shared/loading-skeleton";
 import { Button } from "@/components/ui/button";
 import { fetchPublic } from "@/lib/api";
@@ -142,8 +143,11 @@ async function ProductionGrid({
 }
 
 export default async function ProductionsPage({ searchParams }: { searchParams: SearchParams }) {
-  const site = await getSiteContent();
-  const countRes = await fetchPublic("/api/productions/count", { next: { revalidate: 60 } });
+  const [site, countRes, facets] = await Promise.all([
+    getSiteContent(),
+    fetchPublic("/api/productions/count", { next: { revalidate: 60 } }),
+    fetchProductionFacets(),
+  ]);
   const countData = countRes.ok ? ((await countRes.json()) as { total: number }) : { total: 0 };
   const heroDescription = replaceCatalogTemplate(site.productionsPage.heroDescriptionTemplate, {
     total: countData.total,
@@ -158,7 +162,7 @@ export default async function ProductionsPage({ searchParams }: { searchParams: 
         backgroundImageUrl={site.productionsPage.heroImageUrl}
       />
       <Suspense fallback={null}>
-        <ProductionFilters />
+        <ProductionFilters years={facets.years} countries={facets.countries} />
       </Suspense>
       <section className="mx-auto max-w-7xl px-4 py-12 lg:px-8 lg:py-16" aria-label="Listado de producciones">
         <Suspense fallback={<LoadingSkeleton />}>

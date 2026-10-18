@@ -3,6 +3,7 @@ import Image from "next/image";
 import { ExternalLink, Facebook, Instagram, QrCode, Youtube } from "lucide-react";
 import { WhatsAppIcon } from "@/components/shared/whatsapp-icon";
 import { NewsletterForm } from "@/components/shared/newsletter-form";
+import { FooterColumn } from "@/components/shared/footer-column";
 import { LEGAL_ROUTES } from "@/content/legal/routes";
 import { SITE_CONTENT_DEFAULTS } from "@/lib/site-defaults";
 import type { SiteContent, SiteLegal } from "@/types/site-content";
@@ -68,7 +69,7 @@ export function Footer({ site }: { site: FooterSite }) {
   return (
     <footer className="relative z-[2] border-t border-primary/10 bg-background-secondary" role="contentinfo">
       <div className="mx-auto max-w-7xl px-4 py-14 lg:px-8">
-        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-[1.25fr_0.75fr_0.85fr_1.25fr] lg:gap-12">
+        <div className="grid gap-8 md:gap-10 md:grid-cols-2 lg:grid-cols-[1.25fr_0.75fr_0.85fr_1.25fr] lg:gap-12">
           {/* Marca */}
           <div className="min-w-0">
             <p className="font-display text-2xl tracking-[0.2em] text-foreground">{brandTitle}</p>
@@ -92,51 +93,49 @@ export function Footer({ site }: { site: FooterSite }) {
 
           {/* Navegación */}
           <nav aria-labelledby="footer-nav-title">
-            <p id="footer-nav-title" className={headingClass}>
-              Explorar
-            </p>
-            <ul className="mt-4 space-y-2.5">
-              {footerNav.map((item) => (
-                <li key={`${item.href}-${item.label}`}>
-                  <Link
-                    href={item.href}
-                    className="nav-link-underline inline-block py-0.5 text-sm text-[var(--text-secondary)] transition-colors hover:text-primary"
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <FooterColumn title="Explorar" id="footer-nav-title">
+              <ul className="mt-3 space-y-2.5 md:mt-4">
+                {footerNav.map((item) => (
+                  <li key={`${item.href}-${item.label}`}>
+                    <Link
+                      href={item.href}
+                      className="nav-link-underline inline-block py-0.5 text-sm text-[var(--text-secondary)] transition-colors hover:text-primary"
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </FooterColumn>
           </nav>
 
           {/* Legal */}
           <nav aria-labelledby="footer-legal-title">
-            <p id="footer-legal-title" className={headingClass}>
-              Legal
-            </p>
-            <ul className="mt-4 space-y-2.5">
-              {LEGAL_ROUTES.map((r) => (
-                <li key={r.href}>
-                  <Link
-                    href={r.href}
-                    className="nav-link-underline inline-block py-0.5 text-sm text-[var(--text-secondary)] transition-colors hover:text-primary"
+            <FooterColumn title="Legal" id="footer-legal-title">
+              <ul className="mt-3 space-y-2.5 md:mt-4">
+                {LEGAL_ROUTES.map((r) => (
+                  <li key={r.href}>
+                    <Link
+                      href={r.href}
+                      className="nav-link-underline inline-block py-0.5 text-sm text-[var(--text-secondary)] transition-colors hover:text-primary"
+                    >
+                      {r.label}
+                    </Link>
+                  </li>
+                ))}
+                <li className="pt-1">
+                  <a
+                    href={SIC_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 py-0.5 text-sm text-[var(--text-secondary)] transition-colors hover:text-primary"
                   >
-                    {r.label}
-                  </Link>
+                    Quejas y reclamos: SIC
+                    <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+                  </a>
                 </li>
-              ))}
-              <li className="pt-1">
-                <a
-                  href={SIC_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 py-0.5 text-sm text-[var(--text-secondary)] transition-colors hover:text-primary"
-                >
-                  Quejas y reclamos: SIC
-                  <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-                </a>
-              </li>
-            </ul>
+              </ul>
+            </FooterColumn>
           </nav>
 
           {/* Boletín o QR */}

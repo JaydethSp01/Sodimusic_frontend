@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { usePathname } from "next/navigation";
 import { WhatsAppIcon } from "@/components/shared/whatsapp-icon";
 import { cn } from "@/lib/utils";
@@ -82,11 +82,16 @@ export function whatsappMessageFor(pathname: string, businessName: string): stri
   return `Hola ${b}, vengo de la página web y quiero más información.`;
 }
 
-/** Rutas donde el pie de la pantalla ya tiene botones (wizard de booking, barra de compra): subimos el botón. */
+/**
+ * Rutas donde el pie de la pantalla ya tiene botones (wizard de booking, barra de compra): subimos el botón.
+ * Se suma `--player-bar-h` (alto de la barra global de beats, 0 si no está) para no solaparse con ella.
+ */
 function bottomOffsetFor(pathname: string): string {
-  if (pathname.startsWith("/booking") || pathname.startsWith("/tienda/")) return "bottom-20 md:bottom-6";
-  return "bottom-5 md:bottom-6";
+  const base = pathname.startsWith("/booking") || pathname.startsWith("/tienda/") ? "5rem" : "1.25rem";
+  return `calc(${base} + var(--player-bar-h, 0px))`;
 }
+
+const BOTTOM_OFFSET_DESKTOP = "calc(1.5rem + var(--player-bar-h, 0px))";
 
 /**
  * Botón flotante de WhatsApp (56 px) con mensaje precargado según la ruta.
@@ -127,9 +132,15 @@ export function FloatingWhatsapp({ config }: Props) {
       title="Escríbenos por WhatsApp"
       className={cn(
         "group fixed right-4 z-[150] flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-[#062b16] shadow-[0_10px_30px_rgba(37,211,102,0.35)] transition-transform duration-200 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transition-none motion-reduce:hover:scale-100 md:right-6",
-        bottomOffsetFor(pathname),
+        "bottom-[var(--wa-bottom)] md:bottom-[var(--wa-bottom-md)]",
       )}
-      style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}
+      style={
+        {
+          marginBottom: "env(safe-area-inset-bottom, 0px)",
+          "--wa-bottom": bottomOffsetFor(pathname),
+          "--wa-bottom-md": BOTTOM_OFFSET_DESKTOP,
+        } as CSSProperties
+      }
     >
       <WhatsAppIcon className="h-7 w-7" />
       <span className="pointer-events-none absolute right-full mr-3 hidden whitespace-nowrap rounded-md border border-border bg-background-elevated px-3 py-1.5 text-xs text-foreground opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 md:block">

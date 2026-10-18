@@ -12,6 +12,7 @@ type Beat = {
   priceWavCOP?: number | null;
   priceStemsCOP?: number | null;
   priceExclusiveCOP?: number | null;
+  audioUrl?: string | null;
 };
 
 async function fetchBeats(request: import("@playwright/test").APIRequestContext): Promise<Beat[]> {
@@ -72,6 +73,37 @@ test.describe("Beats", () => {
       const expected = beats.filter((b) => b.bpm == null || b.bpm >= min).length;
       await expect(page.locator("article")).toHaveCount(expected);
     }
+  });
+
+  test("ninguna tarjeta muestra el badge «Sin preview»", async ({ page, request }) => {
+    const beats = await fetchBeats(request);
+    await page.goto("/beats");
+    await expect(page.locator("article")).toHaveCount(beats.length);
+    await expect(page.getByText(/sin preview/i)).toHaveCount(0);
+    // Sin audio no hay botón de play; con audio sí.
+    for (const b of beats) {
+      await expect(page.getByRole("button", { name: `Reproducir ${b.title}`, exact: true })).toHaveCount(b.audioUrl ? 1 : 0);
+    }
+  });
+
+  test("play en la tarjeta abre la barra global con el título y se puede cerrar", async ({ page, request }) => {
+    const beats = await fetchBeats(request);
+    const beat = beats.find((b) => b.audioUrl);
+    test.skip(!beat, "no hay beats con preview de audio en la API");
+    await page.goto("/beats");
+    await expect(page.getByRole("region", { name: /reproductor/i })).toHaveCount(0);
+
+    await page.getByRole("button", { name: `Reproducir ${beat!.title}`, exact: true }).click();
+    const bar = page.getByRole("region", { name: /reproductor/i });
+    await expect(bar).toBeVisible();
+    await expect(bar).toContainText(beat!.title);
+    await expect(bar.getByRole("button", { name: /elegir licencia para/i })).toBeVisible();
+    // El contenido deja hueco bajo la barra (--player-bar-h) para que no quede tapado.
+    const padding = await page.locator("body").evaluate((el) => parseFloat(getComputedStyle(el).paddingBottom));
+    expect(padding).toBeGreaterThan(40);
+
+    await bar.getByRole("button", { name: /cerrar reproductor/i }).click();
+    await expect(page.getByRole("region", { name: /reproductor/i })).toHaveCount(0);
   });
 
   test("modal «Elegir licencia» muestra tabla de licencias y enlace legal", async ({ page, request }) => {

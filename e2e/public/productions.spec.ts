@@ -27,6 +27,36 @@ test.describe("Producciones", () => {
     await expect(page).toHaveURL(/\/productions$/);
   });
 
+  test("los chips de año y país se derivan del catálogo (sin años vacíos)", async ({ page, request }) => {
+    const data = (await (await request.get(`${API_URL}/api/productions?pageSize=48`)).json()) as {
+      items: { year: number; artistCountry: string }[];
+      total: number;
+    };
+    test.skip(data.total > 48, "El catálogo supera una página: la comparación exacta no aplica");
+    const years = Array.from(new Set(data.items.map((p) => p.year))).sort((a, b) => b - a);
+    const known = ["Colombia", "México"];
+    const countries = [
+      ...known.filter((c) => data.items.some((p) => p.artistCountry === c)),
+      ...(data.items.some((p) => !known.includes(p.artistCountry)) ? ["Otro"] : []),
+    ];
+
+    await page.goto("/productions");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+
+    const yearNav = page.getByRole("navigation", { name: "Filtrar por año" });
+    if (years.length > 1) {
+      await expect(yearNav.getByRole("link")).toHaveText(["Todos", ...years.map(String)]);
+    } else {
+      await expect(yearNav).toHaveCount(0);
+    }
+    const countryNav = page.getByRole("navigation", { name: "Filtrar por país" });
+    if (countries.length > 1) {
+      await expect(countryNav.getByRole("link")).toHaveText(["Todos", ...countries]);
+    } else {
+      await expect(countryNav).toHaveCount(0);
+    }
+  });
+
   test("filtro sin resultados muestra estado vacío y «Quitar filtros»", async ({ page }) => {
     await page.goto("/productions?year=2016&country=Otro");
     const list = page.getByRole("region", { name: "Listado de producciones" });

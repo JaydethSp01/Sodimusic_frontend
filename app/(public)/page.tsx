@@ -3,7 +3,8 @@ import Image from "next/image";
 import Script from "next/script";
 import Link from "next/link";
 import { ArrowRight, Facebook, Instagram, Mail, Youtube } from "lucide-react";
-import { HeroSection } from "@/components/landing/hero-section";
+import { HeroSection, type HeroLatest } from "@/components/landing/hero-section";
+import { MarqueeStrip } from "@/components/landing/marquee-strip";
 import { HomeFadeSection, HomeFigureMotion, HomeStagger, HomeStaggerItem } from "@/components/landing/home-page-motion";
 import { StatsSection } from "@/components/landing/stats-section";
 import { GenresGrid } from "@/components/landing/genres-grid";
@@ -18,7 +19,8 @@ import { Button } from "@/components/ui/button";
 import { fetchPublic } from "@/lib/api";
 import { fetchProducts } from "@/features/shop/api";
 import { getSiteContent } from "@/lib/site-config-server";
-import type { Production } from "@/types/models";
+import { isFutureRelease } from "@/app/(public)/releases/_components/release-date";
+import type { Production, Release } from "@/types/models";
 
 /** Foto fija en /public; sustituye el Unsplash antiguo guardado en el CMS. */
 const ABOUT_ASIDE_IMAGE = "/maria_la_bajafoto.jpg";
@@ -69,6 +71,30 @@ async function getFeaturedProductions(): Promise<Production[]> {
   }
 }
 
+/**
+ * Lanzamiento más reciente para el pill «Lo último» del hero: primero un destacado, si no el más reciente.
+ * (`/api/releases` ya filtra `upcoming: true` y ordena por año y fecha de creación desc.)
+ */
+async function getLatestRelease(): Promise<HeroLatest | null> {
+  const first = async (path: string): Promise<Release | null> => {
+    const res = await fetchPublic(path, { next: { revalidate: 60 } });
+    if (!res.ok) {
+      return null;
+    }
+    const data = (await res.json()) as { items?: Release[] };
+    return Array.isArray(data.items) && data.items[0] ? data.items[0] : null;
+  };
+  try {
+    const r = (await first("/api/releases?pageSize=1&featured=1")) ?? (await first("/api/releases?pageSize=1"));
+    if (!r?.title || !r.slug) {
+      return null;
+    }
+    return { title: r.title, artistName: r.artistName, slug: r.slug, upcoming: isFutureRelease(r) };
+  } catch {
+    return null;
+  }
+}
+
 const socialBtn =
   "flex h-12 w-12 items-center justify-center rounded-full border border-border text-foreground transition-all hover:-translate-y-px hover:border-primary hover:text-primary";
 
@@ -76,9 +102,10 @@ export default async function HomePage() {
   const site = await getSiteContent();
   const showShop = site.shop.enabled && site.shop.showOnHome;
   const showYoutube = site.youtube.showOnHome;
-  const [featured, featuredProducts] = await Promise.all([
+  const [featured, featuredProducts, latest] = await Promise.all([
     getFeaturedProductions(),
     showShop ? fetchProducts({ featured: true, pageSize: 4 }).then((r) => r.items) : Promise.resolve([]),
+    getLatestRelease(),
   ]);
 
   const whatsappUrl = `https://wa.me/${site.contact.whatsapp}`;
@@ -110,7 +137,10 @@ export default async function HomePage() {
         {JSON.stringify(jsonLd)}
       </Script>
 
-      <HeroSection hero={site.hero} />
+      <HeroSection hero={site.hero} latest={latest} />
+
+      {/* Cinta editorial: géneros y origen del sello */}
+      <MarqueeStrip genres={site.booking.genreChips} />
 
       {/* Quiénes somos */}
       <HomeFadeSection className="px-4 pb-16 pt-8 sm:pb-20 lg:px-8 lg:pb-32 lg:pt-16" aria-labelledby="about-title">

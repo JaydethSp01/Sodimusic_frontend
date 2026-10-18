@@ -6,6 +6,7 @@ import { getSiteContent } from "@/lib/site-config-server";
 import { CartDrawerLazy } from "@/features/shop/components/cart-drawer-lazy";
 import { FloatingWhatsapp } from "@/components/shared/floating-whatsapp";
 import { RevealNoScriptFallback } from "@/components/shared/reveal-item";
+import { BeatPlayerBarLazy } from "@/features/beats/components/beat-player-bar-lazy";
 
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
   const site = await getSiteContent();
@@ -19,6 +20,7 @@ export default async function PublicLayout({ children }: { children: React.React
         {children}
       </main>
       <Footer site={site} />
+      <BeatPlayerBarLazy />
       <FloatingWhatsapp
         config={{
           enabled: site.legal?.floatingWhatsapp ?? true,

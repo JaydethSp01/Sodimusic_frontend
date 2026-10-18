@@ -113,7 +113,7 @@ function AdminNavLinks({
                 <li key={l.href}>
                   <Link
                     href={l.href}
-                    prefetch={true}
+                    prefetch={false}
                     onClick={onItemClick}
                     aria-current={active ? "page" : undefined}
                     className={cn(

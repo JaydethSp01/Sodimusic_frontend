@@ -18,7 +18,7 @@ Regla general: **todo valor viene de un token**. Un componente nuevo solo si nin
 | Líneas | `border-line-1` (por defecto) · `border-line-2` (controles, chips) · `border-line-fire` | |
 | Semánticos | `success` · `warning` · `danger` · `info` · `whatsapp` | Estados |
 
-Los tokens nuevos están en hexadecimal en `tailwind.config.ts` para que funcionen los modificadores de opacidad (`bg-fire-500/[0.14]`); las variables CSS equivalentes viven en `app/globals.css`. Los nombres antiguos (`bg-background`, `text-primary`, `border-border`, `text-[var(--text-secondary)]`…) siguen funcionando como alias: **no usarlos en código nuevo**.
+Los tokens themables (`ink`, `fire`, `sea`, `text`, `footer`) se definen en `tailwind.config.ts` como `rgb(var(--x-rgb) / <alpha-value>)`, así funcionan los modificadores de opacidad (`bg-fire-500/[0.14]`) y el dueño puede cambiar la paleta desde Admin → Sitio → «Tema y colores» (presets en `lib/theme-presets.ts`; `lib/theme-css.ts` genera el `<style id="site-theme">` que inyecta `app/layout.tsx` en SSR). Los valores por defecto (preset «mar») viven en `app/globals.css` (`:root`, hex + tripleta `-rgb`) y en `lib/site-defaults.ts`. En CSS/arbitrary classes nunca incrustes el hex del acento: usa `var(--fire-500)` o `rgb(var(--fire-500-rgb) / 0.2)`. Los nombres antiguos (`bg-background`, `text-primary`, `border-border`, `text-[var(--text-secondary)]`…) siguen funcionando como alias: **no usarlos en código nuevo**.
 
 ### Tipografía
 

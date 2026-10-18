@@ -16,31 +16,34 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        /* Los tokens nuevos van en hexadecimal (mismo valor que las variables de globals.css) para que
-           funcionen los modificadores de opacidad (`bg-fire-500/[0.14]`): Tailwind no puede aplicar
-           alpha a un `var()`, y descarta la clase en silencio. */
+        /* Los tokens themables se expresan como `rgb(var(--x-rgb) / <alpha-value>)`: las tripletas
+           viven en globals.css (:root) y las sobrescribe `<style id="site-theme">` desde el CMS. Así los
+           modificadores de opacidad (`bg-fire-500/[0.14]`) siguen funcionando: Tailwind no puede aplicar
+           alpha a un `var()` con hex, pero sí interpolar `<alpha-value>` en esta forma. */
         /* Tinta (fondos) */
         ink: {
-          0: "#050404",
-          1: "#0b0a09",
-          2: "#131110",
-          3: "#1b1816",
-          4: "#262220",
+          0: "rgb(var(--ink-0-rgb) / <alpha-value>)",
+          1: "rgb(var(--ink-1-rgb) / <alpha-value>)",
+          2: "rgb(var(--ink-2-rgb) / <alpha-value>)",
+          3: "rgb(var(--ink-3-rgb) / <alpha-value>)",
+          4: "rgb(var(--ink-4-rgb) / <alpha-value>)",
         },
         /* Acento principal */
         fire: {
-          300: "#f0cf7a",
-          400: "#e6b83a",
-          500: "#d9a62a",
-          600: "#b3861b",
-          on: "#1a1203",
+          300: "rgb(var(--fire-300-rgb) / <alpha-value>)",
+          400: "rgb(var(--fire-400-rgb) / <alpha-value>)",
+          500: "rgb(var(--fire-500-rgb) / <alpha-value>)",
+          600: "rgb(var(--fire-600-rgb) / <alpha-value>)",
+          on: "rgb(var(--fire-on-rgb) / <alpha-value>)",
         },
         /* Acento frío (≤ 10 %) */
         sea: {
-          400: "#4fd1c5",
-          500: "#19b3a6",
-          on: "#04211e",
+          400: "rgb(var(--sea-400-rgb) / <alpha-value>)",
+          500: "rgb(var(--sea-500-rgb) / <alpha-value>)",
+          on: "rgb(var(--sea-on-rgb) / <alpha-value>)",
         },
+        /* Fondo del pie (`theme.footerBackground`) */
+        footer: "rgb(var(--footer-bg-rgb) / <alpha-value>)",
         /* Oro: destacado/premium. `gold` a secas sigue siendo el alias antiguo (= gold-500). */
         gold: {
           DEFAULT: "var(--gold)",
@@ -50,14 +53,14 @@ const config: Config = {
         },
         /* Texto: `text-text-1` como color de Tailwind; en CSS existen también `.text-1/2/3`. */
         text: {
-          1: "#f3efe8",
-          2: "#bdb6ac",
-          3: "#8f8a82",
+          1: "rgb(var(--text-1-rgb) / <alpha-value>)",
+          2: "rgb(var(--text-2-rgb) / <alpha-value>)",
+          3: "rgb(var(--text-3-rgb) / <alpha-value>)",
         },
         line: {
           1: "rgba(255, 255, 255, 0.07)",
           2: "rgba(255, 255, 255, 0.14)",
-          fire: "rgba(217, 166, 42, 0.35)",
+          fire: "rgb(var(--fire-500-rgb) / 0.35)",
         },
         success: "#3cc878",
         warning: "#e6b83a",
@@ -98,7 +101,7 @@ const config: Config = {
       },
       boxShadow: {
         card: "inset 0 1px 0 rgba(255,255,255,0.04), 0 20px 50px -30px rgba(0,0,0,0.8)",
-        fire: "0 12px 40px -12px rgba(217,166,42,0.45)",
+        fire: "0 12px 40px -12px rgb(var(--fire-500-rgb) / 0.45)",
         pop: "0 1px 0 rgba(255,255,255,0.05) inset, 0 24px 60px -20px rgba(0,0,0,0.85), 0 0 0 1px rgba(255,255,255,0.06)",
       },
       fontFamily: {

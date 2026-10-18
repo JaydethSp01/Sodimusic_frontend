@@ -14,10 +14,21 @@ import { cn } from "@/lib/utils";
 const SIZES = [256, 512, 1024, 2048] as const;
 type QrSize = (typeof SIZES)[number];
 
-const PRESETS: { id: string; label: string; fg: string; bg: string }[] = [
-  { id: "classic", label: "Negro sobre blanco", fg: "#000000", bg: "#ffffff" },
-  { id: "sodimusic", label: "Dorado Sodimusic", fg: "#d9a62a", bg: "#080808" },
-];
+type QrPreset = { id: string; label: string; fg: string; bg: string };
+
+const CLASSIC_PRESET: QrPreset = { id: "classic", label: "Negro sobre blanco", fg: "#000000", bg: "#ffffff" };
+
+/** Preset con el acento del tema vigente (CMS → `<style id="site-theme">` → `--fire-500`). */
+function buildPresets(accent: string): QrPreset[] {
+  return [CLASSIC_PRESET, { id: "sodimusic", label: "Acento Sodimusic", fg: accent, bg: "#080808" }];
+}
+
+/** Lee `--fire-500` del documento (en SSR devuelve el respaldo). */
+function readAccent(): string {
+  if (typeof document === "undefined") return "#19b3a6";
+  const v = getComputedStyle(document.documentElement).getPropertyValue("--fire-500").trim();
+  return normalizeHex(v, "#19b3a6");
+}
 
 const nativeSelectClass =
   "flex h-10 w-full rounded-md border border-border bg-background-secondary px-3 py-2 text-sm text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
@@ -102,6 +113,11 @@ export function AdminQrStudio({
   const [bg, setBg] = useState("#ffffff");
   const [margin, setMargin] = useState(2);
   const [printing, setPrinting] = useState(false);
+  const [accent, setAccent] = useState("#19b3a6");
+  useEffect(() => {
+    setAccent(readAccent());
+  }, []);
+  const PRESETS = useMemo(() => buildPresets(accent), [accent]);
 
   const debouncedUrl = useDebounced(url.trim(), 350);
   const effectiveUrl = debouncedUrl.length ? debouncedUrl : siteUrl;

@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Archivo, DM_Sans, Instrument_Serif, Syne_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
+import { getSiteContent } from "@/lib/site-config-server";
+import { SITE_CONTENT_DEFAULTS } from "@/lib/site-defaults";
+import { themeToCss } from "@/lib/theme-css";
 
 /**
  * Fuentes del sistema (docs/superpowers/specs/2026-10-18-sodimusic-design-language-v4.md §2.2):
@@ -64,16 +67,33 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+/**
+ * Tema del sitio (Admin → Sitio → «Tema y colores»). `getSiteContent()` ya respeta el borrador cuando hay
+ * sesión y cookie `site_preview=draft`, así que la vista previa también cambia los colores. Si el backend
+ * no responde, se inyectan los valores por defecto (los mismos que `:root` en globals.css).
+ */
+async function siteThemeCss(): Promise<string> {
+  try {
+    const site = await getSiteContent();
+    return themeToCss(site.theme);
+  } catch {
+    return themeToCss(SITE_CONTENT_DEFAULTS.theme);
+  }
+}
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const themeCss = await siteThemeCss();
   return (
     <html lang="es" className="dark">
       <body
         className={`${archivo.variable} ${instrumentSerif.variable} ${dmSans.variable} ${syneMono.variable} min-h-screen`}
       >
+        {/* SSR: las variables llegan con el HTML, sin parpadeo. El contenido está saneado (solo hex/tripletas). */}
+        <style id="site-theme" dangerouslySetInnerHTML={{ __html: themeCss }} />
         <a
           href="#contenido-principal"
           className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-toast focus:rounded focus:bg-fire-500 focus:px-4 focus:py-2 focus:text-fire-on"

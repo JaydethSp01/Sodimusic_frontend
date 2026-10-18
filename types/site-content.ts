@@ -111,6 +111,34 @@ export type SiteYoutubeChannel = {
   featuredVideoUrl?: string;
 };
 
+/** Preset de color (Admin → Sitio → «Tema y colores»); «custom» = valores propios. */
+export type SiteThemePreset = "oro" | "naranja" | "mar" | "coral" | "custom";
+
+/** Colores del sitio editables desde el CMS; se inyectan como variables CSS en `app/layout.tsx` (`lib/theme-css.ts`). */
+export type SiteTheme = {
+  preset: SiteThemePreset;
+  /** Acento principal (fire-500), hex `#rrggbb` */
+  accent: string;
+  /** fire-300: texto de acento sobre oscuro */
+  accentLight: string;
+  /** fire-400: hover / enlaces */
+  accentHover: string;
+  /** fire-600 */
+  accentDark: string;
+  /** Acento de apoyo (sea-500) */
+  secondary: string;
+  /** sea-400 */
+  secondaryLight: string;
+  /** ink-0: fondo de página */
+  background: string;
+  /** ink-2: tarjetas; ink-1/3/4 se derivan */
+  surface: string;
+  /** Fondo del pie (`--footer-bg`) */
+  footerBackground: string;
+  /** Texto sobre el acento: auto = por contraste WCAG */
+  textOnAccent: "auto" | "dark" | "light";
+};
+
 export type SiteContent = {
   brand: {
     logoText: string;
@@ -282,6 +310,8 @@ export type SiteContent = {
     homeSectionSubtitle: string;
     homeCtaLabel: string;
   };
+  /** Colores del sitio (ver `lib/theme-presets.ts`) */
+  theme: SiteTheme;
   /** Código QR que lleva a la página */
   qr: {
     /** URL destino; vacío = NEXT_PUBLIC_SITE_URL */

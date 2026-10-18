@@ -100,7 +100,7 @@ export default async function ArtistDetailPage({ params }: Props) {
             <img src={cover} alt="" className="h-full w-full object-cover object-center opacity-50 grayscale-[0.4]" />
           </div>
         ) : (
-          <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_60%_80%_at_0%_0%,rgba(217,166,42,0.14),transparent)]" aria-hidden />
+          <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_60%_80%_at_0%_0%,rgb(var(--fire-500-rgb)/0.14),transparent)]" aria-hidden />
         )}
         <div className="section-divider absolute inset-x-0 bottom-0 z-10" aria-hidden />
         <div className="container-page relative z-10">

@@ -51,7 +51,7 @@ const BRAND: Record<SmartLinkPlatform, { label: string; color: string; Icon: (p:
   instagram: { label: "Instagram", color: "#e1306c", Icon: ({ className }) => <Instagram className={className} aria-hidden /> },
   tiktok: { label: "TikTok", color: "#69c9d0", Icon: TiktokIcon },
   facebook: { label: "Facebook", color: "#1877f2", Icon: ({ className }) => <Facebook className={className} aria-hidden /> },
-  other: { label: "Escuchar", color: "#f0cf7a", Icon: ({ className }) => <ExternalLink className={className} aria-hidden /> },
+  other: { label: "Escuchar", color: "var(--fire-300)", Icon: ({ className }) => <ExternalLink className={className} aria-hidden /> },
 };
 
 export interface SmartLinkButtonProps {

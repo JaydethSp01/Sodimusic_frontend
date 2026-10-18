@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { fetchPublic, publicTags, PUBLIC_REVALIDATE_SLOW } from "@/lib/api";
 import { fetchAdmin } from "@/lib/api-admin";
 import type { SiteContent } from "@/types/site-content";
-import { SITE_CONTENT_DEFAULTS, withHomeDefaults } from "@/lib/site-defaults";
+import { SITE_CONTENT_DEFAULTS, withSiteDefaults } from "@/lib/site-defaults";
 
 export const getSiteContent = cache(async (): Promise<SiteContent> => {
   const cookieStore = await cookies();
@@ -14,7 +14,7 @@ export const getSiteContent = cache(async (): Promise<SiteContent> => {
     const res = await fetchAdmin("/api/admin/site-config", { cache: "no-store" });
     if (res.ok) {
       const data = (await res.json()) as { draft: SiteContent };
-      return withHomeDefaults(data.draft);
+      return withSiteDefaults(data.draft);
     }
   }
   const res = await fetchPublic("/api/site-config", {
@@ -24,5 +24,5 @@ export const getSiteContent = cache(async (): Promise<SiteContent> => {
     return SITE_CONTENT_DEFAULTS;
   }
   const data = (await res.json()) as { content: SiteContent };
-  return withHomeDefaults(data.content);
+  return withSiteDefaults(data.content);
 });

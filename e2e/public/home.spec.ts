@@ -22,6 +22,15 @@ async function getHomeConfig(request: APIRequestContext): Promise<HomeConfig["co
 }
 
 test.describe("Inicio", () => {
+  test("el tema del CMS llega en el HTML como <style id=\"site-theme\"> (SSR, sin parpadeo)", async ({ page, request }) => {
+    const res = await request.get("/");
+    const html = await res.text();
+    expect(html).toMatch(/<style id="site-theme">:root\{[^<]*--fire-500:#[0-9a-f]{6}[^<]*--fire-500-rgb:\d+ \d+ \d+/);
+    await page.goto("/");
+    const accent = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--fire-500").trim());
+    expect(accent).toMatch(/^#[0-9a-f]{6}$/);
+  });
+
   test("hero con H1 y CTAs que navegan", async ({ page }) => {
     await page.goto("/");
     const hero = page.getByRole("region", { name: "Presentación" });
@@ -395,15 +404,8 @@ test.describe("Pie de página", () => {
     await page.goto("/");
     const footer = page.getByRole("contentinfo");
     await footer.scrollIntoViewIfNeeded();
-    if (isMobile) {
-      // En móvil las columnas "Explorar" y "Legal" van colapsadas (FooterColumn).
-      for (const name of ["Legal", "Explorar"]) {
-        const toggle = footer.getByRole("button", { name });
-        await expect(toggle).toHaveAttribute("aria-expanded", "false");
-        await toggle.click();
-        await expect(toggle).toHaveAttribute("aria-expanded", "true");
-      }
-    }
+    // Pie compacto: las filas «Explorar» y «Legal» van siempre visibles (sin acordeones, también en móvil).
+    await expect(footer.getByRole("button", { name: /^(explorar|legal)$/i })).toHaveCount(0);
 
     const legalNav = footer.getByRole("navigation", { name: "Legal" });
     const expected: Array<[string, string]> = [
@@ -430,10 +432,27 @@ test.describe("Pie de página", () => {
       "https://www.sic.gov.co",
     );
     await expect(merchant).toContainText(/IVA incluido|Precios en COP/);
-    await expect(footer.getByRole("navigation", { name: "Explorar" }).getByRole("link", { name: "Canales" })).toHaveAttribute(
-      "href",
-      "/canales",
-    );
+
+    // Fila «Explorar»: solo las rutas principales (Producciones, Beats, Artistas, Tienda, Novedades, Contacto).
+    const explore = footer.getByRole("navigation", { name: "Explorar" });
+    for (const [label, href] of [
+      ["Producciones", "/productions"],
+      ["Beats", "/beats"],
+      ["Artistas", "/artists"],
+      ["Tienda", "/tienda"],
+      ["Novedades", "/novedades"],
+      ["Contacto", "/contacto"],
+    ] as const) {
+      await expect(explore.getByRole("link", { name: label, exact: true })).toHaveAttribute("href", href);
+    }
+    await expect(explore.getByRole("link")).toHaveCount(6);
+    if (isMobile) {
+      // Objetivos táctiles de 44 px en las filas de enlaces.
+      for (const link of [explore.getByRole("link").first(), legalNav.getByRole("link").first()]) {
+        const box = await link.boundingBox();
+        expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+      }
+    }
   });
 });
 

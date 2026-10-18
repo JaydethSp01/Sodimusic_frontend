@@ -4,7 +4,6 @@ import { useId, useState, useTransition, type FormEvent } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { subscribeNewsletterAction } from "@/app/actions/newsletter-actions";
 import { ConsentCheckbox } from "@/components/shared/consent-checkbox";
-import { FormField } from "@/components/ds/form-field";
 import { Button } from "@/components/ui/button";
 import { FieldError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
@@ -21,9 +20,15 @@ type Props = {
 
 type Status = { kind: "idle" } | { kind: "success"; message: string } | { kind: "error"; message: string };
 
-/** Formulario de boletín del footer: email + autorización obligatoria de datos (Ley 1581/2012). */
+/**
+ * Formulario de boletín del footer (compacto): título + subtítulo en una línea cada uno,
+ * fila email + botón (apilados en < sm) y la autorización obligatoria de datos
+ * (Ley 1581/2012) en una línea de 12 px. Conserva la validación inline con `role="alert"`.
+ */
 export function NewsletterForm({ businessName, policyVersion, title, subtitle, ctaLabel, source = "footer" }: Props) {
   const id = useId();
+  const emailId = `${id}-email`;
+  const emailErrorId = `${id}-email-error`;
   const [email, setEmail] = useState("");
   const [accepted, setAccepted] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -71,35 +76,46 @@ export function NewsletterForm({ businessName, policyVersion, title, subtitle, c
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="space-y-4" aria-labelledby={`${id}-title`}>
+    <form onSubmit={onSubmit} noValidate className="space-y-3" aria-labelledby={`${id}-title`}>
       <div>
-        <p id={`${id}-title`} className="text-title text-text-1">
+        <p id={`${id}-title`} className="text-body font-semibold text-text-1">
           {title}
         </p>
         {subtitle ? (
-          <Text as="p" size="body-sm" tone="3" className="mt-1">
+          <Text as="p" size="body-sm" tone="3" className="mt-0.5">
             {subtitle}
           </Text>
         ) : null}
       </div>
-      <FormField id={`${id}-email`} label="Correo electrónico" error={emailError}>
-        <Input
-          type="email"
-          name="email"
-          autoComplete="email"
-          inputMode="email"
-          placeholder="tu@correo.com"
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value);
-            if (emailError) setEmailError(null);
-          }}
-          disabled={pending}
-        />
-      </FormField>
-      <Button type="submit" loading={pending} className="w-full sm:w-auto">
-        {pending ? "Enviando…" : ctaLabel}
-      </Button>
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+        <div className="min-w-0 flex-1">
+          <label htmlFor={emailId} className="sr-only">
+            Correo electrónico
+          </label>
+          <Input
+            id={emailId}
+            type="email"
+            name="email"
+            autoComplete="email"
+            inputMode="email"
+            placeholder="tu@correo.com"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (emailError) setEmailError(null);
+            }}
+            aria-invalid={emailError ? true : undefined}
+            aria-describedby={emailError ? emailErrorId : undefined}
+            disabled={pending}
+          />
+          <FieldError id={emailErrorId}>{emailError}</FieldError>
+        </div>
+        <Button type="submit" loading={pending} className="w-full shrink-0 sm:w-auto">
+          {pending ? "Enviando…" : ctaLabel}
+        </Button>
+      </div>
+
       <ConsentCheckbox
         checked={accepted}
         onCheckedChange={(v) => {
@@ -108,6 +124,7 @@ export function NewsletterForm({ businessName, policyVersion, title, subtitle, c
         }}
         businessName={businessName}
         error={consentError ?? undefined}
+        className="[&_label]:gap-2 [&_label]:text-xs [&_label]:leading-relaxed sm:[&_label]:min-h-0 sm:[&_label]:py-0"
       />
       <FieldError>{status.kind === "error" ? status.message : null}</FieldError>
     </form>

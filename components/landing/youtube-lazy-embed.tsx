@@ -64,7 +64,7 @@ export function YoutubeLazyEmbed({ src, title, ctaLabel = "Ver videos", classNam
           aria-label={`${ctaLabel}: ${title}`}
         >
           <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" aria-hidden />
-          <span className="relative flex h-16 w-16 items-center justify-center rounded-full bg-primary text-white shadow-[0_8px_32px_rgba(217,166,42,0.35)] transition-transform duration-300 group-hover:scale-105">
+          <span className="relative flex h-16 w-16 items-center justify-center rounded-full bg-primary text-white shadow-[0_8px_32px_rgb(var(--fire-500-rgb)/0.35)] transition-transform duration-300 group-hover:scale-105">
             <Play className="ml-1 h-7 w-7" aria-hidden fill="currentColor" />
           </span>
           <span className="relative font-mono text-xs uppercase tracking-[0.2em] text-white/80">{ctaLabel}</span>

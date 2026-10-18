@@ -7,41 +7,66 @@
    (docs/superpowers/specs/2026-10-18-sodimusic-design-language-v4.md §2)
    --------------------------------------------------------------------------- */
 :root {
-  /* Tinta (fondos) — negro cálido */
+  /* Los tokens themables (ink, fire, sea, texto, footer) los sobrescribe `<style id="site-theme">`
+     (app/layout.tsx ← lib/theme-css.ts ← CMS theme). Aquí van los valores por defecto (preset «mar»)
+     en hex y como tripleta `-rgb` (Tailwind usa `rgb(var(--x-rgb) / <alpha>)` para los modificadores
+     de opacidad). Mantener ambos en sincronía con `lib/site-defaults.ts`. */
+
+  /* Tinta (fondos) — negro cálido; ink-1/3/4 se derivan de background/surface */
   --ink-0: #050404; /* fondo de página */
-  --ink-1: #0b0a09; /* secciones alternas */
+  --ink-0-rgb: 5 4 4;
+  --ink-1: #0c0b0a; /* secciones alternas */
+  --ink-1-rgb: 12 11 10;
   --ink-2: #131110; /* tarjetas */
-  --ink-3: #1b1816; /* elevado: inputs, popovers */
-  --ink-4: #262220; /* hover de elevado */
+  --ink-2-rgb: 19 17 16;
+  --ink-3: #1d1a18; /* elevado: inputs, popovers */
+  --ink-3-rgb: 29 26 24;
+  --ink-4: #282421; /* hover de elevado */
+  --ink-4-rgb: 40 36 33;
 
-  /* Acento principal — naranja pico */
-  --fire-300: #f0cf7a;
-  --fire-400: #e6b83a;
-  --fire-500: #d9a62a;
-  --fire-600: #b3861b;
-  --fire-on: #1a1203; /* texto sobre fire */
+  /* Acento principal — Mar Caribe (turquesa) */
+  --fire-300: #8fe3db;
+  --fire-300-rgb: 143 227 219;
+  --fire-400: #4fd1c5;
+  --fire-400-rgb: 79 209 197;
+  --fire-500: #19b3a6;
+  --fire-500-rgb: 25 179 166;
+  --fire-600: #12867c;
+  --fire-600-rgb: 18 134 124;
+  --fire-on: #04201e; /* texto sobre fire (6.6:1) */
+  --fire-on-rgb: 4 32 30;
 
-  /* Acento frío — mar Caribe (uso ≤ 10 %) */
-  --sea-400: #4fd1c5;
-  --sea-500: #19b3a6;
-  --sea-on: #04211e;
+  /* Acento de apoyo — coral (uso ≤ 10 %) */
+  --sea-400: #ff9c82;
+  --sea-400-rgb: 255 156 130;
+  --sea-500: #ff7a59;
+  --sea-500-rgb: 255 122 89;
+  --sea-on: #200b04;
+  --sea-on-rgb: 32 11 4;
 
-  /* Oro — destacado/premium */
+  /* Pie de página */
+  --footer-bg: #0e100f;
+  --footer-bg-rgb: 14 16 15;
+
+  /* Oro — destacado/premium (fijo, no themable) */
   --gold-400: #e6b83a;
   --gold-500: #d4a017;
 
-  /* Texto */
+  /* Texto (fijo) */
   --text-1: #f3efe8; /* 15.6:1 sobre ink-0 */
+  --text-1-rgb: 243 239 232;
   --text-2: #bdb6ac; /* 9.4:1 */
+  --text-2-rgb: 189 182 172;
   --text-3: #8f8a82; /* 5.6:1 — mínimo para texto; nunca < 12 px */
+  --text-3-rgb: 143 138 130;
 
   /* Líneas y velos */
   --line-1: rgba(255, 255, 255, 0.07);
   --line-2: rgba(255, 255, 255, 0.14);
-  --line-fire: rgba(217, 166, 42, 0.35);
-  --veil-warm: linear-gradient(180deg, rgba(5, 4, 4, 0.15) 0%, rgba(5, 4, 4, 0.65) 60%, #050404 100%);
+  --line-fire: rgb(var(--fire-500-rgb) / 0.35);
+  --veil-warm: linear-gradient(180deg, rgb(var(--ink-0-rgb) / 0.15) 0%, rgb(var(--ink-0-rgb) / 0.65) 60%, var(--ink-0) 100%);
   --duotone-a: #2a1206; /* sombras */
-  --duotone-b: #c9a24a; /* luces */
+  --duotone-b: #2ca096; /* luces: acento desaturado (lib/theme-css.ts duotoneLight) */
 
   /* Semánticos */
   --success: #3cc878;
@@ -67,7 +92,7 @@
   --primary: var(--fire-500);
   --primary-hover: var(--fire-400);
   --primary-foreground: var(--fire-on);
-  --primary-muted: rgba(217, 166, 42, 0.14);
+  --primary-muted: rgb(var(--fire-500-rgb) / 0.14);
   --gold: var(--gold-500);
   --gold-muted: rgba(212, 160, 23, 0.15);
   --text-primary: var(--text-1);
@@ -75,7 +100,7 @@
   --text-muted: var(--text-3);
   --border: var(--line-1);
   --border-hover: var(--line-fire);
-  --border-accent: rgba(217, 166, 42, 0.18);
+  --border-accent: rgb(var(--fire-500-rgb) / 0.18);
   --radius: 8px;
   --radius-lg: 16px;
 }
@@ -143,8 +168,8 @@
     @apply font-body antialiased text-text-1;
     /* Escenario: negro cálido con una luz ámbar arriba-izquierda y un rastro frío abajo-derecha. */
     background:
-      radial-gradient(ellipse 70% 55% at 12% -8%, rgba(217, 166, 42, 0.09) 0%, transparent 60%),
-      radial-gradient(ellipse 60% 50% at 100% 110%, rgba(25, 179, 166, 0.05) 0%, transparent 60%),
+      radial-gradient(ellipse 70% 55% at 12% -8%, rgb(var(--fire-500-rgb) / 0.09) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 100% 110%, rgb(var(--sea-500-rgb) / 0.05) 0%, transparent 60%),
       var(--ink-0);
     background-attachment: fixed;
     min-height: 100vh;
@@ -169,7 +194,7 @@
   }
 
   ::selection {
-    background: rgba(217, 166, 42, 0.35);
+    background: rgb(var(--fire-500-rgb) / 0.35);
     color: var(--text-1);
   }
 
@@ -485,7 +510,7 @@
   }
 
   .section-divider {
-    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.1) 20%, rgba(217, 166, 42, 0.3) 50%, rgba(255, 255, 255, 0.1) 80%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.1) 20%, rgb(var(--fire-500-rgb) / 0.3) 50%, rgba(255, 255, 255, 0.1) 80%, transparent 100%);
     height: 1px;
   }
 
@@ -504,7 +529,7 @@
   }
 
   .brand-glow {
-    box-shadow: 0 0 0 1px rgba(217, 166, 42, 0.2), 0 8px 32px rgba(217, 166, 42, 0.14);
+    box-shadow: 0 0 0 1px rgb(var(--fire-500-rgb) / 0.2), 0 8px 32px rgb(var(--fire-500-rgb) / 0.14);
   }
 
   .hero-gradient {
@@ -540,12 +565,12 @@
 
   .booking-calendar.rdp-root {
     --rdp-accent-color: var(--fire-500);
-    --rdp-accent-background-color: rgba(217, 166, 42, 0.18);
+    --rdp-accent-background-color: rgb(var(--fire-500-rgb) / 0.18);
     --rdp-disabled-opacity: 0.3;
   }
 
   .booking-calendar .rdp-day_button:not([disabled]):not([aria-selected="true"]):hover {
-    background-color: rgba(217, 166, 42, 0.2);
+    background-color: rgb(var(--fire-500-rgb) / 0.2);
   }
 }
 
@@ -646,7 +671,7 @@ body {
 
 .beat-progress:focus-visible::-webkit-slider-thumb,
 .beat-progress:focus-visible::-moz-range-thumb {
-  box-shadow: 0 0 0 3px rgba(217, 166, 42, 0.5);
+  box-shadow: 0 0 0 3px rgb(var(--fire-500-rgb) / 0.5);
 }
 
 .beat-progress:disabled::-webkit-slider-thumb {

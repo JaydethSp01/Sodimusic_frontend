@@ -207,7 +207,7 @@ export function Navbar({ site }: { site: NavbarSite }) {
             >
               {/* Portal en body: evita que backdrop-filter del header acote `fixed` al alto de la barra */}
               <div className="absolute inset-0 bg-ink-0/[0.97]" aria-hidden />
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(217,166,42,0.14),transparent)]" aria-hidden />
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgb(var(--fire-500-rgb)/0.14),transparent)]" aria-hidden />
               <div className="grain absolute inset-0" aria-hidden />
 
               <div className="relative flex min-h-0 flex-1 flex-col">

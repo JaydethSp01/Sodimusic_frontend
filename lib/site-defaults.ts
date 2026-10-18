@@ -1,4 +1,4 @@
-import type { SiteContent, SiteHomeLatestSource, SiteTestimonial } from "@/types/site-content";
+import type { SiteContent, SiteHomeLatestSource, SiteTestimonial, SiteTheme } from "@/types/site-content";
 
 export const SITE_CONTENT_DEFAULTS: SiteContent = {
   brand: {
@@ -280,6 +280,20 @@ export const SITE_CONTENT_DEFAULTS: SiteContent = {
     homeSectionSubtitle: "Lleva el sello puesto. Productos seleccionados de la tienda.",
     homeCtaLabel: "Ver toda la tienda →",
   },
+  /** Paleta por defecto: preset «mar» (Mar Caribe). Espejo exacto en backend `src/lib/site-config-defaults.ts`. */
+  theme: {
+    preset: "mar",
+    accent: "#19b3a6",
+    accentLight: "#8fe3db",
+    accentHover: "#4fd1c5",
+    accentDark: "#12867c",
+    secondary: "#ff7a59",
+    secondaryLight: "#ff9c82",
+    background: "#050404",
+    surface: "#131110",
+    footerBackground: "#0e100f",
+    textOnAccent: "auto",
+  },
   qr: {
     targetUrl: "",
     label: "Escanea y entra a Sodimusic",
@@ -377,4 +391,15 @@ export function withHomeDefaults(content: SiteContent): SiteContent {
       testimonials: { ...testimonials, items: testimonialList(testimonials.items) },
     },
   };
+}
+
+/** Tema completo: un JSON antiguo sin `theme` (o parcial) recibe los valores por defecto campo a campo. */
+export function withThemeDefaults(content: SiteContent): SiteContent {
+  const theme: SiteTheme = { ...SITE_CONTENT_DEFAULTS.theme, ...((content.theme ?? {}) as Partial<SiteTheme>) };
+  return { ...content, theme };
+}
+
+/** Normalización general del contenido del CMS (home + tema). Úsala al leer del backend. */
+export function withSiteDefaults(content: SiteContent): SiteContent {
+  return withThemeDefaults(withHomeDefaults(content));
 }

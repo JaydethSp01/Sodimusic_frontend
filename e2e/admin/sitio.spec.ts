@@ -114,3 +114,27 @@ test.describe("Admin · Sitio web (tarjeta «Inicio · Lo último, merch, leads 
     await expect(card.getByRole("button", { name: /añadir testimonio/i })).toBeVisible();
   });
 });
+
+test.describe("Admin · Sitio web (tarjeta «Tema y colores»)", () => {
+  test("elegir un preset rellena el hex del acento y la vista previa (sin guardar)", async ({ page }) => {
+    await page.goto("/admin/dashboard/site");
+    await page.getByRole("navigation", { name: "Secciones del editor" }).getByRole("link", { name: /tema y colores/i }).click();
+    const card = page.locator("#site-section-theme");
+    await expect(card.getByRole("heading", { name: /tema y colores/i })).toBeVisible();
+    const accent = card.getByLabel("Acento principal", { exact: true });
+    const presets = card.getByRole("group", { name: "Presets de color" });
+
+    await presets.getByRole("button", { name: /^oro/i }).click();
+    await expect(accent).toHaveValue("#d9a62a");
+    await expect(presets.getByRole("button", { name: /^oro/i })).toHaveAttribute("aria-pressed", "true");
+
+    await presets.getByRole("button", { name: /mar caribe/i }).click();
+    await expect(accent).toHaveValue("#19b3a6");
+    await expect(card.getByLabel("Color de apoyo", { exact: true })).toHaveValue("#ff7a59");
+    await expect(card.getByText(/contraste texto\/acento/i)).toContainText(/cumple aa/i);
+    // La vista previa se pinta con variables scoped: el botón primario toma el acento elegido.
+    const preview = card.getByTestId("theme-preview");
+    await expect(preview.getByText("Agenda tu sesión")).toHaveCSS("background-color", "rgb(25, 179, 166)");
+    // Sin guardar: no se toca el borrador.
+  });
+});

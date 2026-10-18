@@ -38,7 +38,7 @@ export default function AdminLoginPage() {
   return (
     <main className="relative isolate flex min-h-screen flex-col items-center justify-center overflow-hidden bg-ink-0 px-4 py-12">
       {/* Fondo: luz de pico arriba a la izquierda + grano. Sin movimiento. */}
-      <div className="grain pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_60%_at_15%_0%,rgba(217,166,42,0.22),transparent_60%)]" aria-hidden />
+      <div className="grain pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_60%_at_15%_0%,rgb(var(--fire-500-rgb)/0.22),transparent_60%)]" aria-hidden />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_100%_100%,rgba(79,209,197,0.07),transparent_60%)]" aria-hidden />
 
       <div className="relative z-10 w-full max-w-md">

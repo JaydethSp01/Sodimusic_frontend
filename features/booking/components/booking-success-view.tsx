@@ -32,11 +32,14 @@ export function BookingSuccessView({
         return;
       }
       const c = mod.default;
+      // Colores del tema vigente (CMS → <style id="site-theme">), con respaldo por si faltara la variable.
+      const css = getComputedStyle(document.documentElement);
+      const read = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback;
       c({
         particleCount: 55,
         spread: 70,
         origin: { y: 0.55 },
-        colors: ["#d9a62a", "#d4a017", "#f3efe8"],
+        colors: [read("--fire-500", "#19b3a6"), read("--fire-300", "#8fe3db"), read("--text-1", "#f3efe8")],
         ticks: 120,
       });
     });
@@ -48,7 +51,7 @@ export function BookingSuccessView({
   return (
     <section className="relative isolate overflow-hidden bg-ink-1 py-section" aria-labelledby="booking-success-title">
       <div
-        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(217,166,42,0.16),transparent)]"
+        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgb(var(--fire-500-rgb)/0.16),transparent)]"
         aria-hidden
       />
       <div className="container-page flex flex-col items-center text-center">

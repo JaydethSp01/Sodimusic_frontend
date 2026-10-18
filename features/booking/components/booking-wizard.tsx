@@ -637,7 +637,7 @@ export function BookingWizard({ booking, legal }: { booking: BookingConfig; lega
                     style={
                       {
                         "--rdp-accent-color": "var(--fire-500)",
-                        "--rdp-accent-background-color": "rgba(217, 166, 42, 0.18)",
+                        "--rdp-accent-background-color": "rgb(var(--fire-500-rgb) / 0.18)",
                         "--rdp-disabled-opacity": "0.3",
                       } as CSSProperties
                     }

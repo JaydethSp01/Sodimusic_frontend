@@ -9,7 +9,7 @@ const AUTH_COOKIE = /^(__Secure-|__Host-)?authjs\.(session-token|csrf-token|call
  * Solo POST (un GET prefetchable cerraría sesión por accidente).
  */
 export async function POST(request: Request): Promise<Response> {
-  const res = NextResponse.redirect(new URL("/", request.url), 303);
+  const res = NextResponse.redirect(new URL("/admin/login", request.url), 303);
   const raw = request.headers.get("cookie") ?? "";
   for (const part of raw.split(";")) {
     const name = part.split("=")[0]?.trim();

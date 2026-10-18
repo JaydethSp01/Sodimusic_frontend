@@ -46,7 +46,7 @@ test.describe("Admin · login y logout", () => {
     await expect(page).toHaveURL(/\/admin\/dashboard/);
   });
 
-  test("«Cerrar sesión» invalida la sesión y vuelve al sitio público", async ({ page, context }) => {
+  test("«Cerrar sesión» invalida la sesión y vuelve al login", async ({ page, context }) => {
     await page.goto("/admin/login");
     await page.getByLabel("Email").fill(ADMIN_EMAIL);
     await page.getByLabel("Contraseña", { exact: true }).fill(ADMIN_PASSWORD);
@@ -55,7 +55,7 @@ test.describe("Admin · login y logout", () => {
 
     // El logout es una server action (auth.js v5 `signOut({ redirectTo })`): borra la cookie en el servidor y redirige.
     await page.getByRole("button", { name: /cerrar sesión/i }).click();
-    await expect(page).toHaveURL(/\/$/, { timeout: 45_000 });
+    await expect(page).toHaveURL(/\/admin\/login$/, { timeout: 45_000 });
 
     const sessionCookie = (await context.cookies()).find((c) => /session-token/.test(c.name));
     await page.goto("/admin/dashboard");

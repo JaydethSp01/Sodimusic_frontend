@@ -7,6 +7,8 @@ import { BentoGrid } from "@/components/ds/bento-grid";
 import { ListRow } from "@/components/ds/list-row";
 import { MediaCard } from "@/components/ds/media-card";
 import { MediaFrame } from "@/components/ds/media-frame";
+import { cn } from "@/lib/utils";
+import { ArtistMonogram } from "@/features/artists/components/artist-monogram";
 import { SectionHeader } from "@/components/ds/section-header";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -111,21 +113,25 @@ export default async function ArtistDetailPage({ params }: Props) {
             </Link>
           </Button>
 
-          <div className="mt-6 grid gap-8 lg:grid-cols-12 lg:items-end lg:gap-16">
-            <div className="lg:col-span-5">
-              <MediaFrame
-                src={photo}
-                alt={photo ? `Foto de ${artist.name}` : ""}
-                aspect="3/4"
-                priority
-                sizes="(max-width: 1024px) 100vw, 40vw"
-                fallbackSeed={artist.name}
-                fallbackLabel={artist.name}
-                className="shadow-card"
-                badges={artist.featured ? <Badge tone="gold" variant="solid">Destacado</Badge> : undefined}
-              />
-            </div>
-            <div className="min-w-0 lg:col-span-7">
+          <div className={photo ? "mt-6 grid gap-8 lg:grid-cols-12 lg:items-end lg:gap-16" : "mt-6 grid gap-8 lg:grid-cols-12 lg:items-start lg:gap-12"}>
+            {photo ? (
+              <div className="lg:col-span-5">
+                <MediaFrame
+                  src={photo}
+                  alt={`Foto de ${artist.name}`}
+                  aspect="3/4"
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 40vw"
+                  className="shadow-card"
+                  badges={artist.featured ? <Badge tone="gold" variant="solid">Destacado</Badge> : undefined}
+                />
+              </div>
+            ) : (
+              <div className="flex items-start gap-4 lg:col-span-2 lg:justify-end">
+                <ArtistMonogram name={artist.name} size="lg" />
+              </div>
+            )}
+            <div className={photo ? "min-w-0 lg:col-span-7" : "min-w-0 lg:col-span-10"}>
               {eyebrow ? (
                 <Eyebrow tone="serif" size="lg" className="flex flex-wrap items-center gap-x-2">
                   <span>{artist.role}</span>
@@ -140,7 +146,7 @@ export default async function ArtistDetailPage({ params }: Props) {
                   ) : null}
                 </Eyebrow>
               ) : null}
-              <Heading as="h1" size="display-lg" id="artist-title" className="mt-3 lg:-ml-[18%] relative z-10 lg:text-balance">
+              <Heading as="h1" size="display-lg" id="artist-title" className={cn("relative z-10 mt-3 lg:text-balance", photo && "lg:-ml-[18%]")}>
                 {artist.name}
               </Heading>
               {artist.genres.length ? (

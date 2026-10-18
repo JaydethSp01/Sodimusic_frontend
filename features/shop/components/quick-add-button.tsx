@@ -19,7 +19,7 @@ export function QuickAddButton({ product, className }: { product: Product; class
   const sizes = (product.sizes ?? []).filter((s) => s && s.trim());
   const needsSize = sizes.length > 1;
   const classes = cn(
-    "border-line-2 bg-ink-0/80 px-3 text-text-1 backdrop-blur-md hover:border-fire-500 hover:bg-ink-0/90 hover:text-fire-300 md:px-4",
+    "min-h-11 min-w-11 border-line-2 bg-ink-0/80 px-3 text-text-1 backdrop-blur-md hover:border-fire-500 hover:bg-ink-0/90 hover:text-fire-300 md:px-4",
     "md:translate-y-1 md:opacity-0 md:transition-[opacity,transform,color,border-color] md:duration-200 md:ease-out md:group-hover:translate-y-0 md:group-hover:opacity-100 md:group-focus-within:translate-y-0 md:group-focus-within:opacity-100 motion-reduce:transition-none",
     className,
   );

@@ -133,7 +133,7 @@ export function Navbar({ site }: { site: NavbarSite }) {
     >
       <div
         className={cn(
-          "container-page flex items-center justify-between transition-[height] duration-300",
+          "container-page grid grid-cols-[auto_1fr] items-center transition-[height] duration-300 lg:grid-cols-[1fr_auto_1fr]",
           compact ? "h-14" : "h-[72px]",
         )}
       >
@@ -145,7 +145,7 @@ export function Navbar({ site }: { site: NavbarSite }) {
           {site.brand.logoText}
         </Link>
 
-        <nav aria-label="Principal" className="hidden items-center gap-6 lg:flex xl:gap-8">
+        <nav aria-label="Principal" className="hidden items-center gap-5 lg:flex xl:gap-7">
           {links.map((l) => {
             const active = pathname === l.href || (l.href !== "/" && pathname.startsWith(`${l.href}/`));
             return (
@@ -154,7 +154,7 @@ export function Navbar({ site }: { site: NavbarSite }) {
                 href={l.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "nav-link-underline inline-flex min-h-11 items-center text-body font-medium transition-colors duration-150 hover:text-text-1",
+                  "nav-link-underline inline-flex min-h-11 items-center text-body-sm font-semibold uppercase tracking-wider transition-colors duration-150 hover:text-text-1",
                   active ? "is-active text-fire-400" : "text-text-2",
                 )}
               >
@@ -162,13 +162,19 @@ export function Navbar({ site }: { site: NavbarSite }) {
               </Link>
             );
           })}
-          <Button asChild pill size="sm" className="h-10 px-5 shadow-none hover:shadow-none">
+          <Button asChild pill size="sm" className="ml-2 h-10 px-5 shadow-none hover:shadow-none xl:hidden">
+            <Link href={site.nav.ctaHref}>{site.nav.ctaLabel}</Link>
+          </Button>
+        </nav>
+
+        <div className="hidden items-center justify-end gap-2 lg:flex">
+          <Button asChild pill size="sm" className="hidden h-10 px-5 shadow-none hover:shadow-none xl:inline-flex">
             <Link href={site.nav.ctaHref}>{site.nav.ctaLabel}</Link>
           </Button>
           {shopEnabled ? <CartButton className="-mr-2" /> : null}
-        </nav>
+        </div>
 
-        <div className="flex items-center gap-1 lg:hidden">
+        <div className="flex items-center justify-end gap-1 lg:hidden">
           {shopEnabled ? <CartButton /> : null}
           <Button
             ref={openerRef}

@@ -348,7 +348,8 @@ test.describe("Navegación", () => {
     const active = nav.getByRole("link", { name: "Beats" });
     await expect(active).toHaveAttribute("aria-current", "page");
     await expect(nav.getByRole("link", { name: "Producciones" })).not.toHaveAttribute("aria-current", "page");
-    await expect(nav.getByRole("link", { name: /agendar sesión/i })).toHaveAttribute("href", "/booking");
+    // La CTA vive en la columna de acciones del header (fuera del <nav> centrado) en escritorio ancho.
+    await expect(page.locator("header").getByRole("link", { name: /agendar sesión/i }).first()).toHaveAttribute("href", "/booking");
     await expect(page.getByRole("link", { name: /sodimusic — inicio/i })).toHaveAttribute("href", "/");
   });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { ShoppingBag } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
 import { selectCount, useCartHydrated, useCartStore } from "@/features/shop/stores/cart-store";
 import { cn } from "@/lib/utils";
@@ -19,7 +19,7 @@ export function CartButton({ className }: { className?: string }) {
       className={cn("relative touch-manipulation text-text-1 hover:text-fire-300", className)}
       aria-label={count > 0 ? `Abrir pedido (${count} ${count === 1 ? "artículo" : "artículos"})` : "Abrir pedido"}
     >
-      <ShoppingBag />
+      <ShoppingCart />
       {count > 0 ? (
         <span
           className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-fire-500 px-1 font-mono text-label-sm font-semibold text-fire-on ring-2 ring-ink-0"

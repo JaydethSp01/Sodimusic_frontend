@@ -1,10 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useInView } from "framer-motion";
-import { motion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect, useState } from "react";
 import {
   ArrowRight,
   BarChart3,
@@ -19,7 +16,16 @@ import {
   Music2,
   ShoppingBag,
   Tv,
+  type LucideIcon,
 } from "lucide-react";
+import { AdminKpi } from "@/components/ds/admin-kpi";
+import { EmptyState } from "@/components/ds/empty-state";
+import { ListRow } from "@/components/ds/list-row";
+import { Avatar } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Text } from "@/components/ui/text";
+import { AdminSection } from "@/features/admin/components/admin-primitives";
 import { cn } from "@/lib/utils";
 import type { ContactMessage } from "@/types/models";
 
@@ -27,6 +33,10 @@ import type { ContactMessage } from "@/types/models";
 function CountUpNumber({ end, durationMs = 1200 }: { end: number; durationMs?: number }) {
   const [n, setN] = useState(0);
   useEffect(() => {
+    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setN(end);
+      return;
+    }
     let raf = 0;
     const t0 = performance.now();
     const tick = (now: number) => {
@@ -41,11 +51,6 @@ function CountUpNumber({ end, durationMs = 1200 }: { end: number; durationMs?: n
   }, [end, durationMs]);
   return <>{n.toLocaleString("en-US")}</>;
 }
-
-const fadeIn = {
-  hidden: { opacity: 0, y: 12 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.25, 0.1, 0.25, 1] as const } },
-};
 
 const STATUS_LABEL: Record<string, string> = {
   PENDING: "Pendiente",
@@ -78,22 +83,12 @@ export type DashboardStatsPayload = {
 
 const CHART_BAR_MAX_PX = 100;
 
-function MiniBarChart({
-  data,
-  accentBar,
-  accentGlow,
-  zeroBar,
-}: {
-  data: { date: string; count: number }[];
-  accentBar: string;
-  accentGlow: string;
-  zeroBar: string;
-}) {
+function MiniBarChart({ data, tone }: { data: { date: string; count: number }[]; tone: "fire" | "gold" }) {
   if (data.length === 0) {
     return (
-      <p className="py-10 text-center text-sm text-[var(--text-muted)]">
+      <Text size="body-sm" tone="3" className="py-10 text-center">
         Sin serie diaria. Despliega el backend actualizado y recarga.
-      </p>
+      </Text>
     );
   }
 
@@ -101,13 +96,7 @@ function MiniBarChart({
   const cols = data.length;
 
   return (
-    <div
-      className={cn(
-        "rounded-xl bg-gradient-to-b from-black/50 via-black/35 to-black/20 p-3 sm:p-4",
-        "ring-1 ring-inset ring-white/[0.06]",
-        "shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]",
-      )}
-    >
+    <div className="rounded border border-line-1 bg-ink-1 p-3 sm:p-4">
       <div
         className="grid h-[132px] w-full gap-x-0.5 sm:gap-x-1"
         style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
@@ -115,38 +104,24 @@ function MiniBarChart({
         aria-label="Gráfico de barras por día"
       >
         {data.map((d) => {
-          const barPx =
-            d.count === 0 ? 4 : Math.max(8, Math.round((d.count / max) * CHART_BAR_MAX_PX));
+          const barPx = d.count === 0 ? 4 : Math.max(8, Math.round((d.count / max) * CHART_BAR_MAX_PX));
           return (
-            <div
-              key={d.date}
-              className="flex min-h-0 min-w-0 flex-col items-stretch justify-end gap-1"
-              title={`${d.date}: ${d.count}`}
-            >
+            <div key={d.date} className="flex min-h-0 min-w-0 flex-col items-stretch justify-end gap-1" title={`${d.date}: ${d.count}`}>
               <div className="flex min-h-[72px] flex-col items-center justify-end">
                 {d.count > 0 ? (
-                  <span
-                    className={cn(
-                      "mb-0.5 font-mono text-[9px] font-semibold tabular-nums sm:text-[10px]",
-                      accentGlow,
-                    )}
-                  >
-                    {d.count}
-                  </span>
+                  <span className={cn("mb-0.5 font-mono text-label-sm tabular-nums", tone === "fire" ? "text-fire-400" : "text-gold-400")}>{d.count}</span>
                 ) : (
                   <span className="mb-0.5 h-3 shrink-0" aria-hidden />
                 )}
                 <div
                   className={cn(
-                    "w-[70%] max-w-[32px] rounded-t-sm transition-[height,filter] duration-300 hover:brightness-110 sm:w-[75%]",
-                    d.count > 0 ? accentBar : zeroBar,
+                    "w-[70%] max-w-[32px] rounded-t-sm transition-[height,filter] duration-200 hover:brightness-110 sm:w-[75%]",
+                    d.count > 0 ? (tone === "fire" ? "bg-fire-500" : "bg-gold-500") : "bg-ink-4",
                   )}
                   style={{ height: `${barPx}px`, minHeight: d.count > 0 ? 8 : 4 }}
                 />
               </div>
-              <span className="truncate text-center font-mono text-[7px] uppercase tracking-tighter text-[var(--text-muted)] sm:text-[8px]">
-                {d.date.slice(8)}
-              </span>
+              <span className="truncate text-center font-mono text-label-sm text-text-3 max-sm:[&:nth-child(odd)]:invisible">{d.date.slice(8)}</span>
             </div>
           );
         })}
@@ -158,30 +133,28 @@ function MiniBarChart({
 function StatusDistribution({ rows }: { rows: { status: string; count: number }[] }) {
   const max = Math.max(1, ...rows.map((r) => r.count));
   if (rows.length === 0) {
-    return <p className="text-sm text-[var(--text-muted)]">Sin datos de sesiones.</p>;
+    return (
+      <Text size="body-sm" tone="3">
+        Sin datos de sesiones.
+      </Text>
+    );
   }
   return (
     <ul className="space-y-4">
       {rows.map((r) => (
         <li key={r.status}>
-          <div className="mb-1.5 flex items-baseline justify-between gap-2 text-xs">
-            <span className="font-medium text-[var(--text-secondary)]">{STATUS_LABEL[r.status] ?? r.status}</span>
-            <span className="font-mono tabular-nums text-primary">{r.count}</span>
+          <div className="mb-1.5 flex items-baseline justify-between gap-2">
+            <span className="text-body-sm font-medium text-text-2">{STATUS_LABEL[r.status] ?? r.status}</span>
+            <span className="font-mono text-body-sm tabular-nums text-fire-400">{r.count}</span>
           </div>
-          <div className="h-2 overflow-hidden rounded-full bg-white/[0.06] ring-1 ring-inset ring-white/[0.04]">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-primary/50 via-primary to-primary/90 shadow-[0_0_12px_rgba(255,107,0,0.15)] transition-all duration-500"
-              style={{ width: `${(r.count / max) * 100}%` }}
-            />
+          <div className="h-2 overflow-hidden rounded-full bg-ink-4">
+            <div className="h-full rounded-full bg-fire-500 transition-[width] duration-500 ease-out" style={{ width: `${(r.count / max) * 100}%` }} />
           </div>
         </li>
       ))}
     </ul>
   );
 }
-
-const panelCard =
-  "border border-white/[0.08] bg-gradient-to-br from-[#181818]/95 to-[#101010]/98 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.7)] backdrop-blur-sm";
 
 const SUBJECT_LABEL: Record<string, string> = {
   PRENSA: "Prensa",
@@ -197,35 +170,36 @@ export type RecentMessage = Pick<ContactMessage, "id" | "name" | "email" | "subj
 
 function RecentMessagesList({ rows }: { rows: RecentMessage[] }) {
   if (rows.length === 0) {
-    return (
-      <div className="flex flex-col items-center gap-2 py-8 text-center">
-        <Inbox className="h-6 w-6 text-[var(--text-muted)]" aria-hidden />
-        <p className="text-sm text-[var(--text-muted)]">Bandeja al día: no hay mensajes nuevos.</p>
-      </div>
-    );
+    return <EmptyState icon={Inbox} title="Bandeja al día" description="No hay mensajes nuevos." className="py-10" />;
   }
   return (
-    <ul className="divide-y divide-white/[0.06]">
+    <ul className="-mx-2">
       {rows.map((m) => (
-        <li key={m.id} className="py-3 first:pt-0 last:pb-0">
-          <div className="flex items-baseline justify-between gap-3">
-            <p className="truncate text-sm font-medium text-foreground">{m.name}</p>
-            <time suppressHydrationWarning dateTime={m.createdAt} className="shrink-0 font-mono text-[10px] uppercase text-[var(--text-muted)]">
+        <ListRow
+          key={m.id}
+          as="li"
+          media={<Avatar name={m.name} size={40} />}
+          title={m.name}
+          titleAs="p"
+          meta={
+            <>
+              <Badge tone="fire">{SUBJECT_LABEL[m.subject] ?? m.subject}</Badge>
+              <span className="truncate">{m.email}</span>
+            </>
+          }
+          data={
+            <time suppressHydrationWarning dateTime={m.createdAt}>
               {recentDateFmt.format(new Date(m.createdAt))}
             </time>
-          </div>
-          <p className="mt-0.5 flex items-center gap-2 text-xs text-[var(--text-secondary)]">
-            <span className="rounded border border-primary/20 bg-primary/10 px-1.5 py-px font-mono text-[10px] uppercase text-primary">
-              {SUBJECT_LABEL[m.subject] ?? m.subject}
-            </span>
-            <span className="truncate">{m.email}</span>
-          </p>
-          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[var(--text-muted)]">{m.message}</p>
-        </li>
+          }
+          className="last:border-0"
+        />
       ))}
     </ul>
   );
 }
+
+type KpiItem = { title: string; value: number; icon: LucideIcon; hint: string; href?: string };
 
 export function AdminDashboardInsights({
   data,
@@ -235,51 +209,16 @@ export function AdminDashboardInsights({
   /** Últimos mensajes de contacto en estado NEW (máx. 5) */
   recentMessages?: RecentMessage[];
 }) {
-  const kpiRef = useRef(null);
-  const kpiInView = useInView(kpiRef, { once: true, margin: "-40px" });
-  const [kpiStart, setKpiStart] = useState(false);
-
-  useEffect(() => {
-    if (kpiInView) setKpiStart(true);
-  }, [kpiInView]);
-
-  const kpiItems = [
-    {
-      title: "Sesiones pendientes",
-      value: data.pendingSessions,
-      icon: ClipboardList,
-      hint: "Por confirmar",
-    },
-    {
-      title: "Sesiones esta semana",
-      value: data.sessionsWeek,
-      icon: CalendarRange,
-      hint: "Próximos 7 días",
-    },
-    {
-      title: "Beats disponibles",
-      value: data.beatsAvailable,
-      icon: Music2,
-      hint: "En catálogo",
-    },
-    {
-      title: "Producciones en portafolio",
-      value: data.productionsTotal,
-      icon: LayoutGrid,
-      hint: "Total publicadas",
-    },
+  const kpiItems: KpiItem[] = [
+    { title: "Sesiones pendientes", value: data.pendingSessions, icon: ClipboardList, hint: "Por confirmar", href: "/admin/dashboard/sessions?status=PENDING" },
+    { title: "Sesiones esta semana", value: data.sessionsWeek, icon: CalendarRange, hint: "Próximos 7 días", href: "/admin/dashboard/calendar" },
+    { title: "Beats disponibles", value: data.beatsAvailable, icon: Music2, hint: "En catálogo", href: "/admin/dashboard/beats" },
+    { title: "Producciones en portafolio", value: data.productionsTotal, icon: LayoutGrid, hint: "Total publicadas", href: "/admin/dashboard/productions" },
     ...(typeof data.productsActive === "number"
-      ? [
-          {
-            title: "Productos activos",
-            value: data.productsActive,
-            icon: ShoppingBag,
-            hint: "Visibles en la tienda",
-          },
-        ]
+      ? [{ title: "Productos activos", value: data.productsActive, icon: ShoppingBag, hint: "Visibles en la tienda", href: "/admin/dashboard/tienda" }]
       : []),
     ...(typeof data.channelsActive === "number"
-      ? [{ title: "Canales activos", value: data.channelsActive, icon: Tv, hint: "YouTube visibles" }]
+      ? [{ title: "Canales activos", value: data.channelsActive, icon: Tv, hint: "YouTube visibles", href: "/admin/dashboard/canales" }]
       : []),
     ...(typeof data.messagesNew === "number"
       ? [{ title: "Mensajes nuevos", value: data.messagesNew, icon: Inbox, hint: "Sin leer", href: "/admin/dashboard/mensajes" }]
@@ -292,187 +231,96 @@ export function AdminDashboardInsights({
       : []),
   ];
 
-  const kpiGridClass =
-    kpiItems.length >= 8 ? "lg:grid-cols-3 xl:grid-cols-5" : kpiItems.length >= 5 ? "lg:grid-cols-5" : "lg:grid-cols-4";
-
   return (
     <div className="space-y-8">
-      <motion.div
-        ref={kpiRef}
-        className={cn("grid gap-4 sm:grid-cols-2", kpiGridClass)}
-        initial="hidden"
-        animate={kpiStart ? "visible" : "hidden"}
-        variants={{
-          hidden: {},
-          visible: { transition: { staggerChildren: 0.06 } },
-        }}
-      >
-        {kpiItems.map((item) => (
-          <motion.div key={item.title} variants={fadeIn}>
-            <div
-              className={cn(
-                "group relative h-full overflow-hidden rounded-2xl p-5",
-                panelCard,
-                "transition-shadow duration-300 hover:border-primary/20 hover:shadow-[0_0_0_1px_rgba(255,107,0,0.12),0_16px_48px_-16px_rgba(255,107,0,0.12)]",
-              )}
-            >
-              <div
-                className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-primary/[0.07] blur-2xl transition-opacity group-hover:opacity-100"
-                aria-hidden
+      <section aria-label="Cifras clave">
+        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {kpiItems.map((item) => (
+            <li key={item.title}>
+              <AdminKpi
+                className="group relative h-full transition-[border-color,box-shadow] duration-150 hover:border-line-fire focus-within:border-line-fire"
+                icon={item.icon}
+                hint={item.hint}
+                label={
+                  item.href ? (
+                    <Link href={item.href} className="after:absolute after:inset-0 after:rounded-lg after:content-[''] hover:text-text-1 focus-visible:outline-none">
+                      {item.title}
+                    </Link>
+                  ) : (
+                    item.title
+                  )
+                }
+                value={<CountUpNumber end={item.value} durationMs={1200} />}
               />
-              <div className="relative flex items-start justify-between gap-3">
-                <div className="rounded-lg border border-white/10 bg-white/[0.04] p-2 text-primary/90">
-                  <item.icon className="h-4 w-4" aria-hidden />
-                </div>
-                <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
-                  {item.hint}
-                </span>
-              </div>
-              <p className="relative mt-4 text-sm font-medium text-[var(--text-secondary)]">
-                {"href" in item && item.href ? (
-                  <Link href={item.href} className="after:absolute after:inset-0 hover:text-foreground">
-                    {item.title}
-                  </Link>
-                ) : (
-                  item.title
-                )}
-              </p>
-              <p className="relative mt-2 font-display text-4xl tabular-nums tracking-tight text-primary">
-                {kpiStart ? <CountUpNumber end={item.value} durationMs={1200} /> : "0"}
-              </p>
-            </div>
-          </motion.div>
-        ))}
-      </motion.div>
-
-      {typeof data.messagesNew === "number" ? (
-        <motion.div variants={fadeIn} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-24px" }}>
-          <Card className={cn("rounded-2xl border-0 shadow-none", panelCard)}>
-            <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0 border-b border-white/[0.06] pb-4">
-              <div className="flex items-center gap-3">
-                <div className="rounded-lg border border-primary/20 bg-primary/10 p-2 text-primary">
-                  <Inbox className="h-4 w-4" aria-hidden />
-                </div>
-                <div>
-                  <CardTitle className="font-display text-lg font-normal tracking-wide">Mensajes nuevos</CardTitle>
-                  <p className="text-xs text-[var(--text-muted)]">
-                    {data.messagesNew} sin leer · últimos {Math.min(5, recentMessages.length)}
-                  </p>
-                </div>
-              </div>
-              <Link
-                href="/admin/dashboard/mensajes"
-                className="inline-flex min-h-[36px] items-center gap-1 rounded-md px-2 text-sm text-primary hover:underline"
-              >
-                Ver todos <ArrowRight className="h-4 w-4" aria-hidden />
-              </Link>
-            </CardHeader>
-            <CardContent className="pt-5">
-              <RecentMessagesList rows={recentMessages.slice(0, 5)} />
-            </CardContent>
-          </Card>
-        </motion.div>
-      ) : null}
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <div className="grid gap-5 lg:grid-cols-3">
-        <motion.div variants={fadeIn} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-24px" }}>
-          <div className={cn("flex h-full flex-col rounded-2xl p-5", panelCard)}>
-            <div className="flex items-center gap-2 border-b border-white/[0.06] pb-4">
-              <div className="rounded-lg border border-primary/20 bg-primary/10 p-2 text-primary">
-                <Eye className="h-4 w-4" aria-hidden />
-              </div>
-              <div>
-                <h3 className="font-display text-lg tracking-wide text-foreground">Visitas al sitio</h3>
-                <p className="text-xs text-[var(--text-muted)]">Tráfico páginas públicas</p>
-              </div>
-            </div>
-            <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="rounded-xl bg-black/30 p-4 ring-1 ring-inset ring-white/[0.05]">
-                <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
-                  Total registradas
-                </p>
-                <p className="mt-2 font-display text-3xl tabular-nums text-foreground">
-                  {data.pageViewsTotal.toLocaleString("es-CO")}
-                </p>
-              </div>
-              <div className="rounded-xl bg-primary/[0.06] p-4 ring-1 ring-inset ring-primary/15">
-                <p className="font-mono text-[10px] uppercase tracking-wider text-primary/80">Últimos 7 días</p>
-                <p className="mt-2 font-display text-3xl tabular-nums text-primary">
-                  {data.pageViewsLast7Days.toLocaleString("es-CO")}
-                </p>
-              </div>
-            </div>
-            <p className="mt-5 text-xs leading-relaxed text-[var(--text-muted)]">
-              Cada visita cuenta una navegación (sin datos personales). Sirve para ver tendencias frente a campañas o
-              lanzamientos.
-            </p>
-          </div>
-        </motion.div>
+        {typeof data.messagesNew === "number" ? (
+          <AdminSection
+            id="recent-messages"
+            title="Mensajes nuevos"
+            description={`${data.messagesNew} sin leer · últimos ${Math.min(5, recentMessages.length)}`}
+            action={
+              <Button asChild variant="link" size="sm" withArrow>
+                <Link href="/admin/dashboard/mensajes">Ver todos</Link>
+              </Button>
+            }
+            className="lg:col-span-2"
+            contentClassName="px-5 py-3"
+          >
+            <RecentMessagesList rows={recentMessages.slice(0, 5)} />
+          </AdminSection>
+        ) : null}
 
-        <motion.div
-          variants={fadeIn}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-24px" }}
+        <AdminSection id="site-visits" title={<span className="inline-flex items-center gap-2"><Eye className="h-5 w-5 text-fire-400" strokeWidth={1.75} aria-hidden />Visitas al sitio</span>} description="Tráfico de las páginas públicas">
+          <dl className="grid grid-cols-2 gap-3">
+            <div className="rounded border border-line-1 bg-ink-1 p-4">
+              <dt className="text-label text-text-3">Total registradas</dt>
+              <dd className="mt-2 font-display font-extrabold text-display-sm tabular-nums text-text-1">{data.pageViewsTotal.toLocaleString("es-CO")}</dd>
+            </div>
+            <div className="rounded border border-line-fire bg-fire-500/[0.06] p-4">
+              <dt className="text-label text-fire-400">Últimos 7 días</dt>
+              <dd className="mt-2 font-display font-extrabold text-display-sm tabular-nums text-fire-400">{data.pageViewsLast7Days.toLocaleString("es-CO")}</dd>
+            </div>
+          </dl>
+          <Text size="body-sm" tone="3" className="mt-4">
+            Cada visita cuenta una navegación (sin datos personales). Sirve para ver tendencias frente a campañas o lanzamientos.
+          </Text>
+        </AdminSection>
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-3">
+        <AdminSection
+          id="views-by-day"
+          title={<span className="inline-flex items-center gap-2"><BarChart3 className="h-5 w-5 text-fire-400" strokeWidth={1.75} aria-hidden />Vistas por día</span>}
+          description="Últimos 14 días · zona UTC del servidor"
           className="lg:col-span-2"
         >
-          <Card className={cn("h-full rounded-2xl border-0 shadow-none", panelCard)}>
-            <CardHeader className="flex flex-row items-center gap-3 space-y-0 border-b border-white/[0.06] pb-4">
-              <div className="rounded-lg border border-primary/20 bg-primary/10 p-2 text-primary">
-                <BarChart3 className="h-4 w-4" aria-hidden />
-              </div>
-              <div>
-                <CardTitle className="font-display text-lg font-normal tracking-wide">Vistas por día</CardTitle>
-                <p className="text-xs text-[var(--text-muted)]">Últimos 14 días · zona UTC del servidor</p>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-5">
-              <MiniBarChart
-                data={data.pageViewsByDay}
-                accentBar="bg-gradient-to-t from-primary/90 to-primary shadow-[0_0_16px_rgba(255,107,0,0.2)]"
-                accentGlow="text-primary"
-                zeroBar="bg-zinc-600/30"
-              />
-            </CardContent>
-          </Card>
-        </motion.div>
+          <MiniBarChart data={data.pageViewsByDay} tone="fire" />
+        </AdminSection>
+
+        <AdminSection id="sessions-by-status" title="Sesiones por estado" description="Distribución en el histórico actual">
+          <StatusDistribution rows={data.sessionsByStatus} />
+        </AdminSection>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        <motion.div variants={fadeIn} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-24px" }}>
-          <Card className={cn("h-full rounded-2xl border-0 shadow-none", panelCard)}>
-            <CardHeader className="flex flex-row items-center gap-3 space-y-0 border-b border-white/[0.06] pb-4">
-              <div className="rounded-lg border border-[#d4a017]/25 bg-[#d4a017]/10 p-2 text-[#d4a017]">
-                <CalendarPlus className="h-4 w-4" aria-hidden />
-              </div>
-              <div>
-                <CardTitle className="font-display text-lg font-normal tracking-wide">Sesiones nuevas</CardTitle>
-                <p className="text-xs text-[var(--text-muted)]">Alta en el sistema por día (14 días)</p>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-5">
-              <MiniBarChart
-                data={data.sessionsCreatedByDay}
-                accentBar="bg-gradient-to-t from-[#b8890f] to-[#d4a017] shadow-[0_0_14px_rgba(212,160,23,0.18)]"
-                accentGlow="text-[#e8c547]"
-                zeroBar="bg-zinc-600/35"
-              />
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div variants={fadeIn} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-24px" }}>
-          <Card className={cn("h-full rounded-2xl border-0 shadow-none", panelCard)}>
-            <CardHeader className="border-b border-white/[0.06] pb-4">
-              <CardTitle className="font-display text-lg font-normal tracking-wide">Sesiones por estado</CardTitle>
-              <p className="text-xs text-[var(--text-muted)]">Distribución en el histórico actual</p>
-            </CardHeader>
-            <CardContent className="pt-5">
-              <StatusDistribution rows={data.sessionsByStatus} />
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
+      <AdminSection
+        id="sessions-by-day"
+        title={<span className="inline-flex items-center gap-2"><CalendarPlus className="h-5 w-5 text-gold-400" strokeWidth={1.75} aria-hidden />Sesiones nuevas</span>}
+        description="Alta en el sistema por día (14 días)"
+        action={
+          <Button asChild variant="outline" size="sm">
+            <Link href="/admin/dashboard/sessions">
+              Ver sesiones <ArrowRight aria-hidden />
+            </Link>
+          </Button>
+        }
+      >
+        <MiniBarChart data={data.sessionsCreatedByDay} tone="gold" />
+      </AdminSection>
     </div>
   );
 }

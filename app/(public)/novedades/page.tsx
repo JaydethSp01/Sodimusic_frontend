@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Newspaper } from "lucide-react";
-import { PageHero } from "@/components/shared/page-hero";
+import { EmptyState } from "@/components/ds/empty-state";
+import { HeroPage } from "@/components/ds/hero-page";
+import { StatItem } from "@/components/ds/stat-item";
 import { Button } from "@/components/ui/button";
 import { fetchSocialFeed, isSocialPostKind, SOCIAL_FEED_MAX } from "@/features/social/api";
 import { SocialFeedGrid } from "@/features/social/components/social-feed-grid";
@@ -30,41 +32,39 @@ export default async function NovedadesPage({ searchParams }: { searchParams: Se
   // La chip «Todas» muestra el total sin filtrar aunque el filtro actual esté vacío.
   const overview = kind ? await fetchSocialFeed(SOCIAL_FEED_MAX) : data;
   const updated = overview.updatedAt ? formatSocialRelative(overview.updatedAt) : "";
+  const countLine = `${data.items.length} ${data.items.length === 1 ? "novedad" : "novedades"}${kind ? ` · ${SOCIAL_KIND_LABEL[kind]}` : ""}`;
 
   return (
     <div>
-      <PageHero eyebrow={SOCIAL_COPY.eyebrow} title={SOCIAL_COPY.pageTitle} description={SOCIAL_COPY.pageDescription} />
+      <HeroPage
+        eyebrow={SOCIAL_COPY.eyebrow}
+        title={SOCIAL_COPY.pageTitle}
+        description={SOCIAL_COPY.pageDescription}
+        aside={
+          overview.items.length ? (
+            <StatItem value={overview.items.length} label={updated ? `Publicaciones · ${SOCIAL_COPY.updatedPrefix} ${updated}` : "Publicaciones"} orientation="left" className="lg:border-l-0 lg:border-r lg:pl-0 lg:pr-4 lg:text-right" />
+          ) : undefined
+        }
+      />
 
-      <section className="mx-auto max-w-7xl px-4 py-12 lg:px-8" aria-label={SOCIAL_COPY.listLabel}>
-        <div className="mb-8">
-          <SocialKindChips active={kind} totalAll={overview.items.length} />
-        </div>
+      <SocialKindChips active={kind} totalAll={overview.items.length} end={<p className="font-mono text-label text-text-3">{countLine}</p>} />
 
+      <section className="container-page py-12 lg:py-16" aria-label={SOCIAL_COPY.listLabel}>
         {data.items.length === 0 ? (
-          <div className="mx-auto flex max-w-lg flex-col items-center gap-5 rounded-lg border border-dashed border-border bg-background-card/50 px-6 py-14 text-center">
-            <Newspaper className="h-10 w-10 text-[var(--text-muted)]" aria-hidden />
-            <p className="text-[var(--text-secondary)]">{kind ? SOCIAL_COPY.emptyFiltered : SOCIAL_COPY.emptyAll}</p>
-            {kind ? (
-              <Button asChild variant="outline" className="h-11">
-                <a href={buildNovedadesHref()}>{SOCIAL_COPY.emptyCta}</a>
-              </Button>
-            ) : null}
-          </div>
+          <EmptyState
+            icon={Newspaper}
+            title={kind ? "Nada por aquí todavía" : "Pronto habrá novedades"}
+            description={kind ? SOCIAL_COPY.emptyFiltered : SOCIAL_COPY.emptyAll}
+            action={
+              kind ? (
+                <Button asChild variant="outline">
+                  <a href={buildNovedadesHref()}>{SOCIAL_COPY.emptyCta}</a>
+                </Button>
+              ) : undefined
+            }
+          />
         ) : (
-          <>
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
-              <p className="font-mono text-xs uppercase tracking-widest text-[var(--text-muted)]">
-                {data.items.length} {data.items.length === 1 ? "novedad" : "novedades"}
-                {kind ? ` · ${SOCIAL_KIND_LABEL[kind]}` : ""}
-              </p>
-              {updated ? (
-                <p className="font-mono text-xs uppercase tracking-widest text-[var(--text-muted)]">
-                  {SOCIAL_COPY.updatedPrefix} {updated}
-                </p>
-              ) : null}
-            </div>
-            <SocialFeedGrid posts={data.items} />
-          </>
+          <SocialFeedGrid posts={data.items} featuredFirst />
         )}
       </section>
     </div>

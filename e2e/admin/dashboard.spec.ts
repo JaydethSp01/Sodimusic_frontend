@@ -22,7 +22,8 @@ test.describe("Admin · panel", () => {
     for (const [label, key] of kpis) {
       const title = page.locator("main").getByText(label, { exact: true }).first();
       await expect(title, `KPI «${label}»`).toBeVisible();
-      const value = title.locator("xpath=ancestor::div[contains(@class,'rounded-2xl')][1]//p[last()]");
+      // Tarjeta `AdminKpi` (ds): la cifra es el `<p>` con `tabular-nums` dentro de la tarjeta `rounded-lg`.
+      const value = title.locator("xpath=ancestor::div[contains(@class,'rounded-lg')][1]//p[contains(@class,'tabular-nums')]");
       // El contador anima hasta el valor del backend; esperamos el valor final.
       await expect(value).toHaveText(String(stats[key]), { timeout: 10_000 });
     }

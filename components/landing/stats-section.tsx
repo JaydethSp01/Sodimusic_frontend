@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { StatItem } from "@/components/ds/stat-item";
+import { cn } from "@/lib/utils";
 import type { SiteStat } from "@/types/site-content";
 
 const DURATION_MS = 1600;
@@ -10,7 +12,7 @@ const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
  * Contador: el valor final se renderiza en SSR (sin "0+") y solo se anima
  * en cliente cuando entra en vista y el usuario no pide reducir movimiento.
  */
-function AnimatedValue({ value, suffix, run }: { value: number; suffix: string; run: boolean }) {
+function AnimatedValue({ value, run }: { value: number; run: boolean }) {
   const [shown, setShown] = useState(value);
   const started = useRef(false);
 
@@ -33,17 +35,16 @@ function AnimatedValue({ value, suffix, run }: { value: number; suffix: string; 
     return () => cancelAnimationFrame(raf);
   }, [run, value]);
 
-  return (
-    <>
-      {shown}
-      {suffix}
-    </>
-  );
+  return <>{shown}</>;
 }
 
-export function StatsSection({ stats }: { stats: SiteStat[] }) {
+/**
+ * Cifras de «Quiénes somos» como fila de `StatItem` (cifra fire + rótulo mono + línea), sin caja.
+ * Semántica `<dl>` con `dd` (cifra) y `dt` (rótulo) hermanos: los e2e leen el valor final en SSR.
+ */
+export function StatsSection({ stats, className }: { stats: SiteStat[]; className?: string }) {
   const ref = useRef<HTMLDListElement>(null);
-  // Arranca una vez con el 30 % visible (antes `useInView` de framer) salvo con movimiento reducido.
+  // Arranca una vez con el 30 % visible salvo con movimiento reducido.
   const [run, setRun] = useState(false);
 
   useEffect(() => {
@@ -72,19 +73,17 @@ export function StatsSection({ stats }: { stats: SiteStat[] }) {
   }
 
   return (
-    <dl ref={ref} className="mt-12 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border md:grid-cols-4">
+    <dl ref={ref} className={cn("grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-4", className)}>
       {stats.map((item, i) => (
-        <div
+        <StatItem
           key={`${item.label}-${i}`}
-          className="flex flex-col-reverse bg-background-card/90 px-4 py-6 text-center transition-colors duration-300 hover:bg-background-elevated sm:px-5 sm:py-7"
-        >
-          <dt className="mt-2 font-mono text-[11px] uppercase tracking-[0.22em] text-[var(--text-muted)]">
-            {item.label}
-          </dt>
-          <dd className="display-title text-5xl text-primary md:text-6xl">
-            <AnimatedValue value={item.value} suffix={item.suffix} run={run} />
-          </dd>
-        </div>
+          valueAs="dd"
+          labelAs="dt"
+          value={<AnimatedValue value={item.value} run={run} />}
+          suffix={item.suffix || undefined}
+          label={item.label}
+          className="self-stretch"
+        />
       ))}
     </dl>
   );

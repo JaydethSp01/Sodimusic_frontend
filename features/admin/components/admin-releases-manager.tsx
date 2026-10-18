@@ -2,12 +2,17 @@
 
 import { useMemo, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
+import { Disc3, ExternalLink, Pencil, Plus, Search, Star, Trash2 } from "lucide-react";
 import type { Release } from "@/types/models";
 import { resolveMediaUrl } from "@/lib/resolve-media-url";
 import { toast } from "sonner";
+import { AdminTable, AdminTableActions, AdminTableBody, AdminTableCell, AdminTableHead, AdminTableHeader, AdminTableRow } from "@/components/ds/admin-table";
+import { EmptyState } from "@/components/ds/empty-state";
+import { Avatar } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Chip } from "@/components/ui/chip";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -17,14 +22,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { FieldError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Sparkles } from "lucide-react";
 import { uploadAdminFile } from "@/app/actions/admin-upload";
 import { createReleaseAction, deleteReleaseAction, patchReleaseAction } from "@/app/actions/admin-releases-actions";
+import {
+  AdminDialogFooter,
+  AdminField,
+  AdminModuleToolbar,
+  AdminResultsBar,
+  RowAction,
+  adminDialogClass,
+} from "@/features/admin/components/admin-primitives";
+import { cn } from "@/lib/utils";
 
 type ReleaseDraft = {
   title: string;
@@ -48,6 +61,7 @@ type ReleaseDraft = {
 };
 
 type SmartLinkKey = "spotifyUrl" | "youtubeUrl" | "appleUrl" | "deezerUrl" | "amazonUrl" | "tidalUrl" | "soundcloudUrl";
+type ReleaseFilter = "ALL" | "UPCOMING" | "FEATURED";
 
 const SMART_LINKS: { key: SmartLinkKey; label: string; placeholder: string }[] = [
   { key: "spotifyUrl", label: "Spotify", placeholder: "https://open.spotify.com/…" },
@@ -107,6 +121,9 @@ const emptyDraft = (): ReleaseDraft => ({
   upcoming: true,
 });
 
+const fileInputClass =
+  "block w-full cursor-pointer text-body-sm text-text-2 file:mr-3 file:cursor-pointer file:rounded file:border file:border-line-2 file:bg-ink-3 file:px-3 file:py-2 file:text-body-sm file:font-medium file:text-text-1";
+
 export function AdminReleasesManager({ initialItems }: { initialItems: Release[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -119,8 +136,21 @@ export function AdminReleasesManager({ initialItems }: { initialItems: Release[]
   const [uploadingCover, setUploadingCover] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Release | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<ReleaseFilter>("ALL");
 
   const coverPreview = useMemo(() => (draft.coverUrl ? resolveMediaUrl(draft.coverUrl) : null), [draft.coverUrl]);
+
+  /* Filtro solo de presentación (no toca datos ni URL). */
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return initialItems.filter((r) => {
+      if (filter === "UPCOMING" && !r.upcoming) return false;
+      if (filter === "FEATURED" && !r.featured) return false;
+      if (!q) return true;
+      return [r.title, r.slug, r.artistName, r.genre, String(r.releaseYear)].some((s) => s.toLowerCase().includes(q));
+    });
+  }, [initialItems, query, filter]);
 
   function openCreate() {
     setMode("create");
@@ -247,110 +277,142 @@ export function AdminReleasesManager({ initialItems }: { initialItems: Release[]
   }
 
   return (
-    <>
-    <Card>
-      <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <CardTitle className="font-display text-xl">Releases</CardTitle>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
-            Crea, edita y administra destacados y próximos lanzamientos.
-          </p>
-        </div>
-        <Button type="button" onClick={openCreate}>
-          Nueva release
-        </Button>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Título</TableHead>
-                <TableHead>Slug</TableHead>
-                <TableHead>Artista</TableHead>
-                <TableHead>Año</TableHead>
-                <TableHead>Destacado</TableHead>
-                <TableHead>Próximo</TableHead>
-                <TableHead className="w-[220px]">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {initialItems.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell className="font-medium">{r.title}</TableCell>
-                  <TableCell className="font-mono text-xs">{r.slug}</TableCell>
-                  <TableCell>{r.artistName}</TableCell>
-                  <TableCell className="font-mono text-xs">{r.releaseYear}</TableCell>
-                  <TableCell>{r.featured ? "Sí" : "No"}</TableCell>
-                  <TableCell>{r.upcoming ? "Sí" : "No"}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-2">
-                      <Button type="button" size="sm" variant="outline" onClick={() => openEdit(r)}>
-                        Editar
-                      </Button>
-                      <Button type="button" size="sm" variant="ghost" onClick={() => setDeleteTarget(r)}>
-                        Borrar
-                      </Button>
-                      <Button
-                        asChild
-                        size="sm"
-                        variant="secondary"
-                        className="hidden sm:inline-flex"
-                      >
-                        <a href={`/releases/${r.slug}`} target="_blank" rel="noopener noreferrer">
-                          Preview
-                        </a>
-                      </Button>
+    <div className="space-y-4">
+      <AdminModuleToolbar
+        search={
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-3" aria-hidden />
+            <Input type="search" aria-label="Buscar releases" placeholder="Buscar por título, slug, artista o año…" value={query} onChange={(e) => setQuery(e.target.value)} className="pl-10" />
+          </div>
+        }
+        filters={
+          <div role="group" aria-label="Filtrar releases" className="flex flex-wrap gap-2">
+            <Chip selected={filter === "ALL"} onClick={() => setFilter("ALL")}>
+              Todas
+            </Chip>
+            <Chip selected={filter === "UPCOMING"} onClick={() => setFilter("UPCOMING")} count={initialItems.filter((r) => r.upcoming).length}>
+              Próximas
+            </Chip>
+            <Chip selected={filter === "FEATURED"} onClick={() => setFilter("FEATURED")} count={initialItems.filter((r) => r.featured).length}>
+              Destacadas
+            </Chip>
+          </div>
+        }
+        summary={`${visible.length} de ${initialItems.length}`}
+        action={
+          <Button type="button" size="sm" onClick={openCreate}>
+            <Plus aria-hidden /> Nueva release
+          </Button>
+        }
+      />
+
+      {initialItems.length === 0 ? (
+        <EmptyState
+          icon={Disc3}
+          title="Aún no hay releases"
+          description="Crea el primer lanzamiento con portada, fecha y smart links: tendrá su página en /releases."
+          action={
+            <Button type="button" onClick={openCreate}>
+              <Plus aria-hidden /> Nueva release
+            </Button>
+          }
+        />
+      ) : visible.length === 0 ? (
+        <EmptyState icon={Search} title="Sin resultados" description="Prueba con otro texto o quita el filtro." />
+      ) : (
+        <div className="scroll-fade-x overflow-x-auto md:[mask-image:none]">
+          <AdminTable>
+            <AdminTableHead>
+              <AdminTableRow>
+                <AdminTableHeader>Release</AdminTableHeader>
+                <AdminTableHeader>Artista</AdminTableHeader>
+                <AdminTableHeader align="right">Año</AdminTableHeader>
+                <AdminTableHeader>Estado</AdminTableHeader>
+                <AdminTableHeader align="right">
+                  <span className="sr-only">Acciones</span>
+                </AdminTableHeader>
+              </AdminTableRow>
+            </AdminTableHead>
+            <AdminTableBody>
+              {visible.map((r) => (
+                <AdminTableRow key={r.id}>
+                  <AdminTableCell>
+                    <div className="flex items-center gap-3">
+                      <Avatar name={r.title} src={r.coverUrl ? resolveMediaUrl(r.coverUrl) : null} size={40} square />
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold">{r.title}</p>
+                        <p className="truncate font-mono text-body-sm text-text-3">/{r.slug}</p>
+                      </div>
                     </div>
-                  </TableCell>
-                </TableRow>
+                  </AdminTableCell>
+                  <AdminTableCell>{r.artistName}</AdminTableCell>
+                  <AdminTableCell mono align="right">
+                    {r.releaseYear}
+                  </AdminTableCell>
+                  <AdminTableCell>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Badge tone={r.upcoming ? "sea" : "neutral"}>{r.upcoming ? "Próximo" : "Catálogo"}</Badge>
+                      {r.featured ? (
+                        <Badge tone="gold" icon={<Star aria-hidden />}>
+                          Destacada
+                        </Badge>
+                      ) : null}
+                    </div>
+                  </AdminTableCell>
+                  <AdminTableActions>
+                    <RowAction label="Preview" asChild>
+                      <a href={`/releases/${r.slug}`} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink />
+                      </a>
+                    </RowAction>
+                    <RowAction label="Editar" onClick={() => openEdit(r)}>
+                      <Pencil />
+                    </RowAction>
+                    <RowAction label="Borrar" className="hover:text-danger" onClick={() => setDeleteTarget(r)}>
+                      <Trash2 />
+                    </RowAction>
+                  </AdminTableActions>
+                </AdminTableRow>
               ))}
-              {initialItems.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="py-10 text-center text-[var(--text-muted)]">
-                    No hay releases todavía.
-                  </TableCell>
-                </TableRow>
-              ) : null}
-            </TableBody>
-          </Table>
+            </AdminTableBody>
+          </AdminTable>
         </div>
-      </CardContent>
+      )}
+      <AdminResultsBar summary={initialItems.length ? `${initialItems.length} ${initialItems.length === 1 ? "release" : "releases"}` : undefined} />
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className={cn(adminDialogClass, "max-w-3xl")}>
           <DialogHeader>
-            <DialogTitle>
-              {mode === "create" ? "Crear release" : "Editar release"}{" "}
-              <span className="ml-2 inline-flex items-center gap-1 rounded-md border border-primary/20 bg-primary/5 px-2 py-0.5 text-xs text-primary">
-                <Sparkles className="h-3.5 w-3.5" aria-hidden /> {draft.upcoming ? "Próximo" : "Catálogo"}
+            <DialogTitle className="text-title">
+              <span className="inline-flex flex-wrap items-center gap-2">
+                {mode === "create" ? "Crear release" : "Editar release"}
+                <Badge tone={draft.upcoming ? "sea" : "neutral"} size="md">
+                  {draft.upcoming ? "Próximo" : "Catálogo"}
+                </Badge>
               </span>
             </DialogTitle>
+            <DialogDescription>Título, slug, artista y género son obligatorios. Los smart links solo se muestran si los rellenas.</DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-4">
-              <Field label="Título">
+              <AdminField label="Título">
                 <Input value={draft.title} onChange={(e) => setDraft((p) => ({ ...p, title: e.target.value }))} />
-              </Field>
-              <Field label="Slug (único)">
+              </AdminField>
+              <AdminField label="Slug (único)" hint="Parte final de la URL: /releases/mi-release">
                 <Input value={draft.slug} onChange={(e) => setDraft((p) => ({ ...p, slug: e.target.value }))} />
-              </Field>
-              <Field label="Artista">
+              </AdminField>
+              <AdminField label="Artista">
                 <Input value={draft.artistName} onChange={(e) => setDraft((p) => ({ ...p, artistName: e.target.value }))} />
-              </Field>
-              <Field label="Género">
+              </AdminField>
+              <AdminField label="Género">
                 <Input value={draft.genre} onChange={(e) => setDraft((p) => ({ ...p, genre: e.target.value }))} />
-              </Field>
-              <div className="grid gap-2 sm:grid-cols-2">
-                <Field label="Año de release">
-                  <Input
-                    type="number"
-                    value={draft.releaseYear}
-                    onChange={(e) => setDraft((p) => ({ ...p, releaseYear: Number(e.target.value) || new Date().getFullYear() }))}
-                  />
-                </Field>
-                <Field label="Fecha de lanzamiento (opcional)">
+              </AdminField>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <AdminField label="Año de release">
+                  <Input type="number" value={draft.releaseYear} onChange={(e) => setDraft((p) => ({ ...p, releaseYear: Number(e.target.value) || new Date().getFullYear() }))} />
+                </AdminField>
+                <AdminField label="Fecha de lanzamiento (opcional)" hint="Si es futura, la página muestra cuenta regresiva.">
                   <Input
                     type="date"
                     value={draft.releaseDate}
@@ -363,67 +425,52 @@ export function AdminReleasesManager({ initialItems }: { initialItems: Release[]
                       }));
                     }}
                   />
-                  <p className="text-[11px] text-[var(--text-muted)]">Si es futura, la página muestra cuenta regresiva.</p>
-                </Field>
+                </AdminField>
               </div>
               <div className="grid gap-2 sm:grid-cols-2">
-                <Field label="Destacado">
-                  <label className="flex items-center gap-2 text-sm">
-                    <Checkbox
-                      checked={draft.featured}
-                      onCheckedChange={(v) => setDraft((p) => ({ ...p, featured: v === true }))}
-                    />
-                    Sí en portada
-                  </label>
-                </Field>
-                <Field label="Próximo (aparece en /releases)">
-                  <label className="flex items-center gap-2 text-sm">
-                    <Checkbox
-                      checked={draft.upcoming}
-                      onCheckedChange={(v) => setDraft((p) => ({ ...p, upcoming: v === true }))}
-                    />
-                    Sí / No
-                  </label>
-                </Field>
+                <label className="flex min-h-11 cursor-pointer items-center gap-3 text-body-sm text-text-1">
+                  <Checkbox checked={draft.featured} onCheckedChange={(v) => setDraft((p) => ({ ...p, featured: v === true }))} />
+                  Destacada en portada
+                </label>
+                <label className="flex min-h-11 cursor-pointer items-center gap-3 text-body-sm text-text-1">
+                  <Checkbox checked={draft.upcoming} onCheckedChange={(v) => setDraft((p) => ({ ...p, upcoming: v === true }))} />
+                  Próximo (aparece en /releases)
+                </label>
               </div>
-              <Field label="Descripción (opcional)">
-                <Textarea
-                  rows={5}
-                  value={draft.description ?? ""}
-                  onChange={(e) => setDraft((p) => ({ ...p, description: e.target.value.trim().length ? e.target.value : null }))}
-                />
-              </Field>
+              <AdminField label="Descripción (opcional)">
+                <Textarea rows={5} value={draft.description ?? ""} onChange={(e) => setDraft((p) => ({ ...p, description: e.target.value.trim().length ? e.target.value : null }))} />
+              </AdminField>
             </div>
 
             <div className="space-y-4">
-              <Field label="Portada (coverUrl)">
+              <AdminField label="Portada (coverUrl)" hint="JPG, PNG o WebP. Cuadrada, mínimo 600 px.">
                 {coverPreview ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={coverPreview} alt="preview portada" className="mb-3 h-28 w-full rounded-lg border border-border object-cover" />
+                  <img src={coverPreview} alt="Previsualización de la portada" className="h-32 w-full rounded border border-line-1 object-cover" />
                 ) : (
-                  <div className="mb-3 h-28 w-full rounded-lg border border-border bg-background-secondary" />
+                  <div className="flex h-32 w-full items-center justify-center rounded border border-dashed border-line-2 bg-ink-1 text-text-3">
+                    <Disc3 className="h-6 w-6" strokeWidth={1.5} aria-hidden />
+                  </div>
                 )}
-                <Input
-                  placeholder="/uploads/..."
-                  value={draft.coverUrl ?? ""}
-                  onChange={(e) => setDraft((p) => ({ ...p, coverUrl: normalizeMaybeUrl(e.target.value) }))}
-                />
-                <input type="file" accept="image/jpeg,image/png,image/webp" className="mt-2 block w-full text-sm" onChange={onUploadCover} />
-                {uploadingCover ? <p className="mt-1 text-xs text-primary">Subiendo...</p> : null}
-              </Field>
+                <Input placeholder="/uploads/… o https://" value={draft.coverUrl ?? ""} onChange={(e) => setDraft((p) => ({ ...p, coverUrl: normalizeMaybeUrl(e.target.value) }))} />
+                <input type="file" accept="image/jpeg,image/png,image/webp" aria-label="Subir portada" className={fileInputClass} onChange={onUploadCover} />
+                {uploadingCover ? (
+                  <p className="text-body-sm text-fire-400" role="status">
+                    Subiendo…
+                  </p>
+                ) : null}
+              </AdminField>
 
-              <fieldset className="space-y-2 rounded-lg border border-border p-3">
-                <legend className="px-1 text-xs font-medium text-[var(--text-secondary)]">Smart links (opcionales)</legend>
-                <p className="text-[11px] text-[var(--text-muted)]">Solo se muestran los que rellenes.</p>
-                <div className="grid gap-2 sm:grid-cols-2">
+              <fieldset className="space-y-3 rounded-lg border border-line-1 bg-ink-1/60 p-4">
+                <legend className="px-1 text-label text-text-3">Smart links (opcionales)</legend>
+                <p className="text-body-sm text-text-3">Solo se muestran los que rellenes.</p>
+                <div className="grid gap-3 sm:grid-cols-2">
                   {SMART_LINKS.map((l) => {
                     const value = draft[l.key] ?? "";
                     const invalid = value.length > 0 && !isHttpUrl(value);
                     return (
-                      <div key={l.key} className="space-y-1">
-                        <Label htmlFor={`release-${l.key}`} className="text-[11px] text-[var(--text-secondary)]">
-                          {l.label}
-                        </Label>
+                      <div key={l.key} className="flex flex-col gap-2">
+                        <Label htmlFor={`release-${l.key}`}>{l.label}</Label>
                         <Input
                           id={`release-${l.key}`}
                           type="url"
@@ -432,65 +479,48 @@ export function AdminReleasesManager({ initialItems }: { initialItems: Release[]
                           value={value}
                           aria-invalid={invalid || undefined}
                           aria-describedby={invalid ? `release-${l.key}-error` : undefined}
-                          className={invalid ? "border-red-500/70" : undefined}
                           onChange={(e) => setDraft((p) => ({ ...p, [l.key]: normalizeMaybeUrl(e.target.value) }))}
                         />
                         {invalid ? (
-                          <p id={`release-${l.key}-error`} role="alert" className="text-[10px] text-red-400">
+                          <FieldError id={`release-${l.key}-error`} className="mt-0">
                             Debe empezar por https://
-                          </p>
+                          </FieldError>
                         ) : null}
                       </div>
                     );
                   })}
                 </div>
               </fieldset>
-
-              <div className="flex flex-wrap gap-2 pt-2 md:justify-end">
-                <Button type="button" variant="outline" disabled={saving} onClick={() => setOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button type="button" disabled={saving} onClick={() => void onSave()}>
-                  {saving ? "Guardando…" : "Guardar"}
-                </Button>
-              </div>
             </div>
           </div>
+
+          <AdminDialogFooter>
+            <Button type="button" variant="outline" disabled={saving} onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="button" loading={saving} onClick={() => void onSave()}>
+              Guardar
+            </Button>
+          </AdminDialogFooter>
         </DialogContent>
       </Dialog>
-    </Card>
 
       <AlertDialog open={deleteTarget !== null} onOpenChange={(o) => !o && setDeleteTarget(null)}>
-        <AlertDialogContent className="border-white/10 bg-background-card">
+        <AlertDialogContent className={adminDialogClass}>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Borrar esta release?</AlertDialogTitle>
+            <AlertDialogTitle className="text-title">¿Borrar esta release?</AlertDialogTitle>
             <AlertDialogDescription>
               Se eliminará «{deleteTarget?.title ?? ""}» ({deleteTarget?.slug ?? ""}). Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleteBusy}>Cancelar</AlertDialogCancel>
-            <Button
-              type="button"
-              variant="destructive"
-              disabled={deleteBusy}
-              onClick={() => void confirmDeleteRelease()}
-            >
-              {deleteBusy ? "Borrando…" : "Borrar"}
+            <Button type="button" variant="danger" loading={deleteBusy} onClick={() => void confirmDeleteRelease()}>
+              Borrar
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-2">
-      <Label className="text-xs font-medium text-[var(--text-secondary)]">{label}</Label>
-      {children}
     </div>
   );
 }
-

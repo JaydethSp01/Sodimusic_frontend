@@ -2,15 +2,18 @@
 
 import { useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowUp, ExternalLink, ImagePlus, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ExternalLink, ImagePlus, Pencil, Plus, Search, ShoppingBag, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import type { Product, ProductStatus } from "@/types/models";
 import { resolveMediaUrl } from "@/lib/resolve-media-url";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
+import { AdminTable, AdminTableActions, AdminTableBody, AdminTableCell, AdminTableHead, AdminTableHeader, AdminTableRow } from "@/components/ds/admin-table";
+import { EmptyState } from "@/components/ds/empty-state";
+import { Avatar } from "@/components/ui/avatar";
+import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Chip } from "@/components/ui/chip";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -20,23 +23,38 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { uploadAdminFile } from "@/app/actions/admin-upload";
 import { createProductAction, deleteProductAction, patchProductAction } from "@/app/actions/admin-products-actions";
+import {
+  AdminDialogFooter,
+  AdminField,
+  AdminModuleToolbar,
+  AdminNativeSelect,
+  AdminResultsBar,
+  RowAction,
+  adminDialogClass,
+} from "@/features/admin/components/admin-primitives";
 
 const MAX_IMAGES = 8;
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const MAX_UPLOAD_BYTES = 4.5 * 1024 * 1024;
 
-const STATUS_META: Record<ProductStatus, { label: string; className: string }> = {
-  ACTIVE: { label: "Activo", className: "border-transparent bg-primary-muted text-primary" },
-  DRAFT: { label: "Borrador", className: "border-transparent bg-background-elevated text-[var(--text-secondary)]" },
-  SOLD_OUT: { label: "Agotado", className: "border-red-500/30 bg-red-500/10 text-red-400" },
+const STATUS_META: Record<ProductStatus, { label: string; tone: BadgeTone }> = {
+  ACTIVE: { label: "Activo", tone: "success" },
+  DRAFT: { label: "Borrador", tone: "neutral" },
+  SOLD_OUT: { label: "Agotado", tone: "danger" },
 };
+
+const STATUS_FILTERS: { value: ProductStatus | "ALL"; label: string }[] = [
+  { value: "ALL", label: "Todos" },
+  { value: "ACTIVE", label: "Activos" },
+  { value: "DRAFT", label: "Borradores" },
+  { value: "SOLD_OUT", label: "Agotados" },
+];
 
 const copFormatter = new Intl.NumberFormat("es-CO", {
   style: "currency",
@@ -125,9 +143,6 @@ function parseSizes(v: string): string[] {
     });
 }
 
-const nativeSelectClass =
-  "flex h-10 w-full rounded-md border border-border bg-background-secondary px-3 py-2 text-sm text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
-
 export function AdminProductsManager({ initialItems }: { initialItems: Product[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -141,6 +156,8 @@ export function AdminProductsManager({ initialItems }: { initialItems: Product[]
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<ProductStatus | "ALL">("ALL");
 
   const categories = useMemo(() => {
     const set = new Set<string>();
@@ -159,6 +176,16 @@ export function AdminProductsManager({ initialItems }: { initialItems: Product[]
       }),
     [initialItems],
   );
+
+  /* Filtro solo de presentación (no toca datos ni URL). */
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return sortedItems.filter((p) => {
+      if (statusFilter !== "ALL" && p.status !== statusFilter) return false;
+      if (!q) return true;
+      return [p.name, p.slug, p.category].some((s) => s.toLowerCase().includes(q));
+    });
+  }, [sortedItems, query, statusFilter]);
 
   const uploading = uploadProgress !== null;
   const busy = saving || uploading;
@@ -368,383 +395,280 @@ export function AdminProductsManager({ initialItems }: { initialItems: Product[]
   }
 
   return (
-    <>
-      <Card>
-        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <CardTitle className="font-display text-xl">Tienda</CardTitle>
-            <p className="mt-1 text-sm text-[var(--text-muted)]">
-              Productos del marketplace: imágenes, precio, tallas, stock y estado. Los textos de la página se editan en
-              «Sitio web → Tienda».
-            </p>
+    <div className="space-y-4">
+      <AdminModuleToolbar
+        search={
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-3" aria-hidden />
+            <Input type="search" aria-label="Buscar productos" placeholder="Buscar por nombre, slug o categoría…" value={query} onChange={(e) => setQuery(e.target.value)} className="pl-10" />
           </div>
-          <Button type="button" onClick={openCreate}>
-            Nuevo producto
+        }
+        filters={
+          <div role="group" aria-label="Filtrar por estado" className="flex flex-wrap gap-2">
+            {STATUS_FILTERS.map((f) => (
+              <Chip key={f.value} selected={statusFilter === f.value} onClick={() => setStatusFilter(f.value)}>
+                {f.label}
+              </Chip>
+            ))}
+          </div>
+        }
+        summary={`${visible.length} de ${initialItems.length}`}
+        action={
+          <Button type="button" size="sm" onClick={openCreate}>
+            <Plus aria-hidden /> Nuevo producto
           </Button>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-16">Imagen</TableHead>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Categoría</TableHead>
-                  <TableHead>Precio</TableHead>
-                  <TableHead>Stock</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Destacado</TableHead>
-                  <TableHead>Orden</TableHead>
-                  <TableHead>Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedItems.map((p) => {
-                  const cover = p.images?.[0] ? resolveMediaUrl(p.images[0]) : null;
-                  const meta = STATUS_META[p.status] ?? STATUS_META.DRAFT;
-                  return (
-                    <TableRow key={p.id}>
-                      <TableCell>
-                        {cover ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={cover}
-                            alt=""
-                            className="h-12 w-12 rounded-md border border-border object-cover"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="flex h-12 w-12 items-center justify-center rounded-md border border-dashed border-border text-[var(--text-muted)]">
-                            <ImagePlus className="h-4 w-4" aria-hidden />
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        <div className="flex flex-col">
-                          <span>{p.name}</span>
-                          <span className="font-mono text-[11px] text-[var(--text-muted)]">/{p.slug}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{p.category}</TableCell>
-                      <TableCell className="whitespace-nowrap font-mono text-xs">
-                        <div className="flex flex-col">
-                          <span>{formatCOP(p.priceCOP)}</span>
-                          {p.compareAtCOP ? (
-                            <span className="text-[var(--text-muted)] line-through">{formatCOP(p.compareAtCOP)}</span>
-                          ) : null}
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {p.stock === null || p.stock === undefined ? (
-                          <span className="text-[var(--text-muted)]">Sin control</span>
-                        ) : (
-                          <span className={cn(p.stock === 0 && "text-red-400")}>{p.stock}</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={meta.className}>{meta.label}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <label className="flex items-center gap-2 text-xs">
-                          <Checkbox
-                            checked={p.featured}
-                            aria-label={p.featured ? "Quitar destacado" : "Marcar destacado"}
-                            onCheckedChange={() => void toggleFeatured(p)}
-                          />
-                          <span className="text-[var(--text-muted)]">{p.featured ? "Sí" : "No"}</span>
-                        </label>
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">{p.sortOrder ?? 0}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-2">
-                          <Button type="button" size="sm" variant="outline" onClick={() => openEdit(p)}>
-                            Editar
-                          </Button>
-                          {p.status === "ACTIVE" ? (
-                            <Button size="sm" variant="ghost" asChild>
-                              <a href={`/tienda/${p.slug}`} target="_blank" rel="noopener noreferrer">
-                                Ver en la tienda
-                                <ExternalLink className="ml-1 h-3.5 w-3.5" aria-hidden />
-                              </a>
-                            </Button>
-                          ) : null}
-                          <Button type="button" size="sm" variant="ghost" onClick={() => setDeleteTarget(p)}>
-                            Borrar
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-                {sortedItems.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="py-10 text-center text-[var(--text-muted)]">
-                      No hay productos todavía. Crea el primero con «Nuevo producto».
-                    </TableCell>
-                  </TableRow>
-                ) : null}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
+        }
+      />
 
-        <Dialog open={open} onOpenChange={(o) => !busy && setOpen(o)}>
-          <DialogContent className="max-h-[92vh] max-w-4xl overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{mode === "create" ? "Crear producto" : "Editar producto"}</DialogTitle>
-            </DialogHeader>
+      {initialItems.length === 0 ? (
+        <EmptyState
+          icon={ShoppingBag}
+          title="Aún no hay productos"
+          description="Crea el primero con imágenes, precio y tallas. Los textos de la página se editan en «Sitio web → Tienda»."
+          action={
+            <Button type="button" onClick={openCreate}>
+              <Plus aria-hidden /> Nuevo producto
+            </Button>
+          }
+        />
+      ) : visible.length === 0 ? (
+        <EmptyState icon={Search} title="Sin resultados" description="Prueba con otro texto o quita el filtro de estado." />
+      ) : (
+        <div className="scroll-fade-x overflow-x-auto md:[mask-image:none]">
+          <AdminTable>
+            <AdminTableHead>
+              <AdminTableRow>
+                <AdminTableHeader>Producto</AdminTableHeader>
+                <AdminTableHeader>Categoría</AdminTableHeader>
+                <AdminTableHeader align="right">Precio</AdminTableHeader>
+                <AdminTableHeader align="right">Stock</AdminTableHeader>
+                <AdminTableHeader>Estado</AdminTableHeader>
+                <AdminTableHeader>Destacado</AdminTableHeader>
+                <AdminTableHeader align="right">Orden</AdminTableHeader>
+                <AdminTableHeader align="right">
+                  <span className="sr-only">Acciones</span>
+                </AdminTableHeader>
+              </AdminTableRow>
+            </AdminTableHead>
+            <AdminTableBody>
+              {visible.map((p) => {
+                const cover = p.images?.[0] ? resolveMediaUrl(p.images[0]) : null;
+                const meta = STATUS_META[p.status] ?? STATUS_META.DRAFT;
+                return (
+                  <AdminTableRow key={p.id} className={cn(p.status === "DRAFT" && "opacity-80")}>
+                    <AdminTableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar name={p.name} src={cover} size={40} square />
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold">{p.name}</p>
+                          <p className="truncate font-mono text-body-sm text-text-3">/{p.slug}</p>
+                        </div>
+                      </div>
+                    </AdminTableCell>
+                    <AdminTableCell>{p.category}</AdminTableCell>
+                    <AdminTableCell mono align="right" className="whitespace-nowrap">
+                      <span className="text-text-1">{formatCOP(p.priceCOP)}</span>
+                      {p.compareAtCOP ? <span className="block text-label-sm text-text-3 line-through">{formatCOP(p.compareAtCOP)}</span> : null}
+                    </AdminTableCell>
+                    <AdminTableCell mono align="right">
+                      {p.stock === null || p.stock === undefined ? <span className="text-text-3">Sin control</span> : <span className={cn(p.stock === 0 && "text-danger")}>{p.stock}</span>}
+                    </AdminTableCell>
+                    <AdminTableCell>
+                      <Badge tone={meta.tone}>{meta.label}</Badge>
+                    </AdminTableCell>
+                    <AdminTableCell>
+                      <label className="flex min-h-11 cursor-pointer items-center gap-2 text-body-sm">
+                        <Checkbox checked={p.featured} aria-label={p.featured ? "Quitar destacado" : "Marcar destacado"} onCheckedChange={() => void toggleFeatured(p)} />
+                        <span className="text-text-3">{p.featured ? "Sí" : "No"}</span>
+                      </label>
+                    </AdminTableCell>
+                    <AdminTableCell mono align="right">
+                      {p.sortOrder ?? 0}
+                    </AdminTableCell>
+                    <AdminTableActions>
+                      {p.status === "ACTIVE" ? (
+                        <RowAction label="Ver en la tienda" asChild>
+                          <a href={`/tienda/${p.slug}`} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink />
+                          </a>
+                        </RowAction>
+                      ) : null}
+                      <RowAction label="Editar" onClick={() => openEdit(p)}>
+                        <Pencil />
+                      </RowAction>
+                      <RowAction label="Borrar" className="hover:text-danger" onClick={() => setDeleteTarget(p)}>
+                        <Trash2 />
+                      </RowAction>
+                    </AdminTableActions>
+                  </AdminTableRow>
+                );
+              })}
+            </AdminTableBody>
+          </AdminTable>
+        </div>
+      )}
+      <AdminResultsBar summary={initialItems.length ? `${initialItems.length} ${initialItems.length === 1 ? "producto" : "productos"} en la tienda` : undefined} />
 
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="space-y-4">
-                <Field label="Nombre">
-                  <Input value={draft.name} onChange={(e) => onNameChange(e.target.value)} placeholder="Camiseta Sodimusic" />
-                </Field>
-                <Field label="Slug (URL)" hint="Se sugiere desde el nombre; puedes editarlo.">
-                  <div className="flex items-center gap-2">
-                    <span className="shrink-0 font-mono text-xs text-[var(--text-muted)]">/tienda/</span>
-                    <Input value={draft.slug} onChange={(e) => onSlugChange(e.target.value)} placeholder="camiseta-sodimusic" />
-                  </div>
-                </Field>
-                <Field label="Descripción">
-                  <Textarea
-                    rows={4}
-                    value={draft.description}
-                    onChange={(e) => setDraft((p) => ({ ...p, description: e.target.value }))}
-                    placeholder="Material, corte, detalles del diseño…"
-                  />
-                </Field>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Field label="Precio COP">
-                    <Input
-                      type="number"
-                      min={0}
-                      step={1000}
-                      value={draft.priceCOP}
-                      onChange={(e) => setDraft((p) => ({ ...p, priceCOP: Number(e.target.value) || 0 }))}
-                    />
-                    <p className="text-[11px] text-[var(--text-muted)]">{formatCOP(draft.priceCOP)}</p>
-                  </Field>
-                  <Field label="Precio anterior (opcional)" hint="Se muestra tachado.">
-                    <Input
-                      type="number"
-                      min={0}
-                      step={1000}
-                      value={draft.compareAtCOP}
-                      onChange={(e) => setDraft((p) => ({ ...p, compareAtCOP: e.target.value }))}
-                      placeholder="Vacío = sin descuento"
-                    />
-                  </Field>
+      <Dialog open={open} onOpenChange={(o) => !busy && setOpen(o)}>
+        <DialogContent className={cn(adminDialogClass, "max-w-4xl")}>
+          <DialogHeader>
+            <DialogTitle className="text-title">{mode === "create" ? "Crear producto" : "Editar producto"}</DialogTitle>
+            <DialogDescription>Nombre, categoría y precio son obligatorios. Un producto activo necesita al menos una imagen.</DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-4">
+              <AdminField label="Nombre">
+                <Input value={draft.name} onChange={(e) => onNameChange(e.target.value)} placeholder="Camiseta Sodimusic" />
+              </AdminField>
+              <AdminField label="Slug (URL)" hint="Se sugiere desde el nombre; puedes editarlo.">
+                <div className="flex items-center gap-2">
+                  <span className="shrink-0 font-mono text-body-sm text-text-3">/tienda/</span>
+                  <Input value={draft.slug} onChange={(e) => onSlugChange(e.target.value)} placeholder="camiseta-sodimusic" />
                 </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Field label="Categoría">
-                    <Input
-                      list="admin-product-categories"
-                      value={draft.category}
-                      onChange={(e) => setDraft((p) => ({ ...p, category: e.target.value }))}
-                      placeholder="Camisetas, Gorras…"
-                    />
-                    <datalist id="admin-product-categories">
-                      {categories.map((c) => (
-                        <option key={c} value={c} />
-                      ))}
-                    </datalist>
-                  </Field>
-                  <Field label="Tallas (separadas por coma)">
-                    <Input
-                      value={draft.sizesText}
-                      onChange={(e) => setDraft((p) => ({ ...p, sizesText: e.target.value }))}
-                      placeholder="S, M, L, XL"
-                    />
-                  </Field>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <Field label="Stock" hint="Vacío = sin control.">
-                    <Input
-                      type="number"
-                      min={0}
-                      value={draft.stock}
-                      onChange={(e) => setDraft((p) => ({ ...p, stock: e.target.value }))}
-                      placeholder="∞"
-                    />
-                  </Field>
-                  <Field label="Estado">
-                    <select
-                      className={nativeSelectClass}
-                      value={draft.status}
-                      onChange={(e) => setDraft((p) => ({ ...p, status: e.target.value as ProductStatus }))}
-                    >
-                      <option value="ACTIVE">Activo (visible)</option>
-                      <option value="DRAFT">Borrador (oculto)</option>
-                      <option value="SOLD_OUT">Agotado</option>
-                    </select>
-                  </Field>
-                  <Field label="Orden" hint="Menor = primero.">
-                    <Input
-                      type="number"
-                      value={draft.sortOrder}
-                      onChange={(e) => setDraft((p) => ({ ...p, sortOrder: Number(e.target.value) || 0 }))}
-                    />
-                  </Field>
-                </div>
-                <Field label="Destacado">
-                  <label className="flex items-center gap-2 text-sm">
-                    <Checkbox checked={draft.featured} onCheckedChange={(v) => setDraft((p) => ({ ...p, featured: v === true }))} />
-                    Mostrar en el bloque de tienda del inicio
-                  </label>
-                </Field>
+              </AdminField>
+              <AdminField label="Descripción">
+                <Textarea rows={4} value={draft.description} onChange={(e) => setDraft((p) => ({ ...p, description: e.target.value }))} placeholder="Material, corte, detalles del diseño…" />
+              </AdminField>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <AdminField label="Precio COP" hint={formatCOP(draft.priceCOP)}>
+                  <Input type="number" min={0} step={1000} value={draft.priceCOP} onChange={(e) => setDraft((p) => ({ ...p, priceCOP: Number(e.target.value) || 0 }))} />
+                </AdminField>
+                <AdminField label="Precio anterior (opcional)" hint="Se muestra tachado.">
+                  <Input type="number" min={0} step={1000} value={draft.compareAtCOP} onChange={(e) => setDraft((p) => ({ ...p, compareAtCOP: e.target.value }))} placeholder="Vacío = sin descuento" />
+                </AdminField>
               </div>
-
-              <div className="space-y-4">
-                <Field
-                  label={`Imágenes (${draft.images.length}/${MAX_IMAGES})`}
-                  hint="La primera es la portada. Usa ↑ ↓ para reordenar."
-                >
-                  {draft.images.length === 0 ? (
-                    <div className="flex h-28 items-center justify-center rounded-lg border border-dashed border-border text-xs text-[var(--text-muted)]">
-                      Sin imágenes todavía
-                    </div>
-                  ) : (
-                    <ul className="space-y-2">
-                      {draft.images.map((url, i) => (
-                        <li key={`${url}-${i}`} className="flex items-center gap-2 rounded-md border border-border bg-background-card p-2">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={resolveMediaUrl(url)}
-                            alt=""
-                            className="h-14 w-14 shrink-0 rounded-md border border-border object-cover"
-                          />
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate font-mono text-[11px] text-[var(--text-secondary)]" title={url}>
-                              {url}
-                            </p>
-                            {i === 0 ? <p className="text-[10px] uppercase tracking-wider text-primary">Portada</p> : null}
-                          </div>
-                          <div className="flex shrink-0 items-center gap-1">
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8"
-                              aria-label="Subir"
-                              disabled={i === 0 || busy}
-                              onClick={() => moveImage(i, -1)}
-                            >
-                              <ArrowUp className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8"
-                              aria-label="Bajar"
-                              disabled={i === draft.images.length - 1 || busy}
-                              onClick={() => moveImage(i, 1)}
-                            >
-                              <ArrowDown className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8 text-red-400 hover:text-red-300"
-                              aria-label="Quitar"
-                              disabled={busy}
-                              onClick={() => removeImage(i)}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-
-                  <div className="mt-3 flex gap-2">
-                    <Input
-                      value={newImageUrl}
-                      onChange={(e) => setNewImageUrl(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          addImageUrl();
-                        }
-                      }}
-                      placeholder="https://… o /uploads/…"
-                      disabled={busy || draft.images.length >= MAX_IMAGES}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={busy || !newImageUrl.trim() || draft.images.length >= MAX_IMAGES}
-                      onClick={addImageUrl}
-                    >
-                      Añadir URL
-                    </Button>
-                  </div>
-
-                  <div className="mt-3">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => void onUploadFiles(e)}
-                    />
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      disabled={busy || draft.images.length >= MAX_IMAGES}
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <ImagePlus className="mr-2 h-4 w-4" aria-hidden />
-                      {uploadProgress ? `Subiendo ${uploadProgress.current}/${uploadProgress.total}…` : "Subir imágenes"}
-                    </Button>
-                    <p className="mt-1 text-[11px] text-[var(--text-muted)]">JPG, PNG, WebP o GIF · máximo 4,5 MB cada una.</p>
-                  </div>
-                </Field>
-
-                <div className="flex flex-wrap gap-2 pt-2 md:justify-end">
-                  <Button type="button" variant="outline" disabled={busy} onClick={() => setOpen(false)}>
-                    Cancelar
-                  </Button>
-                  <Button type="button" disabled={busy} onClick={() => void onSave()}>
-                    {saving ? "Guardando…" : "Guardar"}
-                  </Button>
-                </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <AdminField label="Categoría">
+                  <Input list="admin-product-categories" value={draft.category} onChange={(e) => setDraft((p) => ({ ...p, category: e.target.value }))} placeholder="Camisetas, Gorras…" />
+                  <datalist id="admin-product-categories">
+                    {categories.map((c) => (
+                      <option key={c} value={c} />
+                    ))}
+                  </datalist>
+                </AdminField>
+                <AdminField label="Tallas (separadas por coma)">
+                  <Input value={draft.sizesText} onChange={(e) => setDraft((p) => ({ ...p, sizesText: e.target.value }))} placeholder="S, M, L, XL" />
+                </AdminField>
               </div>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <AdminField label="Stock" hint="Vacío = sin control.">
+                  <Input type="number" min={0} value={draft.stock} onChange={(e) => setDraft((p) => ({ ...p, stock: e.target.value }))} placeholder="∞" />
+                </AdminField>
+                <AdminField label="Estado">
+                  <AdminNativeSelect value={draft.status} onChange={(e) => setDraft((p) => ({ ...p, status: e.target.value as ProductStatus }))}>
+                    <option value="ACTIVE">Activo (visible)</option>
+                    <option value="DRAFT">Borrador (oculto)</option>
+                    <option value="SOLD_OUT">Agotado</option>
+                  </AdminNativeSelect>
+                </AdminField>
+                <AdminField label="Orden" hint="Menor = primero.">
+                  <Input type="number" value={draft.sortOrder} onChange={(e) => setDraft((p) => ({ ...p, sortOrder: Number(e.target.value) || 0 }))} />
+                </AdminField>
+              </div>
+              <label className="flex min-h-11 cursor-pointer items-center gap-3 text-body-sm text-text-1">
+                <Checkbox checked={draft.featured} onCheckedChange={(v) => setDraft((p) => ({ ...p, featured: v === true }))} />
+                Destacado: mostrar en el bloque de tienda del inicio
+              </label>
             </div>
-          </DialogContent>
-        </Dialog>
-      </Card>
+
+            <div className="space-y-4">
+              <AdminField label={`Imágenes (${draft.images.length}/${MAX_IMAGES})`} hint="La primera es la portada. Reordena con las flechas.">
+                {draft.images.length === 0 ? (
+                  <div className="flex h-28 flex-col items-center justify-center gap-1 rounded border border-dashed border-line-2 bg-ink-1 text-text-3">
+                    <ImagePlus className="h-5 w-5" strokeWidth={1.5} aria-hidden />
+                    <span className="text-body-sm">Sin imágenes todavía</span>
+                  </div>
+                ) : (
+                  <ul className="space-y-2">
+                    {draft.images.map((url, i) => (
+                      <li key={`${url}-${i}`} className="flex items-center gap-3 rounded border border-line-1 bg-ink-1 p-2">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={resolveMediaUrl(url)} alt="" className="h-14 w-14 shrink-0 rounded border border-line-1 object-cover" />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-mono text-body-sm text-text-2" title={url}>
+                            {url}
+                          </p>
+                          {i === 0 ? (
+                            <Badge tone="fire" className="mt-1">
+                              Portada
+                            </Badge>
+                          ) : null}
+                        </div>
+                        <div className="flex shrink-0 items-center gap-0.5">
+                          <IconButton size="sm" variant="ghost" aria-label="Subir" disabled={i === 0 || busy} onClick={() => moveImage(i, -1)}>
+                            <ArrowUp />
+                          </IconButton>
+                          <IconButton size="sm" variant="ghost" aria-label="Bajar" disabled={i === draft.images.length - 1 || busy} onClick={() => moveImage(i, 1)}>
+                            <ArrowDown />
+                          </IconButton>
+                          <IconButton size="sm" variant="ghost" className="hover:text-danger" aria-label="Quitar" disabled={busy} onClick={() => removeImage(i)}>
+                            <X />
+                          </IconButton>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <div className="flex gap-2">
+                  <Input
+                    value={newImageUrl}
+                    aria-label="URL de imagen"
+                    onChange={(e) => setNewImageUrl(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addImageUrl();
+                      }
+                    }}
+                    placeholder="https://… o /uploads/…"
+                    disabled={busy || draft.images.length >= MAX_IMAGES}
+                  />
+                  <Button type="button" variant="outline" disabled={busy || !newImageUrl.trim() || draft.images.length >= MAX_IMAGES} onClick={addImageUrl}>
+                    Añadir URL
+                  </Button>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <input ref={fileInputRef} type="file" multiple accept="image/*" className="hidden" aria-label="Subir imágenes del producto" onChange={(e) => void onUploadFiles(e)} />
+                  <Button type="button" variant="secondary" loading={uploading} disabled={busy || draft.images.length >= MAX_IMAGES} onClick={() => fileInputRef.current?.click()}>
+                    {uploading ? null : <ImagePlus aria-hidden />}
+                    {uploadProgress ? `Subiendo ${uploadProgress.current}/${uploadProgress.total}…` : "Subir imágenes"}
+                  </Button>
+                  <p className="text-body-sm text-text-3">JPG, PNG, WebP o GIF · máximo 4,5 MB cada una.</p>
+                </div>
+              </AdminField>
+            </div>
+          </div>
+
+          <AdminDialogFooter>
+            <Button type="button" variant="outline" disabled={busy} onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="button" loading={saving} disabled={uploading} onClick={() => void onSave()}>
+              Guardar
+            </Button>
+          </AdminDialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={deleteTarget !== null} onOpenChange={(o) => !o && !deleteBusy && setDeleteTarget(null)}>
-        <AlertDialogContent className="border-white/10 bg-background-card">
+        <AlertDialogContent className={adminDialogClass}>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Borrar este producto?</AlertDialogTitle>
+            <AlertDialogTitle className="text-title">¿Borrar este producto?</AlertDialogTitle>
             <AlertDialogDescription>
-              Se eliminará «{deleteTarget?.name ?? ""}» de la tienda. Esta acción no se puede deshacer. Si solo quieres
-              ocultarlo, cámbialo a «Borrador».
+              Se eliminará «{deleteTarget?.name ?? ""}» de la tienda. Esta acción no se puede deshacer. Si solo quieres ocultarlo, cámbialo a «Borrador».
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleteBusy}>Cancelar</AlertDialogCancel>
-            <Button type="button" variant="destructive" disabled={deleteBusy} onClick={() => void confirmDelete()}>
-              {deleteBusy ? "Borrando…" : "Borrar"}
+            <Button type="button" variant="danger" loading={deleteBusy} onClick={() => void confirmDelete()}>
+              Borrar
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
-  );
-}
-
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-2">
-      <Label className="text-xs font-medium text-[var(--text-secondary)]">{label}</Label>
-      {children}
-      {hint ? <p className="text-[11px] text-[var(--text-muted)]">{hint}</p> : null}
     </div>
   );
 }

@@ -1,13 +1,18 @@
 "use client";
 
-import { useId, useState, useTransition, type FormEvent } from "react";
-import { CheckCircle2, Loader2, Send } from "lucide-react";
+import { useId, useState, useTransition, type FormEvent, type KeyboardEvent } from "react";
+import { CheckCircle2, Send } from "lucide-react";
 import { sendContactMessageAction } from "@/app/actions/contact-actions";
 import { collectContactFieldErrors, contactMessageSchema, type ContactFieldErrors } from "@/features/contact/contact-schema";
 import { ConsentCheckbox } from "@/components/shared/consent-checkbox";
+import { FormField } from "@/components/ds/form-field";
 import { Button } from "@/components/ui/button";
+import { Chip } from "@/components/ui/chip";
+import { FieldError } from "@/components/ui/field-error";
+import { Heading } from "@/components/ui/heading";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import type { SiteContactSubject } from "@/types/site-content";
 import { cn } from "@/lib/utils";
@@ -21,9 +26,6 @@ type Props = {
 };
 
 type Status = { kind: "idle" } | { kind: "error"; message: string } | { kind: "success" };
-
-const selectClass =
-  "flex h-11 w-full rounded-md border border-border bg-background-secondary px-3 py-2 text-sm text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 aria-[invalid=true]:border-red-500/70";
 
 /** Formulario de contacto/prensa con validación zod inline y envío por server action. */
 export function ContactForm({ subjects, businessName, policyVersion, initialSubject }: Props) {
@@ -45,6 +47,19 @@ export function ContactForm({ subjects, businessName, policyVersion, initialSubj
 
   function clearError(field: keyof ContactFieldErrors) {
     if (errors[field]) setErrors((p) => ({ ...p, [field]: undefined }));
+  }
+
+  /** Flechas entre los chips de asunto (patrón radiogroup). */
+  function onSubjectKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+    if (!["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp"].includes(e.key)) return;
+    const radios = Array.from(e.currentTarget.querySelectorAll<HTMLButtonElement>("[role='radio']:not(:disabled)"));
+    const i = radios.findIndex((r) => r === document.activeElement);
+    if (i < 0) return;
+    e.preventDefault();
+    const dir = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : -1;
+    const next = radios[(i + dir + radios.length) % radios.length];
+    next.focus();
+    next.click();
   }
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
@@ -84,20 +99,18 @@ export function ContactForm({ subjects, businessName, policyVersion, initialSubj
 
   if (status.kind === "success") {
     return (
-      <div
-        role="status"
-        aria-live="polite"
-        className="card-surface flex flex-col items-start gap-4 p-6 sm:p-8"
-      >
-        <div className="rounded-full border border-primary/30 bg-primary/10 p-3 text-primary">
-          <CheckCircle2 className="h-7 w-7" aria-hidden />
-        </div>
+      <div role="status" aria-live="polite" className="flex flex-col items-start gap-5 rounded-lg border border-line-1 bg-ink-2 p-6 shadow-card sm:p-8">
+        <span className="flex h-14 w-14 items-center justify-center rounded-full border border-success/40 bg-success/[0.12] text-success">
+          <CheckCircle2 className="h-7 w-7" strokeWidth={1.75} aria-hidden />
+        </span>
         <div>
-          <h2 className="font-display text-3xl uppercase tracking-wide text-foreground">Mensaje enviado</h2>
-          <p className="mt-2 max-w-md text-sm leading-relaxed text-[var(--text-secondary)]">
-            Gracias, <span className="text-foreground">{name.trim()}</span>. Leímos cada mensaje y respondemos a{" "}
-            <span className="text-foreground">{email.trim()}</span> normalmente en menos de 48 horas hábiles.
-          </p>
+          <Heading as="h2" size="display-sm">
+            Mensaje enviado
+          </Heading>
+          <Text as="p" size="body" tone="2" prose className="mt-3">
+            Gracias, <span className="font-semibold text-text-1">{name.trim()}</span>. Leemos cada mensaje y respondemos a{" "}
+            <span className="font-semibold text-text-1">{email.trim()}</span> normalmente en menos de 48 horas hábiles.
+          </Text>
         </div>
         <Button
           type="button"
@@ -119,82 +132,87 @@ export function ContactForm({ subjects, businessName, policyVersion, initialSubj
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="card-surface space-y-5 p-6 sm:p-8" aria-describedby={`${id}-form-status`}>
-      <div className="space-y-2">
-        <Label htmlFor={fieldId("subject")}>Asunto</Label>
-        <select
+    <form
+      onSubmit={onSubmit}
+      noValidate
+      className="space-y-6 rounded-lg border border-line-1 bg-ink-2 p-5 shadow-card sm:p-8"
+      aria-describedby={`${id}-form-status`}
+    >
+      <div className="flex flex-col gap-2">
+        <Label id={fieldId("subject-label")} required>
+          Asunto
+        </Label>
+        <div
           id={fieldId("subject")}
-          name="subject"
-          required
-          value={subject}
-          onChange={(e) => {
-            setSubject(e.target.value);
-            clearError("subject");
-          }}
+          role="radiogroup"
+          aria-labelledby={fieldId("subject-label")}
+          aria-required="true"
           aria-invalid={errors.subject ? true : undefined}
           aria-describedby={errors.subject ? errorId("subject") : undefined}
-          className={selectClass}
-          disabled={pending}
+          tabIndex={-1}
+          onKeyDown={onSubjectKeyDown}
+          className={cn("flex flex-wrap gap-2 rounded focus-visible:outline-none", errors.subject && "rounded-lg ring-1 ring-danger/60 ring-offset-4 ring-offset-ink-2")}
         >
-          <option value="">Elige un asunto…</option>
           {subjects.map((s) => (
-            <option key={s.value} value={s.value}>
+            <Chip
+              key={s.value}
+              radio
+              selected={subject === s.value}
+              disabled={pending}
+              onClick={() => {
+                setSubject(s.value);
+                clearError("subject");
+              }}
+            >
               {s.label}
-            </option>
+            </Chip>
           ))}
-        </select>
-        <FieldError id={errorId("subject")} message={errors.subject} />
+        </div>
+        <input type="hidden" name="subject" value={subject} />
+        <FieldError id={errorId("subject")} className="mt-0">
+          {errors.subject}
+        </FieldError>
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor={fieldId("name")}>Nombre</Label>
+      <div className="grid gap-6 sm:grid-cols-2">
+        <FormField id={fieldId("name")} label="Nombre" error={errors.name}>
           <Input
-            id={fieldId("name")}
             name="name"
             autoComplete="name"
-            required
             value={name}
             onChange={(e) => {
               setName(e.target.value);
               clearError("name");
             }}
-            aria-invalid={errors.name ? true : undefined}
-            aria-describedby={errors.name ? errorId("name") : undefined}
-            className={cn("h-11", errors.name && "border-red-500/70")}
             disabled={pending}
           />
-          <FieldError id={errorId("name")} message={errors.name} />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor={fieldId("email")}>Correo</Label>
+        </FormField>
+        <FormField id={fieldId("email")} label="Correo" error={errors.email}>
           <Input
-            id={fieldId("email")}
             type="email"
             name="email"
             inputMode="email"
             autoComplete="email"
-            required
             value={email}
             onChange={(e) => {
               setEmail(e.target.value);
               clearError("email");
             }}
-            aria-invalid={errors.email ? true : undefined}
-            aria-describedby={errors.email ? errorId("email") : undefined}
-            className={cn("h-11", errors.email && "border-red-500/70")}
             disabled={pending}
           />
-          <FieldError id={errorId("email")} message={errors.email} />
-        </div>
+        </FormField>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor={fieldId("phone")}>
-          Teléfono / WhatsApp <span className="font-normal text-[var(--text-muted)]">(opcional)</span>
-        </Label>
+      <FormField
+        id={fieldId("phone")}
+        label={
+          <>
+            Teléfono / WhatsApp <span className="font-normal text-text-3">(opcional)</span>
+          </>
+        }
+        error={errors.phone}
+      >
         <Input
-          id={fieldId("phone")}
           type="tel"
           name="phone"
           inputMode="tel"
@@ -205,20 +223,18 @@ export function ContactForm({ subjects, businessName, policyVersion, initialSubj
             setPhone(e.target.value);
             clearError("phone");
           }}
-          aria-invalid={errors.phone ? true : undefined}
-          aria-describedby={errors.phone ? errorId("phone") : undefined}
-          className={cn("h-11", errors.phone && "border-red-500/70")}
           disabled={pending}
         />
-        <FieldError id={errorId("phone")} message={errors.phone} />
-      </div>
+      </FormField>
 
-      <div className="space-y-2">
-        <Label htmlFor={fieldId("message")}>Mensaje</Label>
+      <FormField
+        id={fieldId("message")}
+        label="Mensaje"
+        hint={errors.message ? undefined : <span className="block text-right font-mono tabular-nums">{message.trim().length}/3000</span>}
+        error={errors.message}
+      >
         <Textarea
-          id={fieldId("message")}
           name="message"
-          required
           rows={6}
           placeholder="Cuéntanos quién eres, qué buscas y enlaces a tu música o medio si aplica."
           value={message}
@@ -226,19 +242,9 @@ export function ContactForm({ subjects, businessName, policyVersion, initialSubj
             setMessage(e.target.value);
             clearError("message");
           }}
-          aria-invalid={errors.message ? true : undefined}
-          aria-describedby={errors.message ? errorId("message") : `${id}-message-hint`}
-          className={cn(errors.message && "border-red-500/70")}
           disabled={pending}
         />
-        {errors.message ? (
-          <FieldError id={errorId("message")} message={errors.message} />
-        ) : (
-          <p id={`${id}-message-hint`} className="text-xs text-[var(--text-muted)]">
-            {message.trim().length}/3000
-          </p>
-        )}
-      </div>
+      </FormField>
 
       <ConsentCheckbox
         checked={accepted}
@@ -250,29 +256,20 @@ export function ContactForm({ subjects, businessName, policyVersion, initialSubj
         error={errors.policyAccepted}
       />
 
-      <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 border-t border-line-1 pt-6 sm:flex-row sm:items-center sm:justify-between">
         <p
           id={`${id}-form-status`}
           aria-live="polite"
           role={status.kind === "error" ? "alert" : undefined}
-          className="min-h-[1rem] text-xs text-red-400"
+          className="min-h-5 text-body-sm text-danger"
         >
           {status.kind === "error" ? status.message : ""}
         </p>
-        <Button type="submit" size="lg" disabled={pending} className="h-12 w-full sm:w-auto">
-          {pending ? <Loader2 className="animate-spin" aria-hidden /> : <Send className="h-4 w-4" aria-hidden />}
+        <Button type="submit" size="lg" loading={pending} className="w-full sm:w-auto">
+          {pending ? null : <Send aria-hidden />}
           {pending ? "Enviando…" : "Enviar mensaje"}
         </Button>
       </div>
     </form>
-  );
-}
-
-function FieldError({ id, message }: { id: string; message?: string }) {
-  if (!message) return null;
-  return (
-    <p id={id} role="alert" className="text-xs text-red-400">
-      {message}
-    </p>
   );
 }

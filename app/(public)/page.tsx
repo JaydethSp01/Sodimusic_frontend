@@ -1,24 +1,31 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Script from "next/script";
 import Link from "next/link";
-import { ArrowRight, Facebook, Instagram, Mail, Youtube } from "lucide-react";
-import { HeroSection, type HeroLatest } from "@/components/landing/hero-section";
-import { MarqueeStrip } from "@/components/landing/marquee-strip";
-import { HomeFadeSection, HomeFigureMotion, HomeStagger, HomeStaggerItem } from "@/components/landing/home-page-motion";
+import { Facebook, Instagram, Youtube } from "lucide-react";
+import { BentoGrid } from "@/components/ds/bento-grid";
+import { CtaBand } from "@/components/ds/cta-band";
+import { EditorialSplit } from "@/components/ds/editorial-split";
+import { HeroCinematic, type HeroLatest } from "@/components/ds/hero-cinematic";
+import { MediaCard } from "@/components/ds/media-card";
+import { SectionHeader } from "@/components/ds/section-header";
+import { HomeFadeSection, HomeStagger, HomeStaggerItem } from "@/components/landing/home-page-motion";
 import { StatsSection } from "@/components/landing/stats-section";
-import { GenresGrid } from "@/components/landing/genres-grid";
+import { GenresGrid, HOME_GENRES } from "@/components/landing/genres-grid";
 import { HomeStoryTimeline } from "@/components/landing/home-story-timeline";
 import { HomeServicesSection } from "@/components/landing/home-services-section";
 import { HomeShopSection, stripTrailingArrow } from "@/components/landing/home-shop-section";
 import { HomeChannelsSection } from "@/features/channels/components/home-channels-section";
 import { HomeNewsSection } from "@/features/social/components/home-news-section";
-import { SectionTitle } from "@/components/shared/section-title";
 import { WhatsAppIcon } from "@/components/shared/whatsapp-icon";
-import { ProductionCard, SpotifyIcon } from "@/features/productions/components/production-card";
+import { SpotifyIcon } from "@/features/productions/components/production-card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
+import { Text } from "@/components/ui/text";
 import { fetchPublic } from "@/lib/api";
 import { fetchProducts } from "@/features/shop/api";
+import { genreColor } from "@/lib/genre-colors";
+import { resolveMediaUrl } from "@/lib/resolve-media-url";
 import { getSiteContent } from "@/lib/site-config-server";
 import { isFutureRelease } from "@/app/(public)/releases/_components/release-date";
 import type { Production, Release } from "@/types/models";
@@ -34,6 +41,19 @@ function resolveAboutAsideImageUrl(configured: string): string {
   if (!u) return ABOUT_ASIDE_IMAGE;
   if (u.includes(LEGACY_ABOUT_UNSPLASH_ID)) return ABOUT_ASIDE_IMAGE;
   return u;
+}
+
+/**
+ * Separa la última frase del texto «Quiénes somos» para usarla como cita serif (el resto queda como
+ * párrafo). Si solo hay una frase, no hay cita. Todo el texto sigue viniendo del CMS.
+ */
+function splitQuote(body: string): { quote: string | null; text: string } {
+  const trimmed = body.trim();
+  const i = trimmed.lastIndexOf(". ");
+  if (i < 0) return { quote: null, text: trimmed };
+  const quote = trimmed.slice(i + 2).trim();
+  const text = trimmed.slice(0, i + 1).trim();
+  return quote.length >= 20 && quote.length <= 140 ? { quote, text } : { quote: null, text: trimmed };
 }
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -59,9 +79,9 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-async function getFeaturedProductions(): Promise<Production[]> {
+async function getProductions(query: string): Promise<Production[]> {
   try {
-    const res = await fetchPublic("/api/productions?featured=1&pageSize=3", { next: { revalidate: 60 } });
+    const res = await fetchPublic(`/api/productions?${query}`, { next: { revalidate: 60 } });
     if (!res.ok) {
       return [];
     }
@@ -72,8 +92,21 @@ async function getFeaturedProductions(): Promise<Production[]> {
   }
 }
 
+const getFeaturedProductions = () => getProductions("featured=1&pageSize=3");
+
+/** Portada por género (para la imagen flotante de la lista de géneros): la primera producción de cada uno. */
+async function getGenreImages(): Promise<Record<string, string>> {
+  const items = await getProductions("pageSize=30");
+  const out: Record<string, string> = {};
+  for (const p of items) {
+    const key = p.genre?.trim().toLowerCase();
+    if (key && p.coverUrl && !out[key]) out[key] = resolveMediaUrl(p.coverUrl);
+  }
+  return out;
+}
+
 /**
- * Lanzamiento más reciente para el pill «Lo último» del hero: primero un destacado, si no el más reciente.
+ * Lanzamiento más reciente para la tarjeta «Lo último» del hero: primero un destacado, si no el más reciente.
  * (`/api/releases` ya filtra `upcoming: true` y ordena por año y fecha de creación desc.)
  */
 async function getLatestRelease(): Promise<HeroLatest | null> {
@@ -90,27 +123,34 @@ async function getLatestRelease(): Promise<HeroLatest | null> {
     if (!r?.title || !r.slug) {
       return null;
     }
-    return { title: r.title, artistName: r.artistName, slug: r.slug, upcoming: isFutureRelease(r) };
+    return {
+      title: r.title,
+      artistName: r.artistName,
+      slug: r.slug,
+      upcoming: isFutureRelease(r),
+      coverUrl: r.coverUrl ? resolveMediaUrl(r.coverUrl) : null,
+    };
   } catch {
     return null;
   }
 }
 
-const socialBtn =
-  "flex h-12 w-12 items-center justify-center rounded-full border border-border text-foreground transition-all hover:-translate-y-px hover:border-primary hover:text-primary";
+const productionIconBtn = "border-white/25 bg-black/40 text-text-1 backdrop-blur-sm hover:border-fire-500 hover:bg-fire-500 hover:text-fire-on";
 
 export default async function HomePage() {
   const site = await getSiteContent();
   const showShop = site.shop.enabled && site.shop.showOnHome;
   const showYoutube = site.youtube.showOnHome;
-  const [featured, featuredProducts, latest] = await Promise.all([
+  const [featured, featuredProducts, latest, genreImages] = await Promise.all([
     getFeaturedProductions(),
     showShop ? fetchProducts({ featured: true, pageSize: 4 }).then((r) => r.items) : Promise.resolve([]),
     getLatestRelease(),
+    getGenreImages(),
   ]);
 
   const whatsappUrl = `https://wa.me/${site.contact.whatsapp}`;
   const portfolioCta = stripTrailingArrow(site.home.portfolioCta) || "Ver todas las producciones";
+  const about = splitQuote(site.home.aboutBody);
   const socials = [
     { href: site.social.youtube, label: "YouTube de Sodimusic", Icon: Youtube },
     { href: site.social.instagram, label: "Instagram de Sodimusic", Icon: Instagram },
@@ -127,10 +167,16 @@ export default async function HomePage() {
       "@type": "Place",
       name: "María La Baja, Bolívar, Colombia",
     },
-    genre: ["Champeta", "Trap", "Reggaeton", "Afrobeat", "Dancehall"],
+    genre: HOME_GENRES.map((g) => g.name),
     url: (process.env.NEXT_PUBLIC_SITE_URL ?? "https://sodimusic.com").replace(/\/$/, ""),
     sameAs: [site.social.facebook, site.social.youtube, site.social.instagram, site.social.tiktok].filter(Boolean),
   };
+
+  const portfolioAction = (
+    <Button asChild variant="outline" withArrow>
+      <Link href="/productions">{portfolioCta}</Link>
+    </Button>
+  );
 
   return (
     <>
@@ -138,169 +184,248 @@ export default async function HomePage() {
         {JSON.stringify(jsonLd)}
       </Script>
 
-      <HeroSection hero={site.hero} latest={latest} />
+      {/* 1. Hero */}
+      <HeroCinematic
+        title={site.hero.title}
+        eyebrow={site.hero.eyebrow}
+        tagline={site.hero.tagline}
+        imageUrl={resolveMediaUrl(site.hero.heroImageUrl)}
+        imageAlt="Sesión de estudio con equipo de audio"
+        primary={{ href: site.hero.primaryHref, label: site.hero.primaryCta }}
+        secondary={{ href: site.hero.secondaryHref, label: site.hero.secondaryCta }}
+        latest={latest}
+      />
 
-      {/* Cinta editorial: géneros y origen del sello */}
-      <MarqueeStrip genres={site.booking.genreChips} />
-
-      {/* Quiénes somos */}
-      <HomeFadeSection className="px-4 pb-16 pt-8 sm:pb-20 lg:px-8 lg:pb-32 lg:pt-16" aria-labelledby="about-title">
-        <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[3fr_2fr] lg:items-center lg:gap-16">
-          <div>
-            <SectionTitle eyebrow={site.home.aboutEyebrow} title={site.home.aboutTitle} id="about-title" />
-            <p className="max-w-prose border-l-2 border-primary pl-6 text-lg leading-[1.75] text-[var(--text-secondary)]">
-              {site.home.aboutBody}
-            </p>
-            <StatsSection stats={site.home.stats} />
-          </div>
-          <HomeFigureMotion className="relative min-h-[320px] overflow-hidden rounded-lg border border-border bg-background-card lg:min-h-[460px]">
-            <Image
-              src={resolveAboutAsideImageUrl(site.home.aboutImageUrl)}
-              alt={ABOUT_ASIDE_ALT}
-              fill
-              quality={70}
-              className="object-cover"
-              sizes="(max-width: 1024px) 100vw, 38vw"
+      {/* 2. Quiénes somos: EditorialSplit + cifras en fila */}
+      <HomeFadeSection className="relative py-section" aria-labelledby="about-title">
+        <div className="container-page">
+          <EditorialSplit
+            quote={about.quote}
+            image={{
+              src: resolveAboutAsideImageUrl(site.home.aboutImageUrl),
+              alt: ABOUT_ASIDE_ALT,
+              aspect: "4/5",
+              sizes: "(max-width: 1024px) 100vw, 40vw",
+            }}
+            caption={site.home.aboutAsideCaption}
+          >
+            <SectionHeader
+              eyebrow={site.home.aboutEyebrow}
+              title={site.home.aboutTitle}
+              accent="sin fronteras"
+              id="about-title"
+              className="mb-6"
             />
-            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(8,8,8,0)_45%,rgba(8,8,8,0.85)_100%)]" />
-            <figcaption className="absolute bottom-5 left-5 right-5 flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.2em] text-[var(--text-secondary)]">
-              <span className="h-px w-6 bg-[var(--gold)]" aria-hidden />
-              {site.home.aboutAsideCaption}
-            </figcaption>
-          </HomeFigureMotion>
+            <Text size="body-lg" tone="2" prose>
+              {about.text}
+            </Text>
+            <StatsSection stats={site.home.stats} className="mt-10" />
+          </EditorialSplit>
+
+          {/* Historia: continuación de «Quiénes somos» (misma pantalla, línea de hitos) */}
+          <section aria-labelledby="historia-title" className="mt-16 border-t border-line-1 pt-12 lg:mt-24 lg:pt-16">
+            <div className="grid gap-8 lg:grid-cols-12 lg:gap-12">
+              <div className="lg:col-span-3">
+                <SectionHeader
+                  eyebrow={site.home.storyEyebrow}
+                  title={site.home.storyTitle}
+                  accent="champeta"
+                  size="display-sm"
+                  id="historia-title"
+                  className="mb-0"
+                />
+              </div>
+              <div className="min-w-0 lg:col-span-9">
+                <HomeStoryTimeline milestones={site.home.milestones} />
+              </div>
+            </div>
+          </section>
         </div>
       </HomeFadeSection>
 
-      {/* Géneros */}
-      <HomeFadeSection className="relative px-4 py-16 sm:py-20 lg:px-8 lg:py-32" aria-labelledby="genres-title">
-        <div className="section-divider absolute inset-x-0 top-0" aria-hidden />
-        <div className="mx-auto max-w-7xl">
-          <SectionTitle eyebrow={site.home.genresEyebrow} title={site.home.genresTitle} id="genres-title" />
-          <GenresGrid />
-        </div>
-      </HomeFadeSection>
-
-      {/* Historia */}
-      <HomeFadeSection className="relative px-4 py-16 sm:py-20 lg:px-8 lg:py-32" aria-labelledby="historia-title">
-        <div className="section-divider absolute inset-x-0 top-0" aria-hidden />
-        <div className="mx-auto max-w-7xl">
-          <SectionTitle eyebrow={site.home.storyEyebrow} title={site.home.storyTitle} id="historia-title" />
-          <HomeStoryTimeline milestones={site.home.milestones} />
-        </div>
-      </HomeFadeSection>
-
-      {/* Producciones destacadas */}
-      <HomeFadeSection className="relative bg-background-secondary/60 px-4 py-16 sm:py-20 lg:px-8 lg:py-32" aria-labelledby="feat-title">
-        <div className="section-divider absolute inset-x-0 top-0" aria-hidden />
-        <div className="mx-auto max-w-7xl">
-          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-            <SectionTitle eyebrow={site.home.portfolioEyebrow} title={site.home.portfolioTitle} id="feat-title" />
-            <Button asChild variant="outline" className="mb-12 hidden h-11 md:inline-flex">
-              <Link href="/productions">
-                {portfolioCta}
-                <ArrowRight className="h-4 w-4" aria-hidden />
-              </Link>
-            </Button>
+      {/* 3. Géneros: cabecera a la izquierda + lista editorial */}
+      <HomeFadeSection className="bg-ink-1 py-section" aria-labelledby="genres-title">
+        <div className="container-page grid gap-8 lg:grid-cols-12 lg:gap-12">
+          <div className="lg:col-span-4">
+            <SectionHeader
+              eyebrow={site.home.genresEyebrow}
+              title={site.home.genresTitle}
+              id="genres-title"
+              className="mb-0 md:flex-col md:items-start lg:sticky lg:top-24"
+              lead={
+                <span className="flex flex-wrap gap-1.5">
+                  {HOME_GENRES.map((g) => {
+                    const c = genreColor(g.name);
+                    return (
+                      <Badge key={g.name} variant="outline" style={{ color: c.fg, borderColor: c.border }}>
+                        {g.name}
+                      </Badge>
+                    );
+                  })}
+                </span>
+              }
+            />
           </div>
+          <div className="min-w-0 border-t border-line-1 lg:col-span-8">
+            <GenresGrid images={genreImages} />
+          </div>
+        </div>
+      </HomeFadeSection>
+
+      {/* 5. Producciones destacadas: BentoGrid (1 grande + 2 medianas) */}
+      <HomeFadeSection className="py-section" aria-labelledby="feat-title">
+        <div className="container-page">
+          <SectionHeader
+            eyebrow={site.home.portfolioEyebrow}
+            title={site.home.portfolioTitle}
+            accent="Últimas"
+            id="feat-title"
+            action={<div className="hidden md:block">{portfolioAction}</div>}
+          />
           {featured.length ? (
-            <HomeStagger className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {featured.map((p) => (
-                <HomeStaggerItem key={p.id} className="h-full">
-                  <ProductionCard production={p} />
-                </HomeStaggerItem>
-              ))}
+            <HomeStagger>
+              <BentoGrid pattern={[8, 4, 4]} rowSpans={[2]}>
+                {featured.map((p, i) => {
+                  const big = i === 0;
+                  const color = genreColor(p.genre);
+                  const loc = [p.artistCity, p.artistCountry].filter(Boolean).join(", ");
+                  return (
+                    <HomeStaggerItem key={p.id} className="h-full">
+                      <MediaCard
+                        layout="overlay"
+                        aspect={big ? "4/5" : "16/9"}
+                        src={p.coverUrl ? resolveMediaUrl(p.coverUrl) : null}
+                        alt={`Portada de ${p.title} por ${p.artistName}`}
+                        priority={big}
+                        sizes={big ? "(max-width: 1024px) 100vw, 60vw" : "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 30vw"}
+                        fallbackSeed={p.artistName}
+                        fallbackLabel={p.artistName}
+                        title={p.title}
+                        overlayTitleSize={big ? "display-md" : "display-sm"}
+                        description={loc ? `${p.artistName} · ${loc}` : p.artistName}
+                        meta={
+                          <>
+                            <Badge tone="neutral" variant="outline" className="border-white/25 text-text-1">
+                              {p.year}
+                            </Badge>
+                            {p.genre ? (
+                              <Badge variant="outline" style={{ color: color.fg, borderColor: color.border }}>
+                                {p.genre}
+                              </Badge>
+                            ) : null}
+                          </>
+                        }
+                        action={
+                          p.spotifyUrl || p.youtubeUrl ? (
+                            <span className="flex gap-2">
+                              {p.spotifyUrl ? (
+                                <IconButton asChild variant="outline" className={productionIconBtn} aria-label={`Escuchar ${p.title} en Spotify`}>
+                                  <a href={p.spotifyUrl} target="_blank" rel="noopener noreferrer">
+                                    <SpotifyIcon className="h-5 w-5" />
+                                  </a>
+                                </IconButton>
+                              ) : null}
+                              {p.youtubeUrl ? (
+                                <IconButton asChild variant="outline" className={productionIconBtn} aria-label={`Ver ${p.title} en YouTube`}>
+                                  <a href={p.youtubeUrl} target="_blank" rel="noopener noreferrer">
+                                    <Youtube />
+                                  </a>
+                                </IconButton>
+                              ) : null}
+                            </span>
+                          ) : null
+                        }
+                        className="h-full"
+                        mediaClassName={big ? "lg:aspect-auto lg:min-h-[480px]" : undefined}
+                      />
+                    </HomeStaggerItem>
+                  );
+                })}
+              </BentoGrid>
             </HomeStagger>
           ) : (
-            <p className="rounded-lg border border-dashed border-border px-6 py-12 text-center text-[var(--text-secondary)]">
+            <Text tone="3" className="rounded-lg border border-dashed border-line-2 px-6 py-12 text-center">
               Pronto verás aquí las producciones destacadas.
-            </p>
+            </Text>
           )}
-          <div className="mt-10 text-center md:hidden">
-            <Button asChild variant="outline" className="h-11">
-              <Link href="/productions">
-                {portfolioCta}
-                <ArrowRight className="h-4 w-4" aria-hidden />
-              </Link>
-            </Button>
-          </div>
+          <div className="mt-10 text-center md:hidden">{portfolioAction}</div>
         </div>
       </HomeFadeSection>
 
-      <HomeNewsSection className="border-t border-border" />
+      {/* 6. Novedades */}
+      <HomeNewsSection className="bg-ink-1" />
 
-      {showYoutube ? (
-        <HomeChannelsSection youtube={site.youtube} className="border-t border-border" />
-      ) : null}
+      {/* 7. Canales (organismo del catálogo, tal cual) */}
+      {showYoutube ? <HomeChannelsSection youtube={site.youtube} className="border-t border-line-1" /> : null}
 
+      {/* 8. Merch */}
       {showShop ? <HomeShopSection shop={site.shop} products={featuredProducts} /> : null}
 
-      {/* Servicios */}
-      <HomeFadeSection className="relative px-4 py-16 sm:py-20 lg:px-8 lg:py-32" aria-labelledby="services-title">
-        <div className="section-divider absolute inset-x-0 top-0" aria-hidden />
-        <div className="mx-auto max-w-7xl">
-          <SectionTitle
+      {/* 9. Servicios: cabecera a la izquierda + FeatureRow ×6 */}
+      <HomeFadeSection className="py-section" aria-labelledby="services-title">
+        <div className="container-page">
+          <SectionHeader
             title={site.home.servicesTitle}
-            subtitle={site.home.servicesSubtitle}
+            lead={site.home.servicesSubtitle}
             eyebrow={site.home.servicesEyebrow || undefined}
             id="services-title"
+            action={
+              <div className="hidden md:block">
+                <Button asChild withArrow>
+                  <Link href={site.nav.ctaHref}>{site.nav.ctaLabel}</Link>
+                </Button>
+              </div>
+            }
           />
           <HomeServicesSection services={site.booking.services} ctaHref={site.nav.ctaHref} />
         </div>
       </HomeFadeSection>
 
-      {/* Contacto: resumen con CTA a /contacto y WhatsApp */}
-      <HomeFadeSection className="relative overflow-hidden px-4 py-16 sm:py-20 lg:px-8 lg:py-32" aria-labelledby="contact-title">
-        <div className="section-divider absolute inset-x-0 top-0" aria-hidden />
-        <div
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_60%_at_50%_100%,rgba(255,107,0,0.14),transparent)]"
-          aria-hidden
-        />
-        <div className="relative mx-auto max-w-3xl text-center">
-          <SectionTitle
-            eyebrow="Contacto"
-            title={site.home.contactTitle}
-            subtitle={site.home.contactSubtitle}
-            id="contact-title"
-            align="center"
-            className="mb-8"
-          />
-          <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
-            <Button asChild className="h-12 w-full px-8 text-base font-semibold sm:w-auto">
-              <Link href="/contacto">
-                <Mail className="h-4 w-4" aria-hidden />
-                Escríbenos
-              </Link>
+      {/* 10. Contacto: banda fire */}
+      <CtaBand
+        id="contact-title"
+        title={site.home.contactTitle}
+        accent="proyecto"
+        lead={
+          <>
+            {site.home.contactSubtitle} O escribe a{" "}
+            <a href={`mailto:${site.contact.email}`} className="font-semibold text-fire-on underline decoration-fire-on/40 underline-offset-4 hover:decoration-fire-on">
+              {site.contact.email}
+            </a>
+            .
+          </>
+        }
+        actions={
+          <>
+            <Button asChild size="lg" className="bg-ink-0 text-text-1 shadow-none hover:bg-ink-3">
+              <Link href="/contacto">Escríbenos</Link>
             </Button>
-            <Button
-              asChild
-              variant="outline"
-              className="h-12 w-full border-[rgba(37,211,102,0.5)] px-8 text-base text-whatsapp hover:border-whatsapp hover:bg-[rgba(37,211,102,0.12)] hover:text-whatsapp sm:w-auto"
-            >
+            <Button asChild size="lg" variant="whatsapp">
               <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" aria-label="Escribir por WhatsApp a Sodimusic">
-                <WhatsAppIcon className="h-4 w-4" />
+                <WhatsAppIcon className="h-5 w-5" />
                 WhatsApp
               </a>
             </Button>
-          </div>
-          <p className="mt-6 text-sm text-[var(--text-muted)]">
-            O escribe a{" "}
-            <a href={`mailto:${site.contact.email}`} className="text-[var(--text-secondary)] underline-offset-4 hover:text-primary hover:underline">
-              {site.contact.email}
-            </a>
-          </p>
-          {socials.length ? (
-            <HomeStagger className="mt-10 flex flex-wrap justify-center gap-3">
-              {socials.map(({ href, label, Icon }) => (
-                <HomeStaggerItem key={label}>
-                  <a href={href} target="_blank" rel="noopener noreferrer" className={socialBtn} aria-label={label}>
+          </>
+        }
+        aside={
+          socials.length
+            ? socials.map(({ href, label, Icon }) => (
+                <IconButton
+                  key={label}
+                  asChild
+                  variant="outline"
+                  className="border-fire-on/30 text-fire-on hover:border-fire-on hover:bg-fire-on hover:text-fire-300"
+                  aria-label={label}
+                >
+                  <a href={href} target="_blank" rel="noopener noreferrer">
                     <Icon className="h-5 w-5" />
                   </a>
-                </HomeStaggerItem>
-              ))}
-            </HomeStagger>
-          ) : null}
-        </div>
-      </HomeFadeSection>
+                </IconButton>
+              ))
+            : undefined
+        }
+      />
     </>
   );
 }

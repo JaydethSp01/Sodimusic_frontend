@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Pause, Play, SkipBack, SkipForward, X } from "lucide-react";
+import { SkipBack, SkipForward, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
+import { PlayButton } from "@/components/ds/play-button";
 import { PlaceholderCover } from "@/components/shared/placeholder-cover";
 import { hasNextTrack, hasPrevTrack, usePlayerStore } from "@/features/beats/stores/player-store";
 import { cn } from "@/lib/utils";
@@ -225,11 +227,11 @@ export function BeatPlayerBar() {
           ref={barRef}
           role="region"
           aria-label="Reproductor de beats"
-          className="fixed inset-x-0 bottom-0 z-[90] border-t border-border bg-[rgba(14,14,14,0.92)] text-foreground shadow-[0_-12px_40px_rgba(0,0,0,0.45)] backdrop-blur-md"
+          className="fixed inset-x-0 bottom-0 z-player border-t border-line-2 bg-ink-2/95 text-text-1 shadow-[0_-12px_40px_rgba(0,0,0,0.5)] backdrop-blur-md"
           style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
         >
-          <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2 sm:gap-4 lg:px-8">
-            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md bg-background-secondary">
+          <div className="container-page flex items-center gap-3 py-2 sm:gap-4">
+            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded bg-ink-3">
               {current.coverUrl ? (
                 <Image src={current.coverUrl} alt="" fill sizes="48px" className="object-cover" />
               ) : (
@@ -238,46 +240,27 @@ export function BeatPlayerBar() {
             </div>
 
             <div className="min-w-0 flex-1">
-              <p className="truncate font-body text-sm font-semibold leading-tight text-foreground" title={current.title}>
+              <p className="truncate text-body-sm font-semibold leading-tight text-text-1" title={current.title}>
                 {current.title}
               </p>
-              <p className="truncate font-mono text-[11px] uppercase tracking-wider text-[var(--text-secondary)]">
-                {failed ? "Preview no disponible" : meta || "Preview"}
-              </p>
+              <p className="mt-0.5 truncate text-label-sm text-text-2">{failed ? "Preview no disponible" : meta || "Preview"}</p>
             </div>
 
             <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-              <button
-                type="button"
-                onClick={prev}
-                disabled={!canPrev}
-                className="hidden h-10 w-10 items-center justify-center rounded-full text-foreground transition-colors hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-transparent sm:inline-flex"
-                aria-label="Pista anterior"
-              >
-                <SkipBack className="h-5 w-5" aria-hidden />
-              </button>
-              <button
-                type="button"
+              <IconButton onClick={prev} disabled={!canPrev} size="sm" className="hidden sm:inline-flex" aria-label="Pista anterior">
+                <SkipBack aria-hidden />
+              </IconButton>
+              <PlayButton
                 onClick={toggle}
                 disabled={failed}
-                className={cn(
-                  "inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/10 text-foreground transition-colors",
-                  "hover:bg-primary hover:text-[var(--primary-foreground)] disabled:cursor-not-allowed disabled:opacity-50",
-                  playing && "bg-primary text-[var(--primary-foreground)]",
-                )}
+                size={40}
+                state={playing ? "playing" : "idle"}
+                progress={duration > 0 ? progress : undefined}
                 aria-label={playing ? "Pausar" : "Reproducir"}
-              >
-                {playing ? <Pause className="h-5 w-5" aria-hidden /> : <Play className="ml-0.5 h-5 w-5" aria-hidden />}
-              </button>
-              <button
-                type="button"
-                onClick={next}
-                disabled={!canNext}
-                className="hidden h-10 w-10 items-center justify-center rounded-full text-foreground transition-colors hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-transparent sm:inline-flex"
-                aria-label="Pista siguiente"
-              >
-                <SkipForward className="h-5 w-5" aria-hidden />
-              </button>
+              />
+              <IconButton onClick={next} disabled={!canNext} size="sm" className="hidden sm:inline-flex" aria-label="Pista siguiente">
+                <SkipForward aria-hidden />
+              </IconButton>
             </div>
 
             <ProgressSlider
@@ -290,12 +273,12 @@ export function BeatPlayerBar() {
             />
 
             {onChooseLicense ? (
-              <Button type="button" size="sm" className="h-10 shrink-0 px-3 sm:px-4" onClick={() => onChooseLicense(current.id)} aria-label={`Elegir licencia para ${current.title}`}>
+              <Button type="button" size="sm" className="shrink-0 px-3 sm:px-4" onClick={() => onChooseLicense(current.id)} aria-label={`Elegir licencia para ${current.title}`}>
                 <span className="hidden sm:inline">Elegir licencia</span>
                 <span className="sm:hidden">Licencia</span>
               </Button>
             ) : (
-              <Button asChild size="sm" className="h-10 shrink-0 px-3 sm:px-4">
+              <Button asChild size="sm" className="shrink-0 px-3 sm:px-4">
                 <Link href={`/beats?licencia=${encodeURIComponent(current.id)}`} aria-label={`Elegir licencia para ${current.title}`}>
                   <span className="hidden sm:inline">Elegir licencia</span>
                   <span className="sm:hidden">Licencia</span>
@@ -303,14 +286,9 @@ export function BeatPlayerBar() {
               </Button>
             )}
 
-            <button
-              type="button"
-              onClick={close}
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-white/10 hover:text-foreground"
-              aria-label="Cerrar reproductor"
-            >
-              <X className="h-5 w-5" aria-hidden />
-            </button>
+            <IconButton onClick={close} size="sm" aria-label="Cerrar reproductor">
+              <X aria-hidden />
+            </IconButton>
           </div>
           <ProgressSlider
             className="flex px-4 pb-2 md:hidden"
@@ -338,7 +316,7 @@ interface ProgressSliderProps {
 function ProgressSlider({ className, title, progress, currentTime, duration, onSeek }: ProgressSliderProps) {
   return (
     <div className={cn("items-center gap-2", className)}>
-      <span className="w-10 shrink-0 text-right font-mono text-[11px] tabular-nums text-[var(--text-secondary)]">{formatTime(currentTime)}</span>
+      <span className="w-10 shrink-0 text-right font-mono text-label-sm normal-case tabular-nums text-text-2">{formatTime(currentTime)}</span>
       <input
         type="range"
         min={0}
@@ -352,7 +330,7 @@ function ProgressSlider({ className, title, progress, currentTime, duration, onS
         className="beat-progress block h-6 w-full min-w-0 flex-1 cursor-pointer appearance-none bg-transparent focus-visible:outline-none disabled:cursor-default"
         style={{ "--progress": `${progress}%` } as CSSProperties}
       />
-      <span className="w-10 shrink-0 font-mono text-[11px] tabular-nums text-[var(--text-secondary)]">{formatTime(duration)}</span>
+      <span className="w-10 shrink-0 font-mono text-label-sm normal-case tabular-nums text-text-2">{formatTime(duration)}</span>
     </div>
   );
 }

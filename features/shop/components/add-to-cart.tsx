@@ -4,7 +4,12 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Minus, Plus, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Chip } from "@/components/ui/chip";
+import { FieldError } from "@/components/ui/field-error";
+import { IconButton } from "@/components/ui/icon-button";
+import { Text } from "@/components/ui/text";
 import { useCartStore } from "@/features/shop/stores/cart-store";
 import { isSoldOut } from "@/features/shop/api";
 import { buildWhatsAppOrderUrl, SHOP_TERMS_PATH } from "@/lib/whatsapp-order";
@@ -87,98 +92,86 @@ export function AddToCart({
   const sizeErrorId = "size-error";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <LazyToaster />
       {needsSize ? (
-        <fieldset aria-describedby={sizeError ? sizeErrorId : undefined} aria-invalid={sizeError ? true : undefined}>
-          <legend className="font-mono text-xs uppercase tracking-widest text-[var(--text-muted)]">Talla</legend>
+        <fieldset
+          id="talla"
+          className="scroll-mt-28"
+          aria-describedby={sizeError ? sizeErrorId : undefined}
+          aria-invalid={sizeError ? true : undefined}
+        >
+          <legend className="text-label text-text-3">Talla</legend>
           <div className="mt-3 flex flex-wrap gap-2">
             {sizes.map((s) => {
               const selected = s === size;
               return (
-                <button
+                <Chip
                   key={s}
-                  type="button"
+                  selected={selected}
+                  disabled={soldOut}
                   onClick={() => {
                     setSize(s);
                     setSizeError(null);
                   }}
-                  disabled={soldOut}
-                  aria-pressed={selected}
-                  className={cn(
-                    "min-h-11 min-w-11 rounded-md border px-4 font-mono text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50",
-                    selected
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border bg-transparent text-foreground hover:border-primary/40",
-                    sizeError && !selected && "border-red-400/60",
-                  )}
+                  className={cn("min-w-11 justify-center font-mono normal-case", sizeError && !selected && "border-danger/70")}
                 >
                   {s}
-                </button>
+                </Chip>
               );
             })}
           </div>
-          {sizeError ? (
-            <p id={sizeErrorId} role="alert" className="mt-2 text-xs text-red-400">
-              {sizeError}
-            </p>
-          ) : null}
+          <FieldError id={sizeErrorId}>{sizeError}</FieldError>
         </fieldset>
       ) : null}
 
       <div>
-        <p className="font-mono text-xs uppercase tracking-widest text-[var(--text-muted)]">Cantidad</p>
-        <div className="mt-3 inline-flex items-center rounded-md border border-border">
-          <button
-            type="button"
-            onClick={() => setQty((q) => Math.max(1, q - 1))}
-            disabled={soldOut || qty <= 1}
-            className="flex h-11 w-11 items-center justify-center rounded-l-md text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary disabled:opacity-40"
-            aria-label="Reducir cantidad"
-          >
-            <Minus className="h-4 w-4" aria-hidden />
-          </button>
-          <span className="w-12 text-center font-mono text-base tabular-nums" aria-live="polite" aria-label={`Cantidad: ${qty}`}>
-            {qty}
-          </span>
-          <button
-            type="button"
-            onClick={() => setQty((q) => Math.min(maxQty, q + 1))}
-            disabled={soldOut || qty >= maxQty}
-            className="flex h-11 w-11 items-center justify-center rounded-r-md text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary disabled:opacity-40"
-            aria-label="Aumentar cantidad"
-          >
-            <Plus className="h-4 w-4" aria-hidden />
-          </button>
+        <p className="text-label text-text-3">Cantidad</p>
+        <div className="mt-3 flex flex-wrap items-center gap-4">
+          <div className="inline-flex items-center rounded border border-line-2 bg-ink-3">
+            <IconButton
+              variant="ghost"
+              pill={false}
+              onClick={() => setQty((q) => Math.max(1, q - 1))}
+              disabled={soldOut || qty <= 1}
+              aria-label="Reducir cantidad"
+            >
+              <Minus />
+            </IconButton>
+            <span className="w-12 text-center font-mono text-body-lg tabular-nums text-text-1" aria-live="polite">
+              <span className="sr-only">Cantidad: </span>
+              {qty}
+            </span>
+            <IconButton
+              variant="ghost"
+              pill={false}
+              onClick={() => setQty((q) => Math.min(maxQty, q + 1))}
+              disabled={soldOut || qty >= maxQty}
+              aria-label="Aumentar cantidad"
+            >
+              <Plus />
+            </IconButton>
+          </div>
+          {product.stock != null && product.stock > 0 && product.stock <= 5 ? (
+            <Badge tone="warning" size="md">
+              Quedan {product.stock} unidades
+            </Badge>
+          ) : null}
         </div>
-        {product.stock != null && product.stock > 0 && product.stock <= 5 ? (
-          <p className="mt-2 font-mono text-xs text-[var(--gold)]">Quedan {product.stock} unidades</p>
-        ) : null}
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <Button
-          type="button"
-          size="lg"
-          className="h-12 w-full basis-auto sm:w-auto sm:flex-1"
-          onClick={handleAdd}
-          disabled={soldOut}
-        >
-          <ShoppingBag className="!size-5" aria-hidden />
+      <div className="flex flex-col gap-3">
+        <Button type="button" size="xl" className="w-full" onClick={handleAdd} disabled={soldOut}>
+          <ShoppingBag aria-hidden />
           {soldOut ? "Agotado" : addLabel}
         </Button>
         {soldOut ? (
-          <Button type="button" size="lg" variant="outline" className="h-12 w-full basis-auto sm:w-auto sm:flex-1" disabled>
-            <WhatsAppIcon className="!size-5" />
+          <Button type="button" size="lg" variant="whatsapp" className="w-full" disabled>
+            <WhatsAppIcon />
             {orderLabel}
           </Button>
         ) : (
-          <Button
-            asChild
-            size="lg"
-            variant="outline"
-            className="h-12 w-full basis-auto border-[#25D366]/50 bg-[#25D366]/10 text-[#25D366] hover:border-[#25D366] hover:bg-[#25D366]/20 hover:text-[#25D366] sm:w-auto sm:flex-1"
-          >
+          <Button asChild size="lg" variant="whatsapp" className="w-full">
             <a
               href={waUrl}
               target="_blank"
@@ -190,19 +183,19 @@ export function AddToCart({
               }}
               aria-label={`${orderLabel}: ${qty} × ${product.name} por ${formatCOP(product.priceCOP * qty)}`}
             >
-              <WhatsAppIcon className="!size-5" />
+              <WhatsAppIcon />
               {orderLabel}
             </a>
           </Button>
         )}
       </div>
-      <p className="text-xs leading-relaxed text-[var(--text-secondary)]">
+      <Text as="p" size="body-sm" tone="3">
         Al enviar aceptas los{" "}
-        <Link href={SHOP_TERMS_PATH} className="text-primary underline underline-offset-2 hover:text-primary-hover">
+        <Link href={SHOP_TERMS_PATH} className="link-sweep text-fire-400 hover:text-fire-300">
           Términos de la tienda
         </Link>
         . El pedido se confirma por WhatsApp y el envío se cotiza según tu ciudad.
-      </p>
+      </Text>
     </div>
   );
 }

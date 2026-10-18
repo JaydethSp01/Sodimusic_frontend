@@ -1,4 +1,4 @@
-import { SectionTitle } from "@/components/shared/section-title";
+import { SectionHeader } from "@/components/ds/section-header";
 import { FaqAccordion } from "@/components/shared/faq-accordion";
 import type { FaqItem } from "@/content/faq";
 import { cn } from "@/lib/utils";
@@ -14,9 +14,9 @@ interface FaqSectionProps {
 }
 
 /**
- * Sección «Preguntas frecuentes» reutilizable (server component).
- * Emite JSON-LD `FAQPage` con un <script> plano (sin next/script) y delega el acordeón
- * al cliente (`FaqAccordion`). Si no hay preguntas no renderiza nada.
+ * Sección «Preguntas frecuentes» reutilizable (server component): `SectionHeader` sticky a la izquierda
+ * (5/12) y acordeón a la derecha (7/12). Emite JSON-LD `FAQPage` con un <script> plano (sin next/script)
+ * y delega el acordeón al cliente (`FaqAccordion`). Si no hay preguntas no renderiza nada.
  */
 export function FaqSection({
   items,
@@ -42,12 +42,20 @@ export function FaqSection({
   const jsonLdHtml = JSON.stringify(jsonLd).replace(/</g, "\\u003c");
 
   return (
-    <section className={cn("relative px-4 py-16 sm:py-20 lg:px-8 lg:py-28", className)} aria-labelledby={id}>
+    <section className={cn("relative bg-ink-1 py-section", className)} aria-labelledby={id}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml }} />
       <div className="section-divider absolute inset-x-0 top-0" aria-hidden />
-      <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[2fr_3fr] lg:gap-16">
-        <SectionTitle eyebrow={eyebrow} title={title} subtitle={subtitle} id={id} className="mb-0 lg:sticky lg:top-28 lg:self-start" />
-        <FaqAccordion items={items} idPrefix={id} />
+      <div className="container-page grid gap-10 lg:grid-cols-12 lg:gap-16">
+        <SectionHeader
+          eyebrow={eyebrow}
+          title={title}
+          lead={subtitle}
+          id={id}
+          className="mb-0 lg:col-span-5 lg:sticky lg:top-[calc(var(--nav-h,72px)+32px)] lg:self-start"
+        />
+        <div className="lg:col-span-7">
+          <FaqAccordion items={items} idPrefix={id} />
+        </div>
       </div>
     </section>
   );

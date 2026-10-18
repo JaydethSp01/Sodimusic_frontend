@@ -2,41 +2,35 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { AdminTable, AdminTableActions, AdminTableBody, AdminTableCell, AdminTableHead, AdminTableHeader, AdminTableRow } from "@/components/ds/admin-table";
+import { EmptyState } from "@/components/ds/empty-state";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Avatar } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { AdminDialogFooter, RowAction, adminDialogClass } from "@/features/admin/components/admin-primitives";
 import { deleteBookingSession, patchBookingSession } from "@/app/actions/admin-actions";
 import { SERVICE_TYPE_LABELS, TIME_SLOT_LABELS } from "@/lib/constants";
 import type { BookingSessionRow } from "@/types/models";
 import { toast } from "sonner";
-import { Trash2 } from "lucide-react";
+import { CalendarRange, FileText, Loader2, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const SESSION_STATUS_LABELS: Record<string, string> = {
   PENDING: "Pendiente",
   CONFIRMED: "Confirmada",
   COMPLETED: "Completada",
   CANCELLED: "Cancelada",
+};
+
+const STATUS_DOT: Record<string, string> = {
+  PENDING: "bg-warning",
+  CONFIRMED: "bg-success",
+  COMPLETED: "bg-sea-400",
+  CANCELLED: "bg-danger",
 };
 
 function formatServiceCell(serviceType: string): string {
@@ -47,24 +41,31 @@ function formatServiceCell(serviceType: string): string {
 }
 
 export function SessionAdminTable({ sessions }: { sessions: BookingSessionRow[] }) {
+  if (sessions.length === 0) {
+    return <EmptyState icon={CalendarRange} title="Sin sesiones" description="No hay sesiones con estos filtros. Cambia el estado o el servicio, o crea una a mano." />;
+  }
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Artista</TableHead>
-          <TableHead>Servicio</TableHead>
-          <TableHead>Fecha</TableHead>
-          <TableHead>Slot</TableHead>
-          <TableHead>Estado</TableHead>
-          <TableHead>Acciones</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {sessions.map((row) => (
-          <SessionRow key={row.id} row={row} />
-        ))}
-      </TableBody>
-    </Table>
+    <div className="scroll-fade-x overflow-x-auto md:[mask-image:none]">
+      <AdminTable>
+        <AdminTableHead>
+          <AdminTableRow>
+            <AdminTableHeader>Artista</AdminTableHeader>
+            <AdminTableHeader>Servicio</AdminTableHeader>
+            <AdminTableHeader>Fecha</AdminTableHeader>
+            <AdminTableHeader>Franja</AdminTableHeader>
+            <AdminTableHeader>Estado</AdminTableHeader>
+            <AdminTableHeader align="right">
+              <span className="sr-only">Acciones</span>
+            </AdminTableHeader>
+          </AdminTableRow>
+        </AdminTableHead>
+        <AdminTableBody>
+          {sessions.map((row) => (
+            <SessionRow key={row.id} row={row} />
+          ))}
+        </AdminTableBody>
+      </AdminTable>
+    </div>
   );
 }
 
@@ -131,28 +132,32 @@ function SessionRow({ row }: { row: BookingSessionRow }) {
   });
 
   return (
-    <TableRow>
-      <TableCell>{row.artistName}</TableCell>
-      <TableCell className="max-w-[180px] text-xs leading-snug">
-        {formatServiceCell(row.serviceType)}
-      </TableCell>
-      <TableCell className="whitespace-nowrap font-mono text-xs">{scheduled}</TableCell>
-      <TableCell className="text-xs">{TIME_SLOT_LABELS[row.timeSlot] ?? row.timeSlot}</TableCell>
-      <TableCell>
+    <AdminTableRow className={cn(status === "CANCELLED" && "opacity-70")}>
+      <AdminTableCell className="py-3">
+        <div className="flex items-center gap-3">
+          <Avatar name={row.artistName} size={40} />
+          <div className="min-w-0">
+            <p className="truncate font-semibold">{row.artistName}</p>
+            <p className="truncate text-body-sm text-text-3">{row.artistEmail}</p>
+          </div>
+        </div>
+      </AdminTableCell>
+      <AdminTableCell className="max-w-[220px] py-3 text-body-sm leading-snug text-text-2">{formatServiceCell(row.serviceType)}</AdminTableCell>
+      <AdminTableCell mono className="whitespace-nowrap">
+        {scheduled}
+      </AdminTableCell>
+      <AdminTableCell>
+        <Badge variant="outline">{TIME_SLOT_LABELS[row.timeSlot] ?? row.timeSlot}</Badge>
+      </AdminTableCell>
+      <AdminTableCell>
         <Select value={status} onValueChange={(v) => void onStatusChange(v)}>
-          <SelectTrigger
-            className="h-8 w-[140px]"
-            disabled={statusPending}
-            aria-label={`Estado para ${row.artistName}`}
-          >
+          <SelectTrigger className="h-9 w-[150px] text-body-sm" disabled={statusPending} aria-label={`Estado para ${row.artistName}`}>
             <div className="flex items-center gap-2">
               {statusPending ? (
-                <span
-                  className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary/20 border-t-primary"
-                  role="status"
-                  aria-label="Actualizando"
-                />
-              ) : null}
+                <Loader2 className="h-4 w-4 animate-spin text-fire-400" role="status" aria-label="Actualizando" />
+              ) : (
+                <span className={cn("h-2 w-2 shrink-0 rounded-full", STATUS_DOT[status] ?? "bg-text-3")} aria-hidden />
+              )}
               <SelectValue />
             </div>
           </SelectTrigger>
@@ -164,67 +169,53 @@ function SessionRow({ row }: { row: BookingSessionRow }) {
             ))}
           </SelectContent>
         </Select>
-      </TableCell>
-      <TableCell>
-        <div className="flex flex-wrap items-center gap-2">
+      </AdminTableCell>
+      <AdminTableActions>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button type="button" size="sm" variant="outline">
-              Ver briefing
+              <FileText aria-hidden /> Ver briefing
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className={adminDialogClass}>
             <DialogHeader>
-              <DialogTitle>Briefing — {row.artistName}</DialogTitle>
+              <DialogTitle className="text-title">Briefing — {row.artistName}</DialogTitle>
+              <DialogDescription>
+                {formatServiceCell(row.serviceType)} · {scheduled} · {TIME_SLOT_LABELS[row.timeSlot] ?? row.timeSlot}
+              </DialogDescription>
             </DialogHeader>
-            <div className="space-y-2 text-sm">
-              <p>
-                <strong>Email:</strong> {row.artistEmail}
-              </p>
-              <p>
-                <strong>Tel:</strong> {row.artistPhone}
-              </p>
+            <dl className="grid gap-x-4 gap-y-3 text-body-sm sm:grid-cols-[auto_1fr]">
+              <dt className="text-label text-text-3 sm:pt-0.5">Email</dt>
+              <dd className="text-text-1">{row.artistEmail}</dd>
+              <dt className="text-label text-text-3 sm:pt-0.5">Tel</dt>
+              <dd className="font-mono text-text-1">{row.artistPhone}</dd>
               {row.artistInstagram ? (
-                <p>
-                  <strong>IG:</strong> @{row.artistInstagram}
-                </p>
+                <>
+                  <dt className="text-label text-text-3 sm:pt-0.5">IG</dt>
+                  <dd className="text-text-1">@{row.artistInstagram}</dd>
+                </>
               ) : null}
-              <p>
-                <strong>Referencia:</strong>{" "}
-                <a href={row.musicReference} target="_blank" rel="noopener noreferrer" className="text-primary">
+              <dt className="text-label text-text-3 sm:pt-0.5">Referencia</dt>
+              <dd className="min-w-0">
+                <a href={row.musicReference} target="_blank" rel="noopener noreferrer" className="break-all text-fire-400 underline-offset-4 hover:text-fire-300 hover:underline">
                   {row.musicReference}
                 </a>
-              </p>
+              </dd>
               {row.vision ? (
-                <p>
-                  <strong>Visión:</strong> {row.vision}
-                </p>
+                <>
+                  <dt className="text-label text-text-3 sm:pt-0.5">Visión</dt>
+                  <dd className="whitespace-pre-wrap text-text-2">{row.vision}</dd>
+                </>
               ) : null}
-              <p>
-                <strong>Géneros:</strong> {row.genres}
-              </p>
-              <div>
-                <p className="mb-1 font-medium">Notas internas</p>
-                <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} />
-                <Button
-                  type="button"
-                  className="mt-2"
-                  size="sm"
-                  disabled={notesPending}
-                  onClick={() => void saveNotes()}
-                >
-                  {notesPending ? (
-                    <span className="inline-flex items-center gap-2">
-                      <span
-                        className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary/20 border-t-primary"
-                        role="status"
-                        aria-label="Guardando"
-                      />
-                      Guardando…
-                    </span>
-                  ) : (
-                    "Guardar notas"
-                  )}
+              <dt className="text-label text-text-3 sm:pt-0.5">Géneros</dt>
+              <dd className="text-text-1">{row.genres}</dd>
+            </dl>
+            <div className="flex flex-col gap-2 border-t border-line-1 pt-4">
+              <Label htmlFor={`notes-${row.id}`}>Notas internas</Label>
+              <Textarea id={`notes-${row.id}`} value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} className="min-h-[96px]" />
+              <div className="flex justify-end">
+                <Button type="button" size="sm" loading={notesPending} onClick={() => void saveNotes()}>
+                  {notesPending ? "Guardando…" : "Guardar notas"}
                 </Button>
               </div>
             </div>
@@ -232,41 +223,28 @@ function SessionRow({ row }: { row: BookingSessionRow }) {
         </Dialog>
         <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
           <DialogTrigger asChild>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="border-red-500/30 text-red-400 hover:bg-red-950/40 hover:text-red-300"
-              aria-label={`Eliminar sesión de ${row.artistName}`}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            <RowAction label={`Eliminar sesión de ${row.artistName}`} className="hover:text-danger">
+              <Trash2 />
+            </RowAction>
           </DialogTrigger>
-          <DialogContent className="border-white/10 bg-background-card">
+          <DialogContent className={adminDialogClass}>
             <DialogHeader>
-              <DialogTitle>Eliminar sesión</DialogTitle>
+              <DialogTitle className="text-title">Eliminar sesión</DialogTitle>
+              <DialogDescription>
+                Se borrará la reserva de <strong className="text-text-1">{row.artistName}</strong> del {scheduled}. Esta acción no se puede deshacer.
+              </DialogDescription>
             </DialogHeader>
-            <p className="text-sm text-[var(--text-secondary)]">
-              Se borrará la reserva de <strong className="text-foreground">{row.artistName}</strong> del{" "}
-              {scheduled}. Esta acción no se puede deshacer.
-            </p>
-            <div className="flex justify-end gap-2 pt-2">
+            <AdminDialogFooter>
               <Button type="button" variant="outline" onClick={() => setDeleteOpen(false)}>
                 Cancelar
               </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                disabled={deletePending}
-                onClick={() => void onDelete()}
-              >
+              <Button type="button" variant="danger" loading={deletePending} onClick={() => void onDelete()}>
                 {deletePending ? "Eliminando…" : "Eliminar"}
               </Button>
-            </div>
+            </AdminDialogFooter>
           </DialogContent>
         </Dialog>
-        </div>
-      </TableCell>
-    </TableRow>
+      </AdminTableActions>
+    </AdminTableRow>
   );
 }

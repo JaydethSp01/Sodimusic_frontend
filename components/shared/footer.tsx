@@ -28,7 +28,7 @@ type FooterSite = Pick<SiteContent, "brand" | "footer" | "social" | "nav" | "con
   Partial<Pick<SiteContent, "shop" | "legal">>;
 
 /** Colores del QR a juego con el tema (hex sin `#`): texto principal sobre fondo base. */
-const QR_SRC = "/api/qr?size=240&margin=1&fg=f0ede8&bg=080808";
+const QR_SRC = "/api/qr?size=240&margin=1&fg=f3efe8&bg=050404";
 const SIC_URL = "https://www.sic.gov.co";
 
 function formatPhone(phone: string): string {
@@ -65,24 +65,33 @@ export function Footer({ site }: { site: FooterSite }) {
 
   const brandTitle = site.brand.siteNameLine ?? site.brand.logoText;
   const location = [legal.address, legal.city, legal.country].filter((v) => v?.trim()).join(", ");
-  const headingClass = "font-mono text-xs uppercase tracking-widest text-[var(--text-muted)]";
+  const headingClass = "text-label text-text-3";
+  const linkClass = "nav-link-underline inline-block py-0.5 text-body-sm text-text-2 transition-colors duration-150 hover:text-fire-400";
 
   return (
-    <footer className="relative z-[2] border-t border-primary/10 bg-background-secondary" role="contentinfo">
-      <div className="mx-auto max-w-7xl px-4 py-14 lg:px-8">
-        <div className="grid gap-8 md:gap-10 md:grid-cols-2 lg:grid-cols-[1.25fr_0.75fr_0.85fr_1.25fr] lg:gap-12">
+    <footer className="relative z-[2] overflow-hidden border-t border-line-1 bg-ink-1" role="contentinfo">
+      {/* Firma: wordmark gigante recortado al 50 % (decorativo). Va en un pseudoelemento (content: attr)
+          para que no sea texto del DOM: axe no lo evalúa como contraste y los lectores no lo anuncian. */}
+      <div aria-hidden className="container-page pointer-events-none select-none">
+        <div
+          data-wordmark={site.brand.logoText}
+          className="relative h-[0.5em] overflow-hidden font-display text-display-xl font-black text-text-1/[0.07] before:absolute before:left-0 before:top-0 before:whitespace-nowrap before:leading-none before:content-[attr(data-wordmark)]"
+        />
+      </div>
+      <div className="container-page pb-14 pt-10">
+        <div className="grid gap-8 md:grid-cols-2 md:gap-10 lg:grid-cols-[1.25fr_0.75fr_0.85fr_1.25fr] lg:gap-12">
           {/* Marca */}
           <div className="min-w-0">
-            <p className="font-display text-2xl tracking-[0.2em] text-foreground">{brandTitle}</p>
-            <p className="mt-3 max-w-sm text-sm leading-relaxed text-[var(--text-secondary)]">{site.footer.tagline}</p>
-            <ul className="mt-6 flex flex-wrap gap-3" aria-label="Redes sociales">
+            <p className="font-display text-xl font-black uppercase tracking-wordmark text-text-1 [font-stretch:125%]">{brandTitle}</p>
+            <p className="mt-3 max-w-sm text-body-sm text-text-2">{site.footer.tagline}</p>
+            <ul className="mt-6 flex flex-wrap gap-2" aria-label="Redes sociales">
               {social.map(({ href, label, Icon }) => (
                 <li key={label}>
                   <a
                     href={href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 text-[var(--text-secondary)] transition-colors hover:border-primary/40 hover:text-primary"
+                    className="flex h-11 w-11 items-center justify-center rounded-full border border-line-2 text-text-2 transition-colors duration-150 hover:border-fire-500 hover:text-fire-300"
                     aria-label={label}
                   >
                     <Icon className="h-5 w-5" />
@@ -98,10 +107,7 @@ export function Footer({ site }: { site: FooterSite }) {
               <ul className="mt-3 space-y-2.5 md:mt-4">
                 {footerNav.map((item) => (
                   <li key={`${item.href}-${item.label}`}>
-                    <Link
-                      href={item.href}
-                      className="nav-link-underline inline-block py-0.5 text-sm text-[var(--text-secondary)] transition-colors hover:text-primary"
-                    >
+                    <Link href={item.href} className={linkClass}>
                       {item.label}
                     </Link>
                   </li>
@@ -116,10 +122,7 @@ export function Footer({ site }: { site: FooterSite }) {
               <ul className="mt-3 space-y-2.5 md:mt-4">
                 {LEGAL_ROUTES.map((r) => (
                   <li key={r.href}>
-                    <Link
-                      href={r.href}
-                      className="nav-link-underline inline-block py-0.5 text-sm text-[var(--text-secondary)] transition-colors hover:text-primary"
-                    >
+                    <Link href={r.href} className={linkClass}>
                       {r.label}
                     </Link>
                   </li>
@@ -129,7 +132,7 @@ export function Footer({ site }: { site: FooterSite }) {
                     href={SIC_URL}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 py-0.5 text-sm text-[var(--text-secondary)] transition-colors hover:text-primary"
+                    className="inline-flex items-center gap-1 py-0.5 text-body-sm text-text-2 transition-colors duration-150 hover:text-fire-400"
                   >
                     Quejas y reclamos: SIC
                     <ExternalLink className="h-3.5 w-3.5" aria-hidden />
@@ -154,17 +157,17 @@ export function Footer({ site }: { site: FooterSite }) {
             ) : (
               <div>
                 <p className={headingClass}>Contacto</p>
-                <ul className="mt-4 space-y-2.5 text-sm text-[var(--text-secondary)]">
+                <ul className="mt-4 space-y-2.5 font-mono text-body-sm text-text-2">
                   {legal.email ? (
                     <li>
-                      <a href={`mailto:${legal.email}`} className="hover:text-primary">
+                      <a href={`mailto:${legal.email}`} className="hover:text-fire-400">
                         {legal.email}
                       </a>
                     </li>
                   ) : null}
                   {whatsappPhone ? (
                     <li>
-                      <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="hover:text-primary">
+                      <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="hover:text-fire-400">
                         WhatsApp {formatPhone(whatsappPhone)}
                       </a>
                     </li>
@@ -182,11 +185,11 @@ export function Footer({ site }: { site: FooterSite }) {
         ) : null}
 
         {/* Bloque legal de identificación */}
-        <section aria-label="Datos del comerciante" className="mt-12 border-t border-primary/10 pt-8">
-          <dl className="grid gap-x-8 gap-y-4 text-xs sm:grid-cols-2 lg:grid-cols-4">
+        <section aria-label="Datos del comerciante" className="mt-12 border-t border-line-1 pt-8">
+          <dl className="grid gap-x-8 gap-y-5 font-mono text-body-sm sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <dt className={headingClass}>Comerciante</dt>
-              <dd className="mt-1 text-[var(--text-secondary)]">
+              <dd className="mt-2 text-text-2">
                 {legal.businessName}
                 {legal.legalName?.trim() ? <span className="block">{legal.legalName}</span> : null}
                 {legal.nit?.trim() ? <span className="block">NIT {legal.nit}</span> : null}
@@ -195,7 +198,7 @@ export function Footer({ site }: { site: FooterSite }) {
             {location ? (
               <div>
                 <dt className={headingClass}>Dirección</dt>
-                <dd className="mt-1 text-[var(--text-secondary)]">
+                <dd className="mt-2 text-text-2">
                   {location}
                   {legal.hours?.trim() ? <span className="block">{legal.hours}</span> : null}
                 </dd>
@@ -203,14 +206,14 @@ export function Footer({ site }: { site: FooterSite }) {
             ) : null}
             <div>
               <dt className={headingClass}>PQR y datos personales</dt>
-              <dd className="mt-1 text-[var(--text-secondary)]">
+              <dd className="mt-2 text-text-2">
                 {legal.email?.trim() ? (
-                  <a href={`mailto:${legal.email}`} className="break-all hover:text-primary">
+                  <a href={`mailto:${legal.email}`} className="break-all hover:text-fire-400">
                     {legal.email}
                   </a>
                 ) : null}
                 {whatsappPhone ? (
-                  <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="block hover:text-primary">
+                  <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="block hover:text-fire-400">
                     WhatsApp {formatPhone(whatsappPhone)}
                   </a>
                 ) : null}
@@ -218,9 +221,9 @@ export function Footer({ site }: { site: FooterSite }) {
             </div>
             <div>
               <dt className={headingClass}>Protección al consumidor</dt>
-              <dd className="mt-1 text-[var(--text-secondary)]">
+              <dd className="mt-2 font-body text-text-2">
                 Quejas y reclamos ante la{" "}
-                <a href={SIC_URL} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4 hover:text-primary">
+                <a href={SIC_URL} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4 hover:text-fire-400">
                   Superintendencia de Industria y Comercio
                 </a>
                 .{legal.ivaIncluded ? " Precios en COP con IVA incluido." : " Precios en COP."}
@@ -229,9 +232,9 @@ export function Footer({ site }: { site: FooterSite }) {
           </dl>
         </section>
 
-        <div className="mt-8 border-t border-primary/10 pt-6 text-center">
-          <p className="text-xs text-[var(--text-muted)]">{site.footer.copyright}</p>
-          {site.footer.subline ? <p className="mt-2 font-mono text-xs text-[var(--text-muted)]">{site.footer.subline}</p> : null}
+        <div className="mt-8 flex flex-col items-center gap-2 border-t border-line-1 pt-6 text-center font-mono text-body-sm text-text-3 sm:flex-row sm:justify-between sm:text-left">
+          <p>{site.footer.copyright}</p>
+          {site.footer.subline ? <p>{site.footer.subline}</p> : null}
         </div>
       </div>
     </footer>
@@ -243,11 +246,11 @@ function QrBlock({ site, horizontal }: { site: FooterSite; horizontal?: boolean 
     <div
       className={
         horizontal
-          ? "flex items-center gap-4 rounded-lg border border-border bg-background-card/70 p-4 sm:max-w-md"
-          : "flex items-center gap-4 rounded-lg border border-border bg-background-card/70 p-4 md:max-w-[280px] md:flex-col md:items-start"
+          ? "flex items-center gap-4 rounded-lg border border-line-1 bg-ink-2 p-4 shadow-card sm:max-w-md"
+          : "flex items-center gap-4 rounded-lg border border-line-1 bg-ink-2 p-4 shadow-card md:max-w-[280px] md:flex-col md:items-start"
       }
     >
-      <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-md border border-white/10 bg-background">
+      <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded border border-line-2 bg-ink-0">
         <Image
           src={QR_SRC}
           alt={`Código QR: ${site.qr.label}`}
@@ -259,16 +262,14 @@ function QrBlock({ site, horizontal }: { site: FooterSite; horizontal?: boolean 
         />
       </div>
       <div className="min-w-0">
-        <p className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-primary">
+        <p className="flex items-center gap-2 text-label text-fire-500">
           <QrCode className="h-4 w-4 shrink-0" aria-hidden />
           {site.qr.label}
         </p>
-        {site.qr.footerCaption?.trim() ? (
-          <p className="mt-2 text-xs leading-relaxed text-[var(--text-muted)]">{site.qr.footerCaption}</p>
-        ) : null}
+        {site.qr.footerCaption?.trim() ? <p className="mt-2 text-body-sm text-text-3">{site.qr.footerCaption}</p> : null}
         <a
           href="/api/qr?size=1024&download=1"
-          className="mt-3 inline-flex min-h-11 items-center text-xs text-[var(--text-secondary)] underline-offset-4 hover:text-primary hover:underline"
+          className="mt-3 inline-flex min-h-11 items-center text-body-sm text-text-2 underline-offset-4 hover:text-fire-400 hover:underline"
           download
         >
           Descargar PNG

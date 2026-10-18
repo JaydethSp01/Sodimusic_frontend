@@ -9,10 +9,13 @@ import type { SiteLegal } from "@/types/site-content";
 import { beatInterestSchema, type BeatInterestInput } from "@/features/beats/schemas/beat-interest-schema";
 import { beatLicenses, licenseLabel } from "@/features/beats/licenses";
 import { ConsentCheckbox } from "@/components/shared/consent-checkbox";
+import { FormField } from "@/components/ds/form-field";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { FieldError } from "@/components/ui/field-error";
+import { Heading } from "@/components/ui/heading";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import { getPublicApiUrl } from "@/lib/api";
 import { formatCOP } from "@/lib/format-cop";
@@ -23,17 +26,6 @@ interface BeatInterestModalProps {
   licenseType: BeatLicenseType;
   legal: Pick<SiteLegal, "businessName" | "policyVersion">;
   onClose: () => void;
-}
-
-function FieldError({ id, message }: { id: string; message?: string }) {
-  if (!message) {
-    return null;
-  }
-  return (
-    <p id={id} role="alert" className="mt-1 text-xs text-red-400">
-      {message}
-    </p>
-  );
 }
 
 /** Formulario "Me interesa": envía licenseType, policyAccepted, policyVersion y marketingOptIn. */
@@ -81,25 +73,31 @@ export function BeatInterestModal({ beat, licenseType: initialLicense, legal, on
     }
   }
 
-  const ariaFor = (name: keyof BeatInterestInput) => ({
-    "aria-invalid": errors[name] ? true : undefined,
-    "aria-describedby": errors[name] ? `bi-${name}-error` : undefined,
-  });
+  const chip =
+    "inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border px-4 text-label transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fire-500 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-2";
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="font-display text-2xl tracking-wide">Me interesa: {beat.title}</DialogTitle>
-          <DialogDescription>Déjanos tus datos y te escribimos para cerrar la licencia.</DialogDescription>
+      <DialogContent className="max-h-[90vh] overflow-y-auto border-line-1 bg-ink-2 p-6 sm:p-8">
+        <DialogHeader className="text-left">
+          <DialogTitle asChild>
+            <Heading as="h2" size="display-sm">
+              Me interesa: {beat.title}
+            </Heading>
+          </DialogTitle>
+          <DialogDescription asChild>
+            <Text size="body-sm" tone="2" className="mt-2">
+              Déjanos tus datos y te escribimos para cerrar la licencia.
+            </Text>
+          </DialogDescription>
         </DialogHeader>
-        <form className="space-y-4" noValidate onSubmit={form.handleSubmit((v) => void onSubmit(v))}>
+        <form className="mt-2 space-y-5" noValidate onSubmit={form.handleSubmit((v) => void onSubmit(v))}>
           <input type="hidden" {...form.register("beatId")} />
           <input type="hidden" {...form.register("policyVersion")} />
 
           {licenses.length ? (
             <fieldset>
-              <legend className="text-sm font-medium text-foreground">Licencia</legend>
+              <legend className="text-body-sm font-medium text-text-1">Licencia</legend>
               <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label="Licencia">
                 {licenses.map((l) => {
                   const on = licenseType === l.type;
@@ -113,60 +111,36 @@ export function BeatInterestModal({ beat, licenseType: initialLicense, legal, on
                         form.setValue("licenseType", l.type, { shouldValidate: true });
                         form.setValue("exclusiveIntent", l.type === "EXCLUSIVE");
                       }}
-                      className={cn(
-                        "inline-flex min-h-11 items-center gap-2 rounded-full border px-4 font-mono text-xs uppercase tracking-wider transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                        on
-                          ? "border-primary bg-primary/15 text-primary"
-                          : "border-border text-[var(--text-secondary)] hover:border-primary/40 hover:text-foreground",
-                      )}
+                      className={cn(chip, on ? "border-fire-500 bg-fire-500/[0.12] text-fire-300" : "border-line-2 text-text-2 hover:border-fire-500/60 hover:text-text-1")}
                     >
                       {l.label}
-                      <span className={cn("text-[10px]", on ? "text-primary/80" : "text-[var(--text-muted)]")}>{formatCOP(l.priceCOP)}</span>
+                      <span className={cn("font-mono text-label-sm tabular-nums", on ? "text-fire-300" : "text-text-3")}>{formatCOP(l.priceCOP)}</span>
                     </button>
                   );
                 })}
               </div>
             </fieldset>
           ) : (
-            <p className="text-sm text-[var(--text-secondary)]">Licencia: {licenseLabel(licenseType)}</p>
+            <Text size="body-sm">Licencia: {licenseLabel(licenseType)}</Text>
           )}
 
-          <div>
-            <Label htmlFor="bi-artistName">Nombre artístico</Label>
-            <Input id="bi-artistName" autoComplete="nickname" className="mt-1" {...ariaFor("artistName")} {...form.register("artistName")} />
-            <FieldError id="bi-artistName-error" message={errors.artistName?.message} />
-          </div>
-          <div>
-            <Label htmlFor="bi-email">Email</Label>
-            <Input id="bi-email" type="email" autoComplete="email" inputMode="email" className="mt-1" {...ariaFor("email")} {...form.register("email")} />
-            <FieldError id="bi-email-error" message={errors.email?.message} />
-          </div>
-          <div>
-            <Label htmlFor="bi-phone">WhatsApp</Label>
-            <Input
-              id="bi-phone"
-              type="tel"
-              autoComplete="tel"
-              inputMode="tel"
-              placeholder="+57 321 5368590"
-              className="mt-1"
-              {...ariaFor("phone")}
-              {...form.register("phone")}
-            />
-            <FieldError id="bi-phone-error" message={errors.phone?.message} />
-          </div>
-          <div>
-            <Label htmlFor="bi-instagram">Instagram (opcional)</Label>
-            <Input id="bi-instagram" placeholder="@tunombre" className="mt-1" {...ariaFor("instagram")} {...form.register("instagram")} />
-            <FieldError id="bi-instagram-error" message={errors.instagram?.message} />
-          </div>
-          <div>
-            <Label htmlFor="bi-message">Mensaje (opcional)</Label>
-            <Textarea id="bi-message" maxLength={500} className="mt-1" {...ariaFor("message")} {...form.register("message")} />
-            <FieldError id="bi-message-error" message={errors.message?.message} />
-          </div>
+          <FormField id="bi-artistName" label="Nombre artístico" error={errors.artistName?.message}>
+            <Input autoComplete="nickname" {...form.register("artistName")} />
+          </FormField>
+          <FormField id="bi-email" label="Email" error={errors.email?.message}>
+            <Input type="email" autoComplete="email" inputMode="email" {...form.register("email")} />
+          </FormField>
+          <FormField id="bi-phone" label="WhatsApp" error={errors.phone?.message}>
+            <Input type="tel" autoComplete="tel" inputMode="tel" placeholder="+57 321 5368590" {...form.register("phone")} />
+          </FormField>
+          <FormField id="bi-instagram" label="Instagram (opcional)" error={errors.instagram?.message}>
+            <Input placeholder="@tunombre" {...form.register("instagram")} />
+          </FormField>
+          <FormField id="bi-message" label="Mensaje (opcional)" error={errors.message?.message}>
+            <Textarea maxLength={500} {...form.register("message")} />
+          </FormField>
 
-          <div className="space-y-3 border-t border-border pt-4">
+          <div className="space-y-3 border-t border-line-1 pt-5">
             <Controller
               control={form.control}
               name="policyAccepted"
@@ -193,13 +167,11 @@ export function BeatInterestModal({ beat, licenseType: initialLicense, legal, on
             />
           </div>
 
-          {serverError ? (
-            <p role="alert" className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">
-              {serverError}
-            </p>
-          ) : null}
+          <FieldError id="bi-server-error" className="rounded border border-danger/40 bg-danger/10 px-3 py-2">
+            {serverError}
+          </FieldError>
 
-          <Button type="submit" size="lg" className="h-12 w-full" disabled={isSubmitting}>
+          <Button type="submit" size="lg" className="w-full" loading={isSubmitting}>
             {isSubmitting ? "Enviando…" : "Enviar"}
           </Button>
         </form>

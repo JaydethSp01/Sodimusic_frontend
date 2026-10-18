@@ -1,4 +1,5 @@
 import { fetchAdmin } from "@/lib/api-admin";
+import { AdminErrorNotice } from "@/features/admin/components/admin-primitives";
 import type { Paginated, YoutubeChannel } from "@/types/models";
 import { AdminChannelsManager, ADMIN_CHANNELS_PAGE_SIZE } from "@/features/admin/components/admin-channels-manager";
 
@@ -20,7 +21,7 @@ export default async function AdminCanalesPage({ searchParams }: { searchParams:
 
   const res = await fetchAdmin(`/api/admin/channels?${params.toString()}`);
   if (!res.ok) {
-    return <p className="text-red-500">No se pudieron cargar los canales de YouTube.</p>;
+    return <AdminErrorNotice>No se pudieron cargar los canales de YouTube.</AdminErrorNotice>;
   }
   const data = (await res.json()) as Partial<Paginated<YoutubeChannel>>;
   const items = Array.isArray(data.items) ? data.items : [];

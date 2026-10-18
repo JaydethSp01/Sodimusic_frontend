@@ -1,11 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type FormEvent } from "react";
 import {
-  ChevronLeft,
-  ChevronRight,
   CircleAlert,
   CircleCheck,
   ExternalLink,
@@ -13,9 +10,12 @@ import {
   EyeOff,
   Facebook,
   Link2,
+  Newspaper,
   Pin,
   PinOff,
+  Plus,
   RefreshCw,
+  Rss,
   Search,
   Trash2,
   Youtube,
@@ -33,15 +33,28 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
+import { AdminTable, AdminTableActions, AdminTableBody, AdminTableCell, AdminTableHead, AdminTableHeader, AdminTableRow } from "@/components/ds/admin-table";
+import { EmptyState } from "@/components/ds/empty-state";
+import { Pagination } from "@/components/ds/pagination";
+import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  AdminDialogFooter,
+  AdminErrorNotice,
+  AdminField,
+  AdminModuleToolbar,
+  AdminNativeSelect,
+  AdminResultsBar,
+  AdminSection,
+  AdminSectionHeading,
+  RowAction,
+  adminDialogClass,
+} from "@/features/admin/components/admin-primitives";
 import {
   createSocialPostAction,
   createSocialSourceAction,
@@ -56,13 +69,10 @@ export const ADMIN_SOCIAL_PAGE_SIZE = 20;
 
 type StatusFilter = "ALL" | "VISIBLE" | "HIDDEN";
 
-const nativeSelectClass =
-  "flex h-10 w-full rounded-md border border-border bg-background-secondary px-3 py-2 text-sm text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
-
-const POST_KIND_META: Record<SocialPostKind, { label: string; Icon: LucideIcon; className: string }> = {
-  YOUTUBE_VIDEO: { label: "YouTube", Icon: Youtube, className: "border-transparent bg-[#d90000] text-white" },
-  FACEBOOK_POST: { label: "Facebook", Icon: Facebook, className: "border-transparent bg-[#1877f2] text-white" },
-  LINK: { label: "Enlace", Icon: Link2, className: "border-transparent bg-background-elevated text-[var(--text-secondary)]" },
+const POST_KIND_META: Record<SocialPostKind, { label: string; Icon: LucideIcon; tone: BadgeTone }> = {
+  YOUTUBE_VIDEO: { label: "YouTube", Icon: Youtube, tone: "danger" },
+  FACEBOOK_POST: { label: "Facebook", Icon: Facebook, tone: "sea" },
+  LINK: { label: "Enlace", Icon: Link2, tone: "neutral" },
 };
 
 const SOURCE_KIND_META: Record<SocialSourceKind, { label: string; Icon: LucideIcon; placeholder: string; hint: string }> = {
@@ -388,244 +398,210 @@ export function AdminSocialManager({
   const anyBusy = rowBusy !== null || deleting || refreshing;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       {/* ------------------------------ Estado ------------------------------ */}
-      <Card>
-        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <CardTitle className="font-display text-xl">Estado del feed</CardTitle>
-            <p className="mt-1 text-sm text-[var(--text-muted)]">
-              Lo último de YouTube y Facebook se recoge solo y se muestra en el inicio y en «/novedades». Aquí puedes forzar
-              la sincronización, gestionar las fuentes y ocultar, fijar o añadir publicaciones a mano.
-            </p>
-          </div>
-          <Button type="button" onClick={() => void onSync()} disabled={syncPending} aria-busy={syncPending}>
-            <RefreshCw className={cn("h-4 w-4", syncPending && "animate-spin")} aria-hidden />
+      <AdminSection
+        id="social-status"
+        title="Estado del feed"
+        description="Lo último de YouTube y Facebook se recoge solo y se muestra en el inicio y en «/novedades». Aquí puedes forzar la sincronización, gestionar las fuentes y ocultar, fijar o añadir publicaciones a mano."
+        action={
+          <Button type="button" size="sm" loading={syncPending} onClick={() => void onSync()}>
+            {syncPending ? null : <RefreshCw aria-hidden />}
             {syncPending ? "Sincronizando…" : "Sincronizar ahora"}
           </Button>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {apiUnavailable ? (
-            <p role="alert" className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">
-              El backend no respondió a «/api/admin/social». Comprueba que esté desplegada la versión con el módulo de
-              novedades.
-            </p>
-          ) : null}
-          <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCell label="Última sincronización" value={fmtDateTime(status?.lastSyncAt)} />
-            <StatCell label="Fuentes" value={String(status?.counts.sources ?? sources.length)} />
-            <StatCell label="Publicaciones" value={String(status?.counts.posts ?? total)} />
-            <StatCell label="Ocultas" value={String(status?.counts.hidden ?? 0)} />
-          </dl>
+        }
+        contentClassName="space-y-5 p-5"
+      >
+        {apiUnavailable ? (
+          <AdminErrorNotice>El backend no respondió a «/api/admin/social». Comprueba que esté desplegada la versión con el módulo de novedades.</AdminErrorNotice>
+        ) : null}
+        <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCell label="Última sincronización" value={fmtDateTime(status?.lastSyncAt)} small />
+          <StatCell label="Fuentes" value={String(status?.counts.sources ?? sources.length)} />
+          <StatCell label="Publicaciones" value={String(status?.counts.posts ?? total)} />
+          <StatCell label="Ocultas" value={String(status?.counts.hidden ?? 0)} />
+        </dl>
 
-          <div>
-            <h3 className="font-mono text-xs uppercase tracking-widest text-[var(--text-muted)]">Variables de entorno</h3>
-            <ul className="mt-2 grid gap-2 md:grid-cols-3">
-              {ENV_HELP.map((e) => {
-                const ok = status ? status.env[e.key] : false;
-                return (
-                  <li
-                    key={e.key}
-                    className={cn(
-                      "rounded-md border px-3 py-2 text-sm",
-                      ok ? "border-primary/30 bg-primary/5" : "border-[var(--gold)]/30 bg-[var(--gold)]/5",
+        <div>
+          <h3 className="text-label text-text-3">Variables de entorno</h3>
+          <ul className="mt-3 grid gap-3 md:grid-cols-3">
+            {ENV_HELP.map((e) => {
+              const ok = status ? status.env[e.key] : false;
+              return (
+                <li key={e.key} className={cn("rounded border p-3", ok ? "border-line-1 bg-ink-1" : "border-warning/40 bg-warning/[0.06]")}>
+                  <div className="flex items-center gap-2">
+                    {ok ? (
+                      <CircleCheck className="h-5 w-5 shrink-0 text-success" strokeWidth={1.75} aria-hidden />
+                    ) : (
+                      <CircleAlert className="h-5 w-5 shrink-0 text-warning" strokeWidth={1.75} aria-hidden />
                     )}
-                  >
-                    <p className="flex items-center gap-2 font-mono text-xs">
-                      {ok ? (
-                        <CircleCheck className="h-4 w-4 text-primary" aria-hidden />
-                      ) : (
-                        <CircleAlert className="h-4 w-4 text-[var(--gold)]" aria-hidden />
-                      )}
-                      <span className="text-foreground">{e.name}</span>
-                      <span className="text-[var(--text-muted)]">{ok ? "configurada" : "falta"}</span>
-                    </p>
-                    {!ok ? (
-                      <>
-                        <p className="mt-1.5 text-xs text-[var(--text-secondary)]">{e.required}</p>
-                        <p className="mt-1 text-xs text-[var(--text-muted)]">
-                          <span className="text-foreground">Cómo conseguirla:</span> {e.how}
-                        </p>
-                      </>
-                    ) : null}
-                  </li>
-                );
-              })}
-            </ul>
-            {status && missingEnv.length === 0 ? (
-              <p className="mt-2 text-xs text-[var(--text-muted)]">Todo configurado.</p>
-            ) : null}
-          </div>
-        </CardContent>
-      </Card>
+                    <span className="min-w-0 truncate font-mono text-body-sm text-text-1">{e.name}</span>
+                    <Badge tone={ok ? "success" : "warning"} className="ml-auto">
+                      {ok ? "Configurada" : "Falta"}
+                    </Badge>
+                  </div>
+                  {!ok ? (
+                    <>
+                      <p className="mt-2 text-body-sm text-text-2">{e.required}</p>
+                      <p className="mt-1.5 text-body-sm text-text-3">
+                        <span className="text-text-1">Cómo conseguirla:</span> {e.how}
+                      </p>
+                    </>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+          {status && missingEnv.length === 0 ? <p className="mt-2 text-body-sm text-text-3">Todo configurado.</p> : null}
+        </div>
+      </AdminSection>
 
       {/* ------------------------------ Fuentes ----------------------------- */}
-      <Card>
-        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <CardTitle className="font-display text-xl">Fuentes</CardTitle>
-            <p className="mt-1 text-sm text-[var(--text-muted)]">
-              Canales de YouTube, páginas de Facebook y búsquedas que se revisan en cada sincronización. Los canales activos
-              de «Canales» se añaden solos.
-            </p>
-          </div>
-          <Button type="button" variant="outline" onClick={openSourceDialog}>
-            Añadir fuente
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Fuente</TableHead>
-                  <TableHead>Activa</TableHead>
-                  <TableHead>Última lectura</TableHead>
-                  <TableHead>Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+      <section aria-labelledby="social-sources-title" className="space-y-4">
+        <AdminSectionHeading
+          id="social-sources-title"
+          title="Fuentes"
+          description="Canales de YouTube, páginas de Facebook y búsquedas que se revisan en cada sincronización. Los canales activos de «Canales» se añaden solos."
+          action={
+            <Button type="button" variant="outline" size="sm" onClick={openSourceDialog}>
+              <Plus aria-hidden /> Añadir fuente
+            </Button>
+          }
+        />
+        {sources.length === 0 ? (
+          <EmptyState icon={Rss} title="No hay fuentes todavía" description="Se crean solas al sincronizar o añade una con «Añadir fuente»." />
+        ) : (
+          <div className="scroll-fade-x overflow-x-auto md:[mask-image:none]">
+            <AdminTable>
+              <AdminTableHead>
+                <AdminTableRow>
+                  <AdminTableHeader>Tipo</AdminTableHeader>
+                  <AdminTableHeader>Fuente</AdminTableHeader>
+                  <AdminTableHeader>Activa</AdminTableHeader>
+                  <AdminTableHeader>Última lectura</AdminTableHeader>
+                  <AdminTableHeader align="right">
+                    <span className="sr-only">Acciones</span>
+                  </AdminTableHeader>
+                </AdminTableRow>
+              </AdminTableHead>
+              <AdminTableBody>
                 {sources.map((src) => {
                   const meta = SOURCE_KIND_META[src.kind] ?? SOURCE_KIND_META.YOUTUBE_CHANNEL;
                   const isBusy = rowBusy === src.id;
                   return (
-                    <TableRow key={src.id} className={cn(isBusy && "opacity-60")}>
-                      <TableCell>
-                        <span className="inline-flex items-center gap-1.5 text-xs">
-                          <meta.Icon className="h-4 w-4 text-[var(--text-muted)]" aria-hidden />
+                    <AdminTableRow key={src.id} className={cn(isBusy && "opacity-60")}>
+                      <AdminTableCell>
+                        <span className="inline-flex items-center gap-2 whitespace-nowrap text-body-sm text-text-2">
+                          <meta.Icon className="h-5 w-5 text-text-3" strokeWidth={1.75} aria-hidden />
                           {meta.label}
                         </span>
-                      </TableCell>
-                      <TableCell className="font-medium">
+                      </AdminTableCell>
+                      <AdminTableCell className="py-3">
                         <div className="flex max-w-[320px] flex-col">
-                          <span className="truncate">{src.label}</span>
-                          <span className="truncate font-mono text-[11px] text-[var(--text-muted)]" title={src.url ?? src.externalId}>
+                          <span className="truncate font-semibold">{src.label}</span>
+                          <span className="truncate font-mono text-label-sm normal-case tracking-normal text-text-3" title={src.url ?? src.externalId}>
                             {src.externalId}
                           </span>
                           {src.lastError ? (
-                            <span className="mt-1 truncate text-[11px] text-red-400" title={src.lastError}>
+                            <span className="mt-1 truncate text-body-sm text-danger" title={src.lastError}>
                               {src.lastError}
                             </span>
                           ) : null}
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <label className="flex items-center gap-2 text-xs">
+                      </AdminTableCell>
+                      <AdminTableCell>
+                        <label className="flex min-h-9 cursor-pointer items-center gap-2 text-body-sm">
                           <Checkbox
                             checked={src.enabled}
                             disabled={isBusy || anyBusy}
                             aria-label={src.enabled ? `Desactivar ${src.label}` : `Activar ${src.label}`}
                             onCheckedChange={() => void toggleSource(src)}
                           />
-                          <span className="text-[var(--text-muted)]">{src.enabled ? "Sí" : "No"}</span>
+                          <span className="text-text-3">{src.enabled ? "Sí" : "No"}</span>
                         </label>
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap text-xs text-[var(--text-secondary)]">{fmtDateTime(src.lastFetchedAt)}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-2">
-                          {src.url ? (
-                            <Button size="sm" variant="ghost" asChild>
-                              <a href={src.url} target="_blank" rel="noopener noreferrer">
-                                Abrir
-                                <ExternalLink className="ml-1 h-3.5 w-3.5" aria-hidden />
-                              </a>
-                            </Button>
-                          ) : null}
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            disabled={anyBusy}
-                            aria-label={`Borrar fuente ${src.label}`}
-                            onClick={() => setSourceDeleteTarget(src)}
-                          >
-                            Borrar
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                      </AdminTableCell>
+                      <AdminTableCell mono className="whitespace-nowrap">
+                        {fmtDateTime(src.lastFetchedAt)}
+                      </AdminTableCell>
+                      <AdminTableActions>
+                        {src.url ? (
+                          <RowAction label={`Abrir ${src.label}`} asChild>
+                            <a href={src.url} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink />
+                            </a>
+                          </RowAction>
+                        ) : null}
+                        <RowAction label={`Borrar fuente ${src.label}`} className="hover:text-danger" disabled={anyBusy} onClick={() => setSourceDeleteTarget(src)}>
+                          <Trash2 />
+                        </RowAction>
+                      </AdminTableActions>
+                    </AdminTableRow>
                   );
                 })}
-                {sources.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="py-8 text-center text-[var(--text-muted)]">
-                      No hay fuentes todavía. Se crean solas al sincronizar o añade una con «Añadir fuente».
-                    </TableCell>
-                  </TableRow>
-                ) : null}
-              </TableBody>
-            </Table>
+              </AdminTableBody>
+            </AdminTable>
           </div>
-        </CardContent>
+        )}
 
         <Dialog open={sourceOpen} onOpenChange={(o) => !sourceSaving && setSourceOpen(o)}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className={cn(adminDialogClass, "max-w-lg")}>
             <DialogHeader>
-              <DialogTitle>Añadir fuente</DialogTitle>
+              <DialogTitle className="text-title">Añadir fuente</DialogTitle>
               <DialogDescription>Se revisará en cada sincronización.</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              <Field label="Tipo">
-                <select
-                  className={nativeSelectClass}
-                  value={sourceDraft.kind}
-                  onChange={(e) => setSourceDraft((p) => ({ ...p, kind: e.target.value as SocialSourceKind }))}
-                >
+              <AdminField label="Tipo" htmlFor="social-source-kind">
+                <AdminNativeSelect id="social-source-kind" value={sourceDraft.kind} onChange={(e) => setSourceDraft((p) => ({ ...p, kind: e.target.value as SocialSourceKind }))}>
                   {(Object.keys(SOURCE_KIND_META) as SocialSourceKind[]).map((k) => (
                     <option key={k} value={k}>
                       {SOURCE_KIND_META[k].label}
                     </option>
                   ))}
-                </select>
-              </Field>
-              <Field label="URL o identificador" hint={SOURCE_KIND_META[sourceDraft.kind].hint}>
+                </AdminNativeSelect>
+              </AdminField>
+              <AdminField label="URL o identificador" htmlFor="social-source-value" hint={SOURCE_KIND_META[sourceDraft.kind].hint}>
                 <Input
+                  id="social-source-value"
                   value={sourceDraft.value}
                   onChange={(e) => setSourceDraft((p) => ({ ...p, value: e.target.value }))}
                   placeholder={SOURCE_KIND_META[sourceDraft.kind].placeholder}
                 />
-              </Field>
-              <Field label="Etiqueta (opcional)" hint="Nombre que verás en esta lista. Si se deja vacío se usa el del canal o página.">
+              </AdminField>
+              <AdminField label="Etiqueta (opcional)" htmlFor="social-source-label" hint="Nombre que verás en esta lista. Si se deja vacío se usa el del canal o página.">
                 <Input
+                  id="social-source-label"
                   value={sourceDraft.label}
                   onChange={(e) => setSourceDraft((p) => ({ ...p, label: e.target.value }))}
                   placeholder="Facebook Sodimusic"
                   maxLength={80}
                 />
-              </Field>
-              <div className="flex flex-wrap justify-end gap-2 pt-2">
-                <Button type="button" variant="outline" disabled={sourceSaving} onClick={() => setSourceOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button type="button" disabled={sourceSaving} onClick={() => void onSaveSource()}>
-                  {sourceSaving ? "Guardando…" : "Guardar"}
-                </Button>
-              </div>
+              </AdminField>
             </div>
+            <AdminDialogFooter>
+              <Button type="button" variant="outline" disabled={sourceSaving} onClick={() => setSourceOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="button" loading={sourceSaving} onClick={() => void onSaveSource()}>
+                Guardar
+              </Button>
+            </AdminDialogFooter>
           </DialogContent>
         </Dialog>
-      </Card>
+      </section>
 
       {/* --------------------------- Publicaciones -------------------------- */}
-      <Card>
-        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <CardTitle className="font-display text-xl">Publicaciones</CardTitle>
-            <p className="mt-1 text-sm text-[var(--text-muted)]">
-              Lo que se muestra en el feed público. Las ocultas no aparecen; las fijadas van siempre primero. Al
-              sincronizar nunca se cambian estado ni fijado.
-            </p>
-          </div>
-          <Button type="button" onClick={openPostDialog}>
-            Añadir enlace
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <form onSubmit={onSearchSubmit} role="search" className="flex w-full max-w-md gap-2">
+      <section aria-labelledby="social-posts-title" className="space-y-4">
+        <AdminSectionHeading
+          id="social-posts-title"
+          title="Publicaciones"
+          description="Lo que se muestra en el feed público. Las ocultas no aparecen; las fijadas van siempre primero. Al sincronizar nunca se cambian estado ni fijado."
+        />
+        <AdminModuleToolbar
+          sticky={false}
+          search={
+            <form onSubmit={onSearchSubmit} role="search" className="flex items-center gap-2">
               <div className="relative flex-1">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden />
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-3" aria-hidden />
                 <Input
                   type="search"
                   name="q"
@@ -633,208 +609,143 @@ export function AdminSocialManager({
                   onChange={(e) => setSearchValue(e.target.value)}
                   placeholder="Buscar por título, autor, texto…"
                   aria-label="Buscar publicaciones"
-                  className="pl-9"
+                  className="pl-10"
                 />
               </div>
-              <Button type="submit" variant="outline" disabled={navPending}>
+              <Button type="submit" variant="outline" disabled={navPending} className="shrink-0">
                 Buscar
               </Button>
             </form>
+          }
+          filters={
             <div className="flex items-center gap-2">
-              <Label htmlFor="admin-social-status" className="text-xs text-[var(--text-secondary)]">
+              <Label htmlFor="admin-social-status" className="text-text-2">
                 Estado
               </Label>
-              <select
-                id="admin-social-status"
-                className={cn(nativeSelectClass, "w-auto min-w-36")}
-                value={statusFilter}
-                disabled={navPending}
-                onChange={(e) => navigate({ status: e.target.value, page: 1 })}
-              >
+              <AdminNativeSelect id="admin-social-status" className="w-auto min-w-[150px]" value={statusFilter} disabled={navPending} onChange={(e) => navigate({ status: e.target.value, page: 1 })}>
                 <option value="ALL">Todas</option>
                 <option value="VISIBLE">Visibles</option>
                 <option value="HIDDEN">Ocultas</option>
-              </select>
+              </AdminNativeSelect>
             </div>
-          </div>
+          }
+          action={
+            <Button type="button" size="sm" onClick={openPostDialog}>
+              <Plus aria-hidden /> Añadir enlace
+            </Button>
+          }
+        />
 
-          <div className={cn("overflow-x-auto transition-opacity", (navPending || refreshing) && "opacity-60")} aria-busy={navPending || refreshing}>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-24">Miniatura</TableHead>
-                  <TableHead>Publicación</TableHead>
-                  <TableHead>Red</TableHead>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+        {posts.length === 0 ? (
+          <EmptyState
+            icon={Newspaper}
+            title={query || statusFilter !== "ALL" ? "Sin resultados" : "No hay publicaciones todavía"}
+            description={query || statusFilter !== "ALL" ? "No hay publicaciones que coincidan con el filtro." : "Pulsa «Sincronizar ahora» o añade un enlace."}
+          />
+        ) : (
+          <div className={cn("scroll-fade-x overflow-x-auto transition-opacity duration-150 md:[mask-image:none]", (navPending || refreshing) && "opacity-60")} aria-busy={navPending || refreshing}>
+            <AdminTable>
+              <AdminTableHead>
+                <AdminTableRow>
+                  <AdminTableHeader>Publicación</AdminTableHeader>
+                  <AdminTableHeader>Red</AdminTableHeader>
+                  <AdminTableHeader>Fecha</AdminTableHeader>
+                  <AdminTableHeader>Estado</AdminTableHeader>
+                  <AdminTableHeader align="right">
+                    <span className="sr-only">Acciones</span>
+                  </AdminTableHeader>
+                </AdminTableRow>
+              </AdminTableHead>
+              <AdminTableBody>
                 {posts.map((post) => {
                   const meta = POST_KIND_META[post.kind] ?? POST_KIND_META.LINK;
                   const isBusy = rowBusy === post.id;
                   const hidden = post.status === "HIDDEN";
                   return (
-                    <TableRow key={post.id} className={cn(isBusy && "opacity-60")} data-post-id={post.id}>
-                      <TableCell>
-                        {post.imageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={post.imageUrl} alt="" className="aspect-video w-20 rounded border border-border object-cover" loading="lazy" />
-                        ) : (
-                          <div className="flex aspect-video w-20 items-center justify-center rounded border border-dashed border-border text-[var(--text-muted)]">
-                            <meta.Icon className="h-4 w-4" aria-hidden />
+                    <AdminTableRow key={post.id} className={cn(isBusy && "opacity-60", hidden && "opacity-70")} data-post-id={post.id}>
+                      <AdminTableCell className="py-3">
+                        <div className="flex items-center gap-3">
+                          {post.imageUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={post.imageUrl} alt="" className="aspect-video w-20 shrink-0 rounded border border-line-1 object-cover" loading="lazy" />
+                          ) : (
+                            <div className="flex aspect-video w-20 shrink-0 items-center justify-center rounded border border-dashed border-line-2 bg-ink-1 text-text-3">
+                              <meta.Icon className="h-5 w-5" strokeWidth={1.75} aria-hidden />
+                            </div>
+                          )}
+                          <div className="flex min-w-0 max-w-[360px] flex-col">
+                            <span className="line-clamp-2 font-semibold">
+                              {post.pinned ? <Pin className="mr-1 inline h-4 w-4 text-gold-400" strokeWidth={1.75} aria-label="Fijada" /> : null}
+                              {post.title}
+                            </span>
+                            {post.author ? <span className="text-body-sm text-text-2">{post.author}</span> : null}
+                            <span className="truncate font-mono text-label-sm normal-case tracking-normal text-text-3" title={post.url}>
+                              {post.url}
+                            </span>
                           </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        <div className="flex max-w-[360px] flex-col">
-                          <span className="line-clamp-2">
-                            {post.pinned ? (
-                              <Pin className="mr-1 inline h-3.5 w-3.5 text-[var(--gold)]" aria-label="Fijada" />
-                            ) : null}
-                            {post.title}
-                          </span>
-                          {post.author ? <span className="text-xs text-[var(--text-secondary)]">{post.author}</span> : null}
-                          <span className="truncate font-mono text-[11px] text-[var(--text-muted)]" title={post.url}>
-                            {post.url}
-                          </span>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={cn("gap-1", meta.className)}>
-                          <meta.Icon className="h-3 w-3" aria-hidden />
+                      </AdminTableCell>
+                      <AdminTableCell>
+                        <Badge tone={meta.tone} icon={<meta.Icon aria-hidden />}>
                           {meta.label}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap text-xs text-[var(--text-secondary)]">{fmtDate(post.publishedAt)}</TableCell>
-                      <TableCell>
-                        <Badge
-                          className={
-                            hidden
-                              ? "border-transparent bg-background-elevated text-[var(--text-secondary)]"
-                              : "border-transparent bg-primary-muted text-primary"
-                          }
+                      </AdminTableCell>
+                      <AdminTableCell mono className="whitespace-nowrap">
+                        {fmtDate(post.publishedAt)}
+                      </AdminTableCell>
+                      <AdminTableCell>
+                        <Badge tone={hidden ? "neutral" : "success"}>{hidden ? "Oculta" : "Visible"}</Badge>
+                      </AdminTableCell>
+                      <AdminTableActions>
+                        <RowAction
+                          label={`${hidden ? "Mostrar" : "Ocultar"}: ${post.title}`}
+                          variant="outline"
+                          disabled={anyBusy}
+                          onClick={() => void patchPost(post, { status: hidden ? "VISIBLE" : "HIDDEN" }, hidden ? "Publicación visible" : "Publicación oculta")}
                         >
-                          {hidden ? "Oculta" : "Visible"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            disabled={anyBusy}
-                            aria-label={`${hidden ? "Mostrar" : "Ocultar"}: ${post.title}`}
-                            onClick={() =>
-                              void patchPost(
-                                post,
-                                { status: hidden ? "VISIBLE" : "HIDDEN" },
-                                hidden ? "Publicación visible" : "Publicación oculta",
-                              )
-                            }
-                          >
-                            {hidden ? <Eye className="h-3.5 w-3.5" aria-hidden /> : <EyeOff className="h-3.5 w-3.5" aria-hidden />}
-                            {hidden ? "Mostrar" : "Ocultar"}
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            disabled={anyBusy}
-                            aria-label={`${post.pinned ? "Desfijar" : "Fijar"}: ${post.title}`}
-                            onClick={() =>
-                              void patchPost(post, { pinned: !post.pinned }, post.pinned ? "Publicación desfijada" : "Publicación fijada")
-                            }
-                          >
-                            {post.pinned ? <PinOff className="h-3.5 w-3.5" aria-hidden /> : <Pin className="h-3.5 w-3.5" aria-hidden />}
-                            {post.pinned ? "Desfijar" : "Fijar"}
-                          </Button>
-                          <Button size="sm" variant="ghost" asChild>
-                            <a href={post.url} target="_blank" rel="noopener noreferrer" aria-label={`Abrir: ${post.title}`}>
-                              Abrir
-                              <ExternalLink className="ml-1 h-3.5 w-3.5" aria-hidden />
-                            </a>
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            disabled={anyBusy}
-                            aria-label={`Borrar: ${post.title}`}
-                            onClick={() => setPostDeleteTarget(post)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                            Borrar
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                          {hidden ? <Eye /> : <EyeOff />}
+                        </RowAction>
+                        <RowAction
+                          label={`${post.pinned ? "Desfijar" : "Fijar"}: ${post.title}`}
+                          disabled={anyBusy}
+                          className={cn(post.pinned && "text-gold-400")}
+                          onClick={() => void patchPost(post, { pinned: !post.pinned }, post.pinned ? "Publicación desfijada" : "Publicación fijada")}
+                        >
+                          {post.pinned ? <PinOff /> : <Pin />}
+                        </RowAction>
+                        <RowAction label={`Abrir: ${post.title}`} asChild>
+                          <a href={post.url} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink />
+                          </a>
+                        </RowAction>
+                        <RowAction label={`Borrar: ${post.title}`} className="hover:text-danger" disabled={anyBusy} onClick={() => setPostDeleteTarget(post)}>
+                          <Trash2 />
+                        </RowAction>
+                      </AdminTableActions>
+                    </AdminTableRow>
                   );
                 })}
-                {posts.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="py-10 text-center text-[var(--text-muted)]">
-                      {query || statusFilter !== "ALL"
-                        ? "No hay publicaciones que coincidan con el filtro."
-                        : "No hay publicaciones todavía. Pulsa «Sincronizar ahora» o añade un enlace."}
-                    </TableCell>
-                  </TableRow>
-                ) : null}
-              </TableBody>
-            </Table>
+              </AdminTableBody>
+            </AdminTable>
           </div>
+        )}
 
-          <div className="mt-4 flex flex-col items-center justify-between gap-3 sm:flex-row">
-            <p className="font-mono text-xs uppercase tracking-widest text-[var(--text-muted)]">
-              {total} {total === 1 ? "publicación" : "publicaciones"} · Página {Math.min(page, totalPages)} de {totalPages}
-            </p>
-            {totalPages > 1 ? (
-              <nav aria-label="Paginación" className="flex items-center gap-2">
-                <Button variant="outline" size="sm" asChild={page > 1} disabled={page <= 1}>
-                  {page > 1 ? (
-                    <Link href={buildAdminHref({ q: query, status: statusFilter, page: page - 1 })} rel="prev">
-                      <ChevronLeft className="h-4 w-4" aria-hidden />
-                      Anterior
-                    </Link>
-                  ) : (
-                    <span>
-                      <ChevronLeft className="h-4 w-4" aria-hidden />
-                      Anterior
-                    </span>
-                  )}
-                </Button>
-                <Button variant="outline" size="sm" asChild={page < totalPages} disabled={page >= totalPages}>
-                  {page < totalPages ? (
-                    <Link href={buildAdminHref({ q: query, status: statusFilter, page: page + 1 })} rel="next">
-                      Siguiente
-                      <ChevronRight className="h-4 w-4" aria-hidden />
-                    </Link>
-                  ) : (
-                    <span>
-                      Siguiente
-                      <ChevronRight className="h-4 w-4" aria-hidden />
-                    </span>
-                  )}
-                </Button>
-              </nav>
-            ) : null}
-          </div>
-        </CardContent>
+        <AdminResultsBar summary={`${total} ${total === 1 ? "publicación" : "publicaciones"} · Página ${Math.min(page, totalPages)} de ${totalPages}`}>
+          <Pagination page={page} pageCount={totalPages} hrefFor={(p) => buildAdminHref({ q: query, status: statusFilter, page: p })} />
+        </AdminResultsBar>
 
         <Dialog open={postOpen} onOpenChange={(o) => !postSaving && setPostOpen(o)}>
-          <DialogContent className="max-h-[92vh] max-w-xl overflow-y-auto">
+          <DialogContent className={cn(adminDialogClass, "max-w-xl")}>
             <DialogHeader>
-              <DialogTitle>Añadir enlace</DialogTitle>
+              <DialogTitle className="text-title">Añadir enlace</DialogTitle>
               <DialogDescription>
-                Pega la URL de un video de YouTube, una publicación de Facebook o cualquier página. El título y la imagen se
-                completan solos si la página los expone.
+                Pega la URL de un video de YouTube, una publicación de Facebook o cualquier página. El título y la imagen se completan solos si la página los expone.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              <Field label="URL">
+              <AdminField label="URL" htmlFor="social-post-url">
                 <Input
+                  id="social-post-url"
                   type="url"
                   inputMode="url"
                   value={postDraft.url}
@@ -842,75 +753,70 @@ export function AdminSocialManager({
                   placeholder="https://www.youtube.com/watch?v=…"
                   autoFocus
                 />
-              </Field>
-              <Field label="Título (opcional)" hint="Obligatorio solo si la página no ofrece metadatos (p. ej. Facebook sin token).">
-                <Input value={postDraft.title} onChange={(e) => setPostDraft((p) => ({ ...p, title: e.target.value }))} maxLength={200} />
-              </Field>
-              <Field label="Texto (opcional)">
-                <Textarea rows={3} value={postDraft.text} onChange={(e) => setPostDraft((p) => ({ ...p, text: e.target.value }))} />
-              </Field>
+              </AdminField>
+              <AdminField label="Título (opcional)" htmlFor="social-post-title" hint="Obligatorio solo si la página no ofrece metadatos (p. ej. Facebook sin token).">
+                <Input id="social-post-title" value={postDraft.title} onChange={(e) => setPostDraft((p) => ({ ...p, title: e.target.value }))} maxLength={200} />
+              </AdminField>
+              <AdminField label="Texto (opcional)" htmlFor="social-post-text">
+                <Textarea id="social-post-text" rows={3} className="min-h-[96px]" value={postDraft.text} onChange={(e) => setPostDraft((p) => ({ ...p, text: e.target.value }))} />
+              </AdminField>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Imagen (opcional)" hint="URL de la miniatura.">
+                <AdminField label="Imagen (opcional)" htmlFor="social-post-image" hint="URL de la miniatura.">
                   <Input
+                    id="social-post-image"
                     type="url"
                     inputMode="url"
                     value={postDraft.imageUrl}
                     onChange={(e) => setPostDraft((p) => ({ ...p, imageUrl: e.target.value }))}
                     placeholder="https://…/imagen.jpg"
                   />
-                </Field>
-                <Field label="Fecha (opcional)" hint="Si se deja vacía se usa la de la página o la de hoy.">
-                  <Input
-                    type="datetime-local"
-                    value={postDraft.publishedAt}
-                    onChange={(e) => setPostDraft((p) => ({ ...p, publishedAt: e.target.value }))}
-                  />
-                </Field>
-              </div>
-              <div className="flex flex-wrap justify-end gap-2 pt-2">
-                <Button type="button" variant="outline" disabled={postSaving} onClick={() => setPostOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button type="button" disabled={postSaving} onClick={() => void onSavePost()}>
-                  {postSaving ? "Guardando…" : "Guardar"}
-                </Button>
+                </AdminField>
+                <AdminField label="Fecha (opcional)" htmlFor="social-post-date" hint="Si se deja vacía se usa la de la página o la de hoy.">
+                  <Input id="social-post-date" type="datetime-local" value={postDraft.publishedAt} onChange={(e) => setPostDraft((p) => ({ ...p, publishedAt: e.target.value }))} />
+                </AdminField>
               </div>
             </div>
+            <AdminDialogFooter>
+              <Button type="button" variant="outline" disabled={postSaving} onClick={() => setPostOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="button" loading={postSaving} onClick={() => void onSavePost()}>
+                Guardar
+              </Button>
+            </AdminDialogFooter>
           </DialogContent>
         </Dialog>
-      </Card>
+      </section>
 
       <AlertDialog open={sourceDeleteTarget !== null} onOpenChange={(o) => !o && !deleting && setSourceDeleteTarget(null)}>
-        <AlertDialogContent className="border-white/10 bg-background-card">
+        <AlertDialogContent className={adminDialogClass}>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Borrar esta fuente?</AlertDialogTitle>
+            <AlertDialogTitle className="text-title">¿Borrar esta fuente?</AlertDialogTitle>
             <AlertDialogDescription>
-              Se dejará de revisar «{sourceDeleteTarget?.label ?? ""}». Sus publicaciones ya importadas se conservan. Si
-              solo quieres pausarla, desactívala.
+              Se dejará de revisar «{sourceDeleteTarget?.label ?? ""}». Sus publicaciones ya importadas se conservan. Si solo quieres pausarla, desactívala.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
-            <Button type="button" variant="destructive" disabled={deleting} onClick={() => void confirmDeleteSource()}>
-              {deleting ? "Borrando…" : "Borrar"}
+            <Button type="button" variant="danger" loading={deleting} onClick={() => void confirmDeleteSource()}>
+              Borrar
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       <AlertDialog open={postDeleteTarget !== null} onOpenChange={(o) => !o && !deleting && setPostDeleteTarget(null)}>
-        <AlertDialogContent className="border-white/10 bg-background-card">
+        <AlertDialogContent className={adminDialogClass}>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Borrar esta publicación?</AlertDialogTitle>
+            <AlertDialogTitle className="text-title">¿Borrar esta publicación?</AlertDialogTitle>
             <AlertDialogDescription>
-              Se eliminará «{postDeleteTarget?.title ?? ""}» del feed. Si viene de una fuente activa, la próxima
-              sincronización puede volver a importarla; si solo quieres que no se vea, usa «Ocultar».
+              Se eliminará «{postDeleteTarget?.title ?? ""}» del feed. Si viene de una fuente activa, la próxima sincronización puede volver a importarla; si solo quieres que no se vea, usa «Ocultar».
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
-            <Button type="button" variant="destructive" disabled={deleting} onClick={() => void confirmDeletePost()}>
-              {deleting ? "Borrando…" : "Borrar"}
+            <Button type="button" variant="danger" loading={deleting} onClick={() => void confirmDeletePost()}>
+              Borrar
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -919,21 +825,11 @@ export function AdminSocialManager({
   );
 }
 
-function StatCell({ label, value }: { label: string; value: string }) {
+function StatCell({ label, value, small = false }: { label: string; value: string; small?: boolean }) {
   return (
-    <div className="rounded-md border border-border bg-background-secondary/40 px-3 py-2">
-      <dt className="font-mono text-[10px] uppercase tracking-widest text-[var(--text-muted)]">{label}</dt>
-      <dd className="mt-1 text-sm text-foreground">{value}</dd>
-    </div>
-  );
-}
-
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-2">
-      <Label className="text-xs font-medium text-[var(--text-secondary)]">{label}</Label>
-      {children}
-      {hint ? <p className="text-[11px] text-[var(--text-muted)]">{hint}</p> : null}
+    <div className="rounded border border-line-1 bg-ink-1 p-4">
+      <dt className="text-label text-text-3">{label}</dt>
+      <dd className={cn("mt-2 font-mono tabular-nums text-text-1", small ? "text-body" : "text-display-sm")}>{value}</dd>
     </div>
   );
 }

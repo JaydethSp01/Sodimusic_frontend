@@ -1,11 +1,14 @@
 "use client";
 
 import { useId, useState, useTransition, type FormEvent } from "react";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { subscribeNewsletterAction } from "@/app/actions/newsletter-actions";
 import { ConsentCheckbox } from "@/components/shared/consent-checkbox";
+import { FormField } from "@/components/ds/form-field";
 import { Button } from "@/components/ui/button";
+import { FieldError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
+import { Text } from "@/components/ui/text";
 
 type Props = {
   businessName: string;
@@ -53,57 +56,50 @@ export function NewsletterForm({ businessName, policyVersion, title, subtitle, c
 
   if (status.kind === "success") {
     return (
-      <div role="status" aria-live="polite" className="flex items-start gap-3 rounded-lg border border-primary/30 bg-primary/5 p-4">
-        <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
+      <div role="status" aria-live="polite" className="flex items-start gap-3 rounded-lg border border-success/30 bg-success/[0.08] p-4">
+        <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-success" strokeWidth={1.75} aria-hidden />
         <div>
-          <p className="text-sm font-medium text-foreground">{status.message}</p>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">Puedes darte de baja en cualquier momento desde cada correo.</p>
+          <Text as="p" size="body-sm" tone="1" className="font-medium">
+            {status.message}
+          </Text>
+          <Text as="p" size="body-sm" tone="3" className="mt-1">
+            Puedes darte de baja en cualquier momento desde cada correo.
+          </Text>
         </div>
       </div>
     );
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="space-y-3" aria-labelledby={`${id}-title`}>
+    <form onSubmit={onSubmit} noValidate className="space-y-4" aria-labelledby={`${id}-title`}>
       <div>
-        <p id={`${id}-title`} className="font-display text-xl tracking-wide text-foreground">
+        <p id={`${id}-title`} className="text-title text-text-1">
           {title}
         </p>
-        {subtitle ? <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">{subtitle}</p> : null}
+        {subtitle ? (
+          <Text as="p" size="body-sm" tone="3" className="mt-1">
+            {subtitle}
+          </Text>
+        ) : null}
       </div>
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <div className="flex-1">
-          <label htmlFor={`${id}-email`} className="sr-only">
-            Correo electrónico
-          </label>
-          <Input
-            id={`${id}-email`}
-            type="email"
-            name="email"
-            autoComplete="email"
-            inputMode="email"
-            placeholder="tu@correo.com"
-            value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              if (emailError) setEmailError(null);
-            }}
-            aria-invalid={emailError ? true : undefined}
-            aria-describedby={emailError ? `${id}-email-error` : undefined}
-            className="h-11 bg-background"
-            disabled={pending}
-          />
-          {emailError ? (
-            <p id={`${id}-email-error`} className="mt-1 text-xs text-red-400">
-              {emailError}
-            </p>
-          ) : null}
-        </div>
-        <Button type="submit" disabled={pending} className="h-11 shrink-0 sm:w-auto">
-          {pending ? <Loader2 className="animate-spin" aria-hidden /> : null}
-          {pending ? "Enviando…" : ctaLabel}
-        </Button>
-      </div>
+      <FormField id={`${id}-email`} label="Correo electrónico" error={emailError}>
+        <Input
+          type="email"
+          name="email"
+          autoComplete="email"
+          inputMode="email"
+          placeholder="tu@correo.com"
+          value={email}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (emailError) setEmailError(null);
+          }}
+          disabled={pending}
+        />
+      </FormField>
+      <Button type="submit" loading={pending} className="w-full sm:w-auto">
+        {pending ? "Enviando…" : ctaLabel}
+      </Button>
       <ConsentCheckbox
         checked={accepted}
         onCheckedChange={(v) => {
@@ -113,9 +109,7 @@ export function NewsletterForm({ businessName, policyVersion, title, subtitle, c
         businessName={businessName}
         error={consentError ?? undefined}
       />
-      <p aria-live="polite" role={status.kind === "error" ? "alert" : undefined} className="min-h-[1rem] text-xs text-red-400">
-        {status.kind === "error" ? status.message : ""}
-      </p>
+      <FieldError>{status.kind === "error" ? status.message : null}</FieldError>
     </form>
   );
 }

@@ -1,20 +1,32 @@
 import type { Metadata } from "next";
-import { Bebas_Neue, DM_Sans, Syne_Mono } from "next/font/google";
+import { Archivo, DM_Sans, Instrument_Serif, Syne_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 
 /**
- * Fuentes: `display: "swap"` en todas y solo los pesos usados en el código
- * (Bebas Neue y Syne Mono solo existen en 400; DM Sans se usa con
- * font-normal/medium/semibold → 400/500/600). Solo se hace `preload` de la
- * display principal (titulares/LCP); el resto se descarga sin bloquear.
+ * Fuentes del sistema (docs/superpowers/specs/2026-10-18-sodimusic-design-language-v4.md §2.2):
+ * - Display: Archivo variable con eje `wdth` (62–125) y `wght` (100–900). Se usa en mayúsculas,
+ *   wdth 125 / wght 800 (`.text-display-*`). next/font no permite acotar el rango de pesos de una
+ *   variable: se sirve el eje completo (un solo archivo woff2).
+ * - Acento: Instrument Serif 400 regular + italic (eyebrows editoriales, citas, `<em>` en titulares).
+ * - Cuerpo: DM Sans 400/500/600. Mono: Syne Mono 400 (datos).
+ * Solo se hace `preload` de display y cuerpo (LCP); acento y mono se descargan sin bloquear.
  */
-const bebasNeue = Bebas_Neue({
-  weight: "400",
+const archivo = Archivo({
   subsets: ["latin"],
+  axes: ["wdth"],
   variable: "--font-display",
   display: "swap",
   preload: true,
+});
+
+const instrumentSerif = Instrument_Serif({
+  weight: "400",
+  style: ["normal", "italic"],
+  subsets: ["latin"],
+  variable: "--font-accent",
+  display: "swap",
+  preload: false,
 });
 
 const dmSans = DM_Sans({
@@ -22,7 +34,7 @@ const dmSans = DM_Sans({
   subsets: ["latin"],
   variable: "--font-body",
   display: "swap",
-  preload: false,
+  preload: true,
 });
 
 const syneMono = Syne_Mono({
@@ -59,10 +71,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className="dark">
-      <body className={`${bebasNeue.variable} ${dmSans.variable} ${syneMono.variable} min-h-screen`}>
+      <body
+        className={`${archivo.variable} ${instrumentSerif.variable} ${dmSans.variable} ${syneMono.variable} min-h-screen`}
+      >
         <a
           href="#contenido-principal"
-          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-white"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-toast focus:rounded focus:bg-fire-500 focus:px-4 focus:py-2 focus:text-fire-on"
         >
           Saltar al contenido
         </a>

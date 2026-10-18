@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useId } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { FieldError } from "@/components/ui/field-error";
 import { cn } from "@/lib/utils";
 
 interface ConsentCheckboxProps {
@@ -35,8 +36,8 @@ export function ConsentCheckbox({
   const errorId = `${id}-error`;
   const isPolicy = variant === "policy";
   return (
-    <div className={cn("space-y-1", className)}>
-      <label htmlFor={id} className="flex cursor-pointer items-start gap-3 text-sm leading-relaxed text-[var(--text-secondary)]">
+    <div className={cn("flex flex-col", className)}>
+      <label htmlFor={id} className="flex min-h-11 cursor-pointer items-start gap-3 py-1 text-body-sm text-text-2">
         <Checkbox
           id={id}
           name={name ?? (isPolicy ? "policyAccepted" : "marketingOptIn")}
@@ -45,28 +46,26 @@ export function ConsentCheckbox({
           aria-required={isPolicy || undefined}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
-          className="mt-0.5 h-5 w-5 shrink-0"
+          className="mt-0.5"
         />
         {isPolicy ? (
           <span>
-            Autorizo a <strong className="text-foreground">{businessName}</strong> el tratamiento de mis datos personales según la{" "}
-            <Link href="/legal/privacidad" target="_blank" className="text-primary underline underline-offset-2">
+            Autorizo a <strong className="font-semibold text-text-1">{businessName}</strong> el tratamiento de mis datos personales según la{" "}
+            <Link href="/legal/privacidad" target="_blank" className="link-sweep text-fire-400 hover:text-fire-300">
               Política de privacidad
             </Link>
-            . <span className="text-[var(--text-muted)]">(obligatorio)</span>
+            . <span className="text-text-3">(obligatorio)</span>
           </span>
         ) : (
           <span>
             Quiero recibir novedades, lanzamientos y promociones por email o WhatsApp.{" "}
-            <span className="text-[var(--text-muted)]">(opcional, máximo un mensaje por semana)</span>
+            <span className="text-text-3">(opcional, máximo un mensaje por semana)</span>
           </span>
         )}
       </label>
-      {error ? (
-        <p id={errorId} role="alert" className="pl-8 text-xs text-red-400">
-          {error}
-        </p>
-      ) : null}
+      <FieldError id={errorId} className="pl-8">
+        {error}
+      </FieldError>
     </div>
   );
 }

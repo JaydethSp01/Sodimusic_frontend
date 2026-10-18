@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
-import { SectionTitle } from "@/components/shared/section-title";
+import { SectionHeader } from "@/components/ds/section-header";
 import { Button } from "@/components/ui/button";
-import { ChannelsGrid } from "@/features/channels/components/channels-grid";
+import { ChannelsList } from "@/features/channels/components/channels-list";
 import { fetchChannels } from "@/features/channels/api";
 import { cn } from "@/lib/utils";
 import type { SiteContent } from "@/types/site-content";
@@ -14,9 +13,9 @@ interface HomeChannelsSectionProps {
 }
 
 /**
- * Sección del home: canales destacados (máx. `youtube.homeLimit`) desde
- * `/api/channels?featured=1` y botón "{allChannelsLabel} (N)" con el total
- * real de canales activos. Si no hay canales devuelve `null`.
+ * Sección de canales (home y /artists): destacados (máx. `youtube.homeLimit`) desde
+ * `/api/channels?featured=1` como filas `ListRow` (avatar, categoría, Suscribirse rojo, Ver videos)
+ * y botón "{allChannelsLabel} (N)" con el total real de canales activos. Si no hay canales devuelve `null`.
  * Si no hay destacados suficientes, completa con los primeros canales activos.
  */
 export async function HomeChannelsSection({ youtube, className, id = "youtube-title" }: HomeChannelsSectionProps) {
@@ -36,32 +35,21 @@ export async function HomeChannelsSection({ youtube, className, id = "youtube-ti
 
   const allLabel = `${youtube.allChannelsLabel?.trim() || "Ver todos los canales"} (${total})`;
   const showLink = total > channels.length || total > 1;
+  const action = showLink ? (
+    <Button asChild variant="outline" withArrow>
+      <Link href="/canales">{allLabel}</Link>
+    </Button>
+  ) : undefined;
 
   return (
-    <section className={cn("px-4 py-16 sm:py-20 lg:px-8 lg:py-32", className)} aria-labelledby={id}>
-      <div className="mx-auto max-w-7xl">
-        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-          <SectionTitle eyebrow={youtube.sectionEyebrow} title={youtube.sectionTitle} subtitle={youtube.sectionSubtitle} id={id} />
-          {showLink ? (
-            <Button asChild variant="outline" className="mb-12 hidden h-11 md:inline-flex">
-              <Link href="/canales">
-                {allLabel}
-                <ArrowRight className="h-4 w-4" aria-hidden />
-              </Link>
-            </Button>
-          ) : null}
+    <section className={cn("py-section", className)} aria-labelledby={id}>
+      <div className="container-page grid gap-10 lg:grid-cols-12 lg:gap-16">
+        <div className="lg:col-span-5">
+          <SectionHeader eyebrow={youtube.sectionEyebrow} title={youtube.sectionTitle} lead={youtube.sectionSubtitle} id={id} className="mb-0 lg:flex-col lg:items-start" action={action} />
         </div>
-        <ChannelsGrid channels={channels} subscribeLabel={youtube.subscribeLabel} variant="home" />
-        {showLink ? (
-          <div className="mt-10 text-center md:hidden">
-            <Button asChild variant="outline" className="h-11">
-              <Link href="/canales">
-                {allLabel}
-                <ArrowRight className="h-4 w-4" aria-hidden />
-              </Link>
-            </Button>
-          </div>
-        ) : null}
+        <div className="lg:col-span-7">
+          <ChannelsList channels={channels} subscribeLabel={youtube.subscribeLabel} />
+        </div>
       </div>
     </section>
   );

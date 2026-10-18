@@ -126,25 +126,26 @@ export function Navbar({ site }: { site: NavbarSite }) {
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 border-b border-white/[0.06] bg-[#080808]/75 backdrop-blur-md transition-all duration-300",
-        compact ? "bg-[#080808]/90 shadow-lg shadow-black/30" : "",
+        "sticky top-0 z-nav border-b border-line-1 bg-ink-0/75 backdrop-blur-md transition-[background-color,box-shadow] duration-300",
+        compact ? "bg-ink-0/90 shadow-lg shadow-black/30" : "",
       )}
+      style={{ "--nav-h": compact ? "56px" : "72px" } as React.CSSProperties}
     >
       <div
         className={cn(
-          "mx-auto flex max-w-7xl items-center justify-between px-4 transition-all duration-300 lg:px-8",
-          compact ? "py-2" : "py-4",
+          "container-page flex items-center justify-between transition-[height] duration-300",
+          compact ? "h-14" : "h-[72px]",
         )}
       >
         <Link
           href="/"
-          className="inline-flex min-h-11 items-center font-display text-3xl tracking-[0.2em] text-foreground md:text-4xl"
+          className="inline-flex min-h-11 items-center font-display text-xl font-black uppercase tracking-wordmark text-text-1 [font-stretch:125%] transition-colors duration-150 hover:text-fire-300"
           aria-label={`${site.brand.logoText} — inicio`}
         >
           {site.brand.logoText}
         </Link>
 
-        <nav aria-label="Principal" className="hidden items-center gap-6 md:flex lg:gap-8">
+        <nav aria-label="Principal" className="hidden items-center gap-6 lg:flex xl:gap-8">
           {links.map((l) => {
             const active = pathname === l.href || (l.href !== "/" && pathname.startsWith(`${l.href}/`));
             return (
@@ -153,31 +154,28 @@ export function Navbar({ site }: { site: NavbarSite }) {
                 href={l.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "nav-link-underline inline-flex min-h-11 items-center text-sm font-medium transition-colors hover:text-foreground",
-                  active ? "is-active text-primary" : "text-[var(--text-secondary)]",
+                  "nav-link-underline inline-flex min-h-11 items-center text-body-sm font-medium transition-colors duration-150 hover:text-text-1",
+                  active ? "is-active text-fire-400" : "text-text-2",
                 )}
               >
                 {l.label}
               </Link>
             );
           })}
-          <Button
-            asChild
-            className="h-11 px-5 font-semibold transition-shadow duration-300 hover:shadow-[0_0_20px_rgba(255,107,0,0.4)]"
-          >
+          <Button asChild pill size="md">
             <Link href={site.nav.ctaHref}>{site.nav.ctaLabel}</Link>
           </Button>
           {shopEnabled ? <CartButton className="-mr-2" /> : null}
         </nav>
 
-        <div className="flex items-center gap-1 md:hidden">
+        <div className="flex items-center gap-1 lg:hidden">
           {shopEnabled ? <CartButton /> : null}
           <Button
             ref={openerRef}
             type="button"
             variant="ghost"
             size="icon"
-            className="relative z-[101] min-h-12 min-w-12 touch-manipulation"
+            className="relative z-[101] min-h-12 min-w-12 touch-manipulation text-text-1"
             aria-label={open ? "Cerrar menú" : "Abrir menú"}
             aria-expanded={open}
             aria-controls="mobile-navigation"
@@ -198,7 +196,7 @@ export function Navbar({ site }: { site: NavbarSite }) {
               aria-label="Navegación móvil"
               data-state={open ? "open" : "closed"}
               className={cn(
-                "fixed inset-0 z-[300] flex flex-col md:hidden",
+                "fixed inset-0 z-[300] flex flex-col lg:hidden",
                 menuEase,
                 "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
               )}
@@ -208,41 +206,36 @@ export function Navbar({ site }: { site: NavbarSite }) {
               }}
             >
               {/* Portal en body: evita que backdrop-filter del header acote `fixed` al alto de la barra */}
-              <div className="absolute inset-0 bg-[#030303]/[0.97]" aria-hidden />
-              <div
-                className="absolute inset-0 bg-gradient-to-b from-black via-black/95 to-[#0a0806]"
-                aria-hidden
-              />
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(255,107,0,0.12),transparent)]" aria-hidden />
+              <div className="absolute inset-0 bg-ink-0/[0.97]" aria-hidden />
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(255,107,0,0.14),transparent)]" aria-hidden />
+              <div className="grain absolute inset-0" aria-hidden />
 
               <div className="relative flex min-h-0 flex-1 flex-col">
                 <div className="flex shrink-0 items-center justify-between gap-3 px-4 py-4 sm:px-5">
                   <Link
                     href="/"
                     onClick={closeMenu}
-                    className="font-display text-lg tracking-[0.2em] text-foreground sm:text-xl"
+                    className="font-display text-lg font-black uppercase tracking-wordmark text-text-1 [font-stretch:125%]"
                   >
                     {site.brand.logoText}
                   </Link>
                   <button
                     type="button"
                     onClick={closeMenu}
-                    className="flex h-11 w-11 shrink-0 touch-manipulation items-center justify-center rounded-full bg-white/[0.06] text-foreground ring-1 ring-white/10 transition-colors hover:bg-white/[0.1] hover:ring-primary/30"
+                    className="flex h-11 w-11 shrink-0 touch-manipulation items-center justify-center rounded-full bg-white/[0.06] text-text-1 ring-1 ring-line-2 transition-colors hover:bg-white/[0.1] hover:ring-fire-500/40"
                     aria-label="Cerrar menú"
                   >
                     <X className="h-5 w-5" aria-hidden />
                   </button>
                 </div>
 
-                <div className="mx-4 h-px shrink-0 bg-gradient-to-r from-transparent via-white/15 to-transparent sm:mx-5" />
+                <div className="section-divider mx-4 shrink-0 sm:mx-5" />
 
                 <nav
                   aria-label="Móvil"
                   className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-6 sm:px-5"
                 >
-                  <p className="mb-4 font-mono text-[10px] uppercase tracking-[0.25em] text-[var(--text-muted)]">
-                    Explorar
-                  </p>
+                  <p className="mb-4 text-label text-text-3">Explorar</p>
                   <ul className="flex flex-col gap-0">
                     {links.map((l, i) => {
                       const active = pathname === l.href || (l.href !== "/" && pathname.startsWith(`${l.href}/`));
@@ -257,16 +250,17 @@ export function Navbar({ site }: { site: NavbarSite }) {
                             onClick={closeMenu}
                             aria-current={active ? "page" : undefined}
                             className={cn(
-                              "group flex min-h-[3.5rem] items-center justify-between border-b border-white/[0.06] py-1 pr-1 transition-colors",
-                              active ? "text-primary" : "text-foreground",
+                              "group flex min-h-[3.5rem] items-center justify-between gap-4 border-b border-line-1 py-3 pr-1 transition-colors duration-150",
+                              active ? "text-fire-400" : "text-text-1",
                             )}
                           >
-                            <span className="text-[1.05rem] font-medium tracking-wide">{l.label}</span>
+                            <span className="font-display font-extrabold text-display-md">{l.label}</span>
                             <ChevronRight
                               className={cn(
-                                "h-5 w-5 shrink-0 text-[var(--text-muted)] transition-transform duration-200 group-hover:translate-x-0.5",
-                                active && "text-primary/80",
+                                "h-6 w-6 shrink-0 text-text-3 transition-transform duration-200 group-hover:translate-x-1",
+                                active && "text-fire-400",
                               )}
+                              strokeWidth={1.75}
                               aria-hidden
                             />
                           </Link>
@@ -276,33 +270,22 @@ export function Navbar({ site }: { site: NavbarSite }) {
                   </ul>
                 </nav>
 
-                <div className="relative shrink-0 border-t border-white/[0.08] bg-black/50 px-4 py-5 backdrop-blur-md sm:px-5">
+                <div className="relative shrink-0 border-t border-line-1 bg-ink-0/60 px-4 py-5 backdrop-blur-md sm:px-5">
                   <div className="mx-auto flex w-full max-w-md flex-col gap-3">
-                    <Button
-                      asChild
-                      size="lg"
-                      className="h-12 w-full touch-manipulation rounded-xl text-[0.95rem] font-semibold shadow-[0_4px_24px_rgba(255,107,0,0.22)] transition-shadow hover:shadow-[0_6px_28px_rgba(255,107,0,0.3)]"
-                    >
+                    <Button asChild size="lg" pill withArrow className="w-full touch-manipulation">
                       <Link href={site.nav.ctaHref} onClick={closeMenu}>
                         {site.nav.ctaLabel}
                       </Link>
                     </Button>
                     {showSecondaryCta ? (
-                      <Button
-                        asChild
-                        variant="outline"
-                        size="lg"
-                        className="h-11 w-full touch-manipulation rounded-xl border-white/15 bg-transparent text-[0.9rem] font-medium text-foreground hover:border-primary/40 hover:bg-primary/5"
-                      >
+                      <Button asChild variant="outline" size="md" pill className="w-full touch-manipulation">
                         <Link href={site.hero.secondaryHref} onClick={closeMenu}>
                           {site.hero.secondaryCta}
                         </Link>
                       </Button>
                     ) : null}
                     {site.nav.mobileFooterLine?.trim() ? (
-                      <p className="pt-1 text-center font-mono text-[10px] leading-relaxed tracking-wider text-[var(--text-muted)]">
-                        {site.nav.mobileFooterLine}
-                      </p>
+                      <p className="pt-1 text-center text-label-sm leading-relaxed text-text-3">{site.nav.mobileFooterLine}</p>
                     ) : null}
                   </div>
                 </div>

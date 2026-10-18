@@ -1,6 +1,7 @@
 "use client";
 
-import { FilterChips, type FilterChip } from "@/components/shared/filter-chips";
+import { FilterBar, FilterGroup } from "@/components/ds/filter-bar";
+import { Chip } from "@/components/ui/chip";
 import { buildChannelsHref } from "@/features/channels/hrefs";
 
 interface ChannelCategoryChipsProps {
@@ -12,21 +13,29 @@ interface ChannelCategoryChipsProps {
   totalAll?: number;
   /** Total de la categoría activa (contador del chip activo). */
   totalActive?: number;
+  /** Slot derecho de la barra (contador, acciones). */
+  end?: React.ReactNode;
 }
 
-/** Chips de categoría de /canales (modo enlace; la URL conserva `q` y reinicia la página). */
-export function ChannelCategoryChips({ categories, active, q, totalAll, totalActive }: ChannelCategoryChipsProps) {
+/** `FilterBar` de categorías de /canales (chips en modo enlace; la URL conserva `q` y reinicia la página). */
+export function ChannelCategoryChips({ categories, active, q, totalAll, totalActive, end }: ChannelCategoryChipsProps) {
   const current = active ?? "";
-  const chips: FilterChip[] = [
-    { value: "", label: "Todos", count: totalAll },
-    ...categories.map((c) => ({ value: c, label: c, count: c === current ? totalActive : undefined })),
-  ];
   return (
-    <FilterChips
-      label="Categorías de canales"
-      chips={chips}
-      active={current}
-      hrefFor={(value) => buildChannelsHref({ q, category: value || undefined })}
-    />
+    <FilterBar sticky label="Filtros de canales" end={end}>
+      <FilterGroup as="nav" label="Categorías de canales" showLabel>
+        <li>
+          <Chip href={buildChannelsHref({ q })} selected={current === ""} count={totalAll}>
+            Todos
+          </Chip>
+        </li>
+        {categories.map((c) => (
+          <li key={c}>
+            <Chip href={buildChannelsHref({ q, category: c })} selected={current === c} count={c === current ? totalActive : undefined}>
+              {c}
+            </Chip>
+          </li>
+        ))}
+      </FilterGroup>
+    </FilterBar>
   );
 }

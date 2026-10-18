@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { SiteLegal } from "@/types/site-content";
 import { formatPhone, hasValue } from "@/content/legal/shared";
+import { AdminTable, AdminTableBody, AdminTableCell, AdminTableHead, AdminTableHeader, AdminTableRow } from "@/components/ds/admin-table";
 
 /**
  * Primitivas de los documentos legales. Viven aquí (y no en content/legal) porque Tailwind solo
@@ -10,7 +11,7 @@ import { formatPhone, hasValue } from "@/content/legal/shared";
 export function Pending({ what }: { what?: string }) {
   return (
     <span
-      className="mx-0.5 inline-block rounded border border-amber-400/40 bg-amber-400/10 px-1.5 py-0.5 align-baseline font-mono text-[11px] font-medium not-italic leading-tight text-amber-300"
+      className="mx-0.5 inline-block rounded-sm border border-warning/40 bg-warning/10 px-1.5 py-0.5 align-baseline font-mono text-label normal-case not-italic text-warning"
       title={what ? `Falta: ${what}` : undefined}
     >
       [pendiente: completar en Admin → Sitio → Legal]
@@ -58,12 +59,12 @@ export function Line({
   const present = hasValue(value);
   if (!present && !isAdmin) return null;
   return (
-    <li className="flex flex-col gap-0.5 sm:flex-row sm:gap-3">
-      <span className="shrink-0 font-medium text-foreground sm:w-44">{label}</span>
-      <span className="text-[var(--text-secondary)]">
+    <li className="flex flex-col gap-0.5 sm:flex-row sm:gap-4">
+      <span className="shrink-0 text-label text-text-3 sm:w-44 sm:pt-1">{label}</span>
+      <span className="text-body text-text-1">
         {present ? (
           href ? (
-            <a href={href} className="text-primary underline underline-offset-4 hover:text-[var(--primary-hover)]">
+            <a href={href} className="text-fire-400 underline underline-offset-4 transition-colors duration-150 hover:text-fire-300">
               {value}
             </a>
           ) : (
@@ -79,7 +80,7 @@ export function Line({
 
 /** Lista de identificación (responsable, comerciante, etc.) */
 export function IdList({ children }: { children: ReactNode }) {
-  return <ul className="not-prose my-4 space-y-2 rounded-lg border border-border bg-background-card/60 p-4 text-[15px] sm:p-5">{children}</ul>;
+  return <ul className="not-prose my-5 space-y-3 rounded-lg border border-line-1 bg-ink-2 p-5">{children}</ul>;
 }
 
 export type TocItem = { id: string; label: string };
@@ -87,13 +88,16 @@ export type TocItem = { id: string; label: string };
 /** Índice del documento con enlaces a cada sección. */
 export function Toc({ items }: { items: TocItem[] }) {
   return (
-    <nav aria-label="Contenido del documento" className="not-prose mb-10 rounded-lg border border-border bg-background-secondary/60 p-5">
-      <p className="font-mono text-xs uppercase tracking-widest text-[var(--text-muted)]">En este documento</p>
-      <ol className="mt-3 grid gap-x-8 gap-y-1.5 text-sm sm:grid-cols-2">
+    <nav aria-label="Contenido del documento" className="not-prose mb-12 rounded-lg border border-line-1 bg-ink-2 p-5 sm:p-6">
+      <p className="text-label text-fire-500">En este documento</p>
+      <ol className="mt-4 grid gap-x-8 gap-y-1 text-body-sm sm:grid-cols-2">
         {items.map((it, i) => (
-          <li key={it.id} className="flex gap-2">
-            <span className="w-5 shrink-0 font-mono text-xs text-[var(--text-muted)]">{i + 1}.</span>
-            <a href={`#${it.id}`} className="text-[var(--text-secondary)] underline-offset-4 hover:text-primary hover:underline">
+          <li key={it.id} className="flex gap-3">
+            <span className="w-5 shrink-0 pt-2 font-mono text-label text-text-3">{i + 1}.</span>
+            <a
+              href={`#${it.id}`}
+              className="link-sweep inline-flex min-h-10 items-center text-text-2 transition-colors duration-150 hover:text-fire-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fire-500"
+            >
               {it.label}
             </a>
           </li>
@@ -106,9 +110,12 @@ export function Toc({ items }: { items: TocItem[] }) {
 /** Sección numerada (h2) con ancla. */
 export function Section({ n, id, title, children }: { n: number; id: string; title: string; children: ReactNode }) {
   return (
-    <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-28">
+    <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-[calc(var(--nav-h,72px)+1.5rem)]">
       <h2 id={`${id}-title`}>
-        <span className="mr-2 font-mono text-base text-primary">{n}.</span>
+        <span className="text-accent mr-3 text-fire-500" aria-hidden>
+          {String(n).padStart(2, "0")}
+        </span>
+        <span className="sr-only">{n}. </span>
         {title}
       </h2>
       {children}
@@ -121,7 +128,7 @@ export function Sub({ n, title, children }: { n: string; title: string; children
   return (
     <>
       <h3>
-        <span className="mr-2 font-mono text-sm text-[var(--text-muted)]">{n}</span>
+        <span className="mr-2 font-mono text-label text-text-3">{n}</span>
         {title}
       </h3>
       {children}
@@ -132,51 +139,49 @@ export function Sub({ n, title, children }: { n: string; title: string; children
 /** Cierre del documento: versión. */
 export function DocFooter({ version, note }: { version: string; note?: ReactNode }) {
   return (
-    <footer className="not-prose mt-12 border-t border-border pt-6 text-sm text-[var(--text-muted)]">
-      {note ? <p className="mb-2">{note}</p> : null}
-      <p className="font-mono text-xs uppercase tracking-widest">Versión {version}</p>
+    <footer className="not-prose mt-14 border-t border-line-1 pt-6 text-body-sm text-text-3">
+      {note ? <p className="mb-3">{note}</p> : null}
+      <p className="text-label">Versión {version}</p>
     </footer>
   );
 }
 
 export type LicenseRow = { name: string; cells: ReactNode[] };
 
-/** Tabla comparativa de licencias (desplazable en móvil). */
+/** Tabla comparativa de licencias (`AdminTable` ligero, desplazable en móvil). */
 export function LicenseTable({ headers, rows, lastRowSpan }: { headers: string[]; rows: LicenseRow[]; lastRowSpan?: { name: string; delivery: string; text: string } }) {
   return (
-    <div className="not-prose my-6 overflow-x-auto rounded-lg border border-border">
-      <table className="w-full min-w-[640px] text-left text-sm">
-        <thead className="bg-background-secondary font-mono text-xs uppercase tracking-wider text-[var(--text-muted)]">
-          <tr>
+    <div className="not-prose my-6">
+      <AdminTable className="min-w-[640px]">
+        <AdminTableHead>
+          <AdminTableRow>
             {headers.map((h) => (
-              <th key={h} className="px-4 py-3">
-                {h}
-              </th>
+              <AdminTableHeader key={h}>{h}</AdminTableHeader>
             ))}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border text-[var(--text-secondary)]">
+          </AdminTableRow>
+        </AdminTableHead>
+        <AdminTableBody>
           {rows.map((r) => (
-            <tr key={r.name}>
-              <td className="px-4 py-3 font-medium text-foreground">{r.name}</td>
+            <AdminTableRow key={r.name}>
+              <AdminTableCell className="py-3 font-semibold text-text-1">{r.name}</AdminTableCell>
               {r.cells.map((c, i) => (
-                <td key={i} className="px-4 py-3">
+                <AdminTableCell key={i} className="whitespace-normal py-3 text-text-2">
                   {c}
-                </td>
+                </AdminTableCell>
               ))}
-            </tr>
+            </AdminTableRow>
           ))}
           {lastRowSpan ? (
-            <tr>
-              <td className="px-4 py-3 font-medium text-foreground">{lastRowSpan.name}</td>
-              <td className="px-4 py-3">{lastRowSpan.delivery}</td>
-              <td className="px-4 py-3" colSpan={Math.max(1, headers.length - 2)}>
+            <AdminTableRow>
+              <AdminTableCell className="py-3 font-semibold text-text-1">{lastRowSpan.name}</AdminTableCell>
+              <AdminTableCell className="whitespace-normal py-3 text-text-2">{lastRowSpan.delivery}</AdminTableCell>
+              <AdminTableCell className="whitespace-normal py-3 text-text-2" colSpan={Math.max(1, headers.length - 2)}>
                 {lastRowSpan.text}
-              </td>
-            </tr>
+              </AdminTableCell>
+            </AdminTableRow>
           ) : null}
-        </tbody>
-      </table>
+        </AdminTableBody>
+      </AdminTable>
     </div>
   );
 }

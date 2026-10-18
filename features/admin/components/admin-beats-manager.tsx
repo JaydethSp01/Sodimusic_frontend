@@ -2,12 +2,17 @@
 
 import { useMemo, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
+import { Music2, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import type { Beat } from "@/types/models";
 import { resolveMediaUrl } from "@/lib/resolve-media-url";
 import { toast } from "sonner";
+import { AdminTable, AdminTableActions, AdminTableBody, AdminTableCell, AdminTableHead, AdminTableHeader, AdminTableRow } from "@/components/ds/admin-table";
+import { EmptyState } from "@/components/ds/empty-state";
+import { Avatar } from "@/components/ui/avatar";
+import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Chip } from "@/components/ui/chip";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -17,15 +22,32 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { uploadAdminFile } from "@/app/actions/admin-upload";
 import { createBeatAction, deleteBeatAction, patchBeatAction } from "@/app/actions/admin-beats-actions";
 import { BeatAudioPlayer } from "@/features/beats/components/beat-audio-player";
+import {
+  AdminDialogFooter,
+  AdminField,
+  AdminModuleToolbar,
+  AdminNativeSelect,
+  AdminResultsBar,
+  RowAction,
+  adminDialogClass,
+} from "@/features/admin/components/admin-primitives";
+import { cn } from "@/lib/utils";
 
 type Status = "AVAILABLE" | "SOLD" | "EXCLUSIVE";
+
+const STATUS_TONE: Record<Status, BadgeTone> = { AVAILABLE: "success", SOLD: "neutral", EXCLUSIVE: "gold" };
+const STATUS_FILTERS: { value: Status | "ALL"; label: string }[] = [
+  { value: "ALL", label: "Todos" },
+  { value: "AVAILABLE", label: "Disponibles" },
+  { value: "SOLD", label: "Vendidos" },
+  { value: "EXCLUSIVE", label: "Exclusivos" },
+];
 
 type BeatDraft = {
   title: string;
@@ -96,9 +118,21 @@ export function AdminBeatsManager({ initialItems }: { initialItems: Beat[] }) {
   const [uploadingAudio, setUploadingAudio] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Beat | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<Status | "ALL">("ALL");
 
   const coverPreview = useMemo(() => (draft.coverUrl ? resolveMediaUrl(draft.coverUrl) : null), [draft.coverUrl]);
   const audioPreview = useMemo(() => (draft.audioUrl ? resolveMediaUrl(draft.audioUrl) : null), [draft.audioUrl]);
+
+  /* Filtro solo de presentación (no toca datos ni URL). */
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return initialItems.filter((b) => {
+      if (statusFilter !== "ALL" && b.status !== statusFilter) return false;
+      if (!q) return true;
+      return [b.title, b.genre, b.mood ?? ""].some((s) => s.toLowerCase().includes(q));
+    });
+  }, [initialItems, query, statusFilter]);
 
   function openCreate() {
     setMode("create");
@@ -250,122 +284,146 @@ export function AdminBeatsManager({ initialItems }: { initialItems: Beat[] }) {
     }
   }
 
+  const licenseSummary = (b: Beat) =>
+    [b.priceMp3COP ? "MP3" : null, b.priceWavCOP ? "WAV" : null, b.priceStemsCOP ? "Stems" : null, b.priceExclusiveCOP ? "Excl." : null]
+      .filter(Boolean)
+      .join(" · ");
+
   return (
-    <>
-    <Card>
-      <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <CardTitle className="font-display text-xl">Beats</CardTitle>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">Administra estado, precio, cover y audio.</p>
-        </div>
-        <Button type="button" onClick={openCreate}>
-          Nuevo beat
-        </Button>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Título</TableHead>
-                <TableHead>Género</TableHead>
-                <TableHead>BPM</TableHead>
-                <TableHead>Precio</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {initialItems.map((b) => (
-                <TableRow key={b.id}>
-                  <TableCell className="font-medium">{b.title}</TableCell>
-                  <TableCell>{b.genre}</TableCell>
-                  <TableCell className="font-mono text-xs">{b.bpm ?? "—"}</TableCell>
-                  <TableCell className="font-mono text-xs">
-                    {b.priceCOP.toLocaleString("es-CO")} COP
-                    {[b.priceMp3COP, b.priceWavCOP, b.priceStemsCOP, b.priceExclusiveCOP].some((v) => typeof v === "number") ? (
-                      <span className="block text-[10px] text-[var(--text-muted)]">
-                        {[
-                          b.priceMp3COP ? "MP3" : null,
-                          b.priceWavCOP ? "WAV" : null,
-                          b.priceStemsCOP ? "Stems" : null,
-                          b.priceExclusiveCOP ? "Excl." : null,
-                        ]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </span>
-                    ) : null}
-                  </TableCell>
-                  <TableCell>{b.status}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-2">
-                      <Button type="button" size="sm" variant="outline" onClick={() => openEdit(b)}>
-                        Editar
-                      </Button>
-                      <Button type="button" size="sm" variant="ghost" onClick={() => setDeleteTarget(b)}>
-                        Borrar
-                      </Button>
+    <div className="space-y-4">
+      <AdminModuleToolbar
+        search={
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-3" aria-hidden />
+            <Input type="search" aria-label="Buscar beats" placeholder="Buscar por título, género o mood…" value={query} onChange={(e) => setQuery(e.target.value)} className="pl-10" />
+          </div>
+        }
+        filters={
+          <div role="group" aria-label="Filtrar por estado" className="flex flex-wrap gap-2">
+            {STATUS_FILTERS.map((f) => (
+              <Chip key={f.value} selected={statusFilter === f.value} onClick={() => setStatusFilter(f.value)}>
+                {f.label}
+              </Chip>
+            ))}
+          </div>
+        }
+        summary={`${visible.length} de ${initialItems.length}`}
+        action={
+          <Button type="button" size="sm" onClick={openCreate}>
+            <Plus aria-hidden /> Nuevo beat
+          </Button>
+        }
+      />
+
+      {initialItems.length === 0 ? (
+        <EmptyState
+          icon={Music2}
+          title="Aún no hay beats"
+          description="Sube el primero con su portada y un preview de 30–60 s: aparecerá en /beats al instante."
+          action={
+            <Button type="button" onClick={openCreate}>
+              <Plus aria-hidden /> Nuevo beat
+            </Button>
+          }
+        />
+      ) : visible.length === 0 ? (
+        <EmptyState icon={Search} title="Sin resultados" description="Prueba con otro texto o quita el filtro de estado." />
+      ) : (
+        <div className="scroll-fade-x overflow-x-auto md:[mask-image:none]">
+          <AdminTable>
+            <AdminTableHead>
+              <AdminTableRow>
+                <AdminTableHeader>Beat</AdminTableHeader>
+                <AdminTableHeader>Género</AdminTableHeader>
+                <AdminTableHeader align="right">BPM</AdminTableHeader>
+                <AdminTableHeader align="right">Precio desde</AdminTableHeader>
+                <AdminTableHeader>Estado</AdminTableHeader>
+                <AdminTableHeader align="right">
+                  <span className="sr-only">Acciones</span>
+                </AdminTableHeader>
+              </AdminTableRow>
+            </AdminTableHead>
+            <AdminTableBody>
+              {visible.map((b) => (
+                <AdminTableRow key={b.id} className={cn(b.status === "SOLD" && "opacity-70")}>
+                  <AdminTableCell>
+                    <div className="flex items-center gap-3">
+                      <Avatar name={b.title} src={b.coverUrl ? resolveMediaUrl(b.coverUrl) : null} size={40} square />
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold">{b.title}</p>
+                        {b.mood ? <p className="truncate text-body-sm text-text-3">{b.mood}</p> : null}
+                      </div>
                     </div>
-                  </TableCell>
-                </TableRow>
+                  </AdminTableCell>
+                  <AdminTableCell>
+                    <Badge tone="fire" variant="outline">
+                      {b.genre}
+                    </Badge>
+                  </AdminTableCell>
+                  <AdminTableCell mono align="right">
+                    {b.bpm ?? "—"}
+                  </AdminTableCell>
+                  <AdminTableCell mono align="right" className="whitespace-nowrap">
+                    <span className="text-text-1">{b.priceCOP.toLocaleString("es-CO")} COP</span>
+                    {licenseSummary(b) ? <span className="block text-label-sm text-text-3">{licenseSummary(b)}</span> : null}
+                  </AdminTableCell>
+                  <AdminTableCell>
+                    <Badge tone={STATUS_TONE[b.status as Status] ?? "neutral"}>{b.status}</Badge>
+                  </AdminTableCell>
+                  <AdminTableActions>
+                    <RowAction label="Editar" onClick={() => openEdit(b)}>
+                      <Pencil />
+                    </RowAction>
+                    <RowAction label="Borrar" className="hover:text-danger" onClick={() => setDeleteTarget(b)}>
+                      <Trash2 />
+                    </RowAction>
+                  </AdminTableActions>
+                </AdminTableRow>
               ))}
-              {initialItems.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="py-10 text-center text-[var(--text-muted)]">
-                    No hay beats todavía.
-                  </TableCell>
-                </TableRow>
-              ) : null}
-            </TableBody>
-          </Table>
+            </AdminTableBody>
+          </AdminTable>
         </div>
-      </CardContent>
+      )}
+      <AdminResultsBar summary={initialItems.length ? `${initialItems.length} ${initialItems.length === 1 ? "beat" : "beats"} en el catálogo` : undefined} />
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className={cn(adminDialogClass, "max-w-3xl")}>
           <DialogHeader>
-            <DialogTitle>{mode === "create" ? "Crear beat" : "Editar beat"}</DialogTitle>
+            <DialogTitle className="text-title">{mode === "create" ? "Crear beat" : "Editar beat"}</DialogTitle>
+            <DialogDescription>Título, género y al menos un precio son obligatorios. El resto se puede completar después.</DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-4">
-              <Field label="Título">
+              <AdminField label="Título">
                 <Input value={draft.title} onChange={(e) => setDraft((p) => ({ ...p, title: e.target.value }))} />
-              </Field>
-              <Field label="Género">
+              </AdminField>
+              <AdminField label="Género">
                 <Input value={draft.genre} onChange={(e) => setDraft((p) => ({ ...p, genre: e.target.value }))} />
-              </Field>
-              <div className="grid gap-2 sm:grid-cols-2">
-                <Field label="BPM (opcional)">
-                  <Input
-                    type="number"
-                    value={draft.bpm ?? ""}
-                    onChange={(e) => setDraft((p) => ({ ...p, bpm: e.target.value === "" ? null : Number(e.target.value) }))}
-                  />
-                </Field>
-                <Field label="Precio «desde» COP">
+              </AdminField>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <AdminField label="BPM (opcional)">
+                  <Input type="number" value={draft.bpm ?? ""} onChange={(e) => setDraft((p) => ({ ...p, bpm: e.target.value === "" ? null : Number(e.target.value) }))} />
+                </AdminField>
+                <AdminField label="Precio «desde» COP" hint={minLicensePrice(draft) !== null ? "Se calcula con la licencia más barata." : "Sin licencias: precio único."}>
                   <Input
                     type="number"
                     min={0}
                     value={minLicensePrice(draft) ?? draft.priceCOP}
                     readOnly={minLicensePrice(draft) !== null}
                     onChange={(e) => setDraft((p) => ({ ...p, priceCOP: Number(e.target.value) || 0 }))}
+                    className={cn(minLicensePrice(draft) !== null && "bg-ink-2 text-text-2")}
                   />
-                  <p className="text-[11px] text-[var(--text-muted)]">
-                    {minLicensePrice(draft) !== null ? "Se calcula con la licencia más barata." : "Sin licencias: precio único."}
-                  </p>
-                </Field>
+                </AdminField>
               </div>
 
-              <fieldset className="space-y-2 rounded-lg border border-border p-3">
-                <legend className="px-1 text-xs font-medium text-[var(--text-secondary)]">Precios por licencia (COP)</legend>
-                <p className="text-[11px] text-[var(--text-muted)]">Deja vacío para no ofrecer esa licencia.</p>
-                <div className="grid gap-2 sm:grid-cols-2">
+              <fieldset className="space-y-3 rounded-lg border border-line-1 bg-ink-1/60 p-4">
+                <legend className="px-1 text-label text-text-3">Precios por licencia (COP)</legend>
+                <p className="text-body-sm text-text-3">Deja vacío para no ofrecer esa licencia.</p>
+                <div className="grid gap-3 sm:grid-cols-2">
                   {LICENSES.map((l) => (
-                    <div key={l.key} className="space-y-1">
-                      <Label htmlFor={`beat-${l.key}`} className="text-[11px] text-[var(--text-secondary)]">
-                        {l.label}
-                      </Label>
+                    <div key={l.key} className="flex flex-col gap-2">
+                      <Label htmlFor={`beat-${l.key}`}>{l.label}</Label>
                       <Input
                         id={`beat-${l.key}`}
                         type="number"
@@ -377,119 +435,100 @@ export function AdminBeatsManager({ initialItems }: { initialItems: Beat[] }) {
                         onChange={(e) => setDraft((p) => ({ ...p, [l.key]: parsePrice(e.target.value) }))}
                         aria-describedby={`beat-${l.key}-help`}
                       />
-                      <p id={`beat-${l.key}-help`} className="text-[10px] text-[var(--text-muted)]">
+                      <p id={`beat-${l.key}-help`} className="text-body-sm text-text-3">
                         {l.help}
                       </p>
                     </div>
                   ))}
                 </div>
               </fieldset>
-              <Field label="Mood (opcional)">
+              <AdminField label="Mood (opcional)">
                 <Input value={draft.mood ?? ""} onChange={(e) => setDraft((p) => ({ ...p, mood: e.target.value.trim().length ? e.target.value : null }))} />
-              </Field>
+              </AdminField>
 
-              <Field label="Estado">
-                <select
-                  className="flex h-10 w-full rounded-md border border-border bg-background-secondary px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                  value={draft.status}
-                  onChange={(e) => setDraft((p) => ({ ...p, status: e.target.value as Status }))}
-                >
+              <AdminField label="Estado">
+                <AdminNativeSelect value={draft.status} onChange={(e) => setDraft((p) => ({ ...p, status: e.target.value as Status }))}>
                   <option value="AVAILABLE">Disponible (AVAILABLE)</option>
                   <option value="SOLD">Vendido (SOLD)</option>
                   <option value="EXCLUSIVE">Exclusivo (EXCLUSIVE)</option>
-                </select>
-              </Field>
+                </AdminNativeSelect>
+              </AdminField>
 
-              <Field label="Exclusivo">
-                <label className="flex items-center gap-2 text-sm">
-                  <Checkbox checked={draft.exclusive} onCheckedChange={(v) => setDraft((p) => ({ ...p, exclusive: v === true }))} />
-                  Beat exclusivo
-                </label>
-              </Field>
+              <label className="flex min-h-11 cursor-pointer items-center gap-3 text-body-sm text-text-1">
+                <Checkbox checked={draft.exclusive} onCheckedChange={(v) => setDraft((p) => ({ ...p, exclusive: v === true }))} />
+                Beat exclusivo (se retira del catálogo al venderse)
+              </label>
             </div>
 
             <div className="space-y-4">
-              <Field label="Cover (image)">
+              <AdminField label="Cover (image)" hint="JPG, PNG o WebP. Cuadrada, mínimo 600 px.">
                 {coverPreview ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={coverPreview} alt="preview cover" className="mb-3 h-28 w-full rounded-lg border border-border object-cover" />
+                  <img src={coverPreview} alt="Previsualización de la portada" className="h-32 w-full rounded border border-line-1 object-cover" />
                 ) : (
-                  <div className="mb-3 h-28 w-full rounded-lg border border-border bg-background-secondary" />
+                  <div className="flex h-32 w-full items-center justify-center rounded border border-dashed border-line-2 bg-ink-1 text-text-3">
+                    <Music2 className="h-6 w-6" strokeWidth={1.5} aria-hidden />
+                  </div>
                 )}
-                <Input value={draft.coverUrl ?? ""} onChange={(e) => setDraft((p) => ({ ...p, coverUrl: normalizeMaybeUrl(e.target.value) }))} />
-                <input type="file" accept="image/jpeg,image/png,image/webp" className="mt-2 block w-full text-sm" onChange={onUploadCover} />
-                {uploadingCover ? <p className="mt-1 text-xs text-primary">Subiendo...</p> : null}
-              </Field>
+                <Input placeholder="/uploads/… o https://" value={draft.coverUrl ?? ""} onChange={(e) => setDraft((p) => ({ ...p, coverUrl: normalizeMaybeUrl(e.target.value) }))} />
+                <input type="file" accept="image/jpeg,image/png,image/webp" aria-label="Subir portada" className="block w-full cursor-pointer text-body-sm text-text-2 file:mr-3 file:cursor-pointer file:rounded file:border file:border-line-2 file:bg-ink-3 file:px-3 file:py-2 file:text-body-sm file:font-medium file:text-text-1" onChange={onUploadCover} />
+                {uploadingCover ? (
+                  <p className="text-body-sm text-fire-400" role="status">
+                    Subiendo…
+                  </p>
+                ) : null}
+              </AdminField>
 
-              <Field label="Preview MP3 (audioUrl)">
+              <AdminField label="Preview MP3 (audioUrl)" hint="MP3 de 30–60 s, máximo 4,5 MB. Es lo que suena en /beats.">
                 {audioPreview ? (
-                  <div className="mb-3 rounded-lg border border-border bg-background-secondary p-3">
+                  <div className="rounded border border-line-1 bg-ink-1 p-3">
                     <BeatAudioPlayer src={audioPreview} title={draft.title || "Beat"} />
                   </div>
                 ) : (
-                  <div className="mb-3 h-20 w-full rounded-lg border border-border bg-background-secondary" />
+                  <div className="flex h-20 w-full items-center justify-center rounded border border-dashed border-line-2 bg-ink-1 text-body-sm text-text-3">Sin preview</div>
                 )}
-                <Input
-                  placeholder="/uploads/... o https://"
-                  value={draft.audioUrl ?? ""}
-                  onChange={(e) => setDraft((p) => ({ ...p, audioUrl: normalizeMaybeUrl(e.target.value) }))}
-                />
+                <Input placeholder="/uploads/... o https://" value={draft.audioUrl ?? ""} onChange={(e) => setDraft((p) => ({ ...p, audioUrl: normalizeMaybeUrl(e.target.value) }))} />
                 <input
                   type="file"
                   accept="audio/mpeg,.mp3"
                   aria-label="Subir preview MP3"
-                  className="mt-2 block w-full text-sm"
+                  className="block w-full cursor-pointer text-body-sm text-text-2 file:mr-3 file:cursor-pointer file:rounded file:border file:border-line-2 file:bg-ink-3 file:px-3 file:py-2 file:text-body-sm file:font-medium file:text-text-1"
                   onChange={onUploadAudio}
                 />
-                <p className="mt-1 text-[11px] text-[var(--text-muted)]">MP3 de 30–60 s, máximo 4,5 MB. Es lo que suena en /beats.</p>
-                {uploadingAudio ? <p className="mt-1 text-xs text-primary">Subiendo...</p> : null}
-              </Field>
-
-              <div className="flex flex-wrap gap-2 pt-2 md:justify-end">
-                <Button type="button" variant="outline" disabled={saving} onClick={() => setOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button type="button" disabled={saving} onClick={() => void onSave()}>
-                  {saving ? "Guardando…" : "Guardar"}
-                </Button>
-              </div>
+                {uploadingAudio ? (
+                  <p className="text-body-sm text-fire-400" role="status">
+                    Subiendo…
+                  </p>
+                ) : null}
+              </AdminField>
             </div>
           </div>
+
+          <AdminDialogFooter>
+            <Button type="button" variant="outline" disabled={saving} onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="button" loading={saving} onClick={() => void onSave()}>
+              Guardar
+            </Button>
+          </AdminDialogFooter>
         </DialogContent>
       </Dialog>
-    </Card>
 
       <AlertDialog open={deleteTarget !== null} onOpenChange={(o) => !o && setDeleteTarget(null)}>
-        <AlertDialogContent className="border-white/10 bg-background-card">
+        <AlertDialogContent className={adminDialogClass}>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Borrar este beat?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Se eliminará «{deleteTarget?.title ?? ""}». Esta acción no se puede deshacer.
-            </AlertDialogDescription>
+            <AlertDialogTitle className="text-title">¿Borrar este beat?</AlertDialogTitle>
+            <AlertDialogDescription>Se eliminará «{deleteTarget?.title ?? ""}». Esta acción no se puede deshacer.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleteBusy}>Cancelar</AlertDialogCancel>
-            <Button
-              type="button"
-              variant="destructive"
-              disabled={deleteBusy}
-              onClick={() => void confirmDeleteBeat()}
-            >
-              {deleteBusy ? "Borrando…" : "Borrar"}
+            <Button type="button" variant="danger" loading={deleteBusy} onClick={() => void confirmDeleteBeat()}>
+              Borrar
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-2">
-      <Label className="text-xs font-medium text-[var(--text-secondary)]">{label}</Label>
-      {children}
     </div>
   );
 }
-

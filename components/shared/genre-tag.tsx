@@ -1,19 +1,21 @@
-import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 import { GENRE_ACCENTS } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 
 interface GenreTagProps {
   genre: string;
   className?: string;
 }
 
+/**
+ * Wrapper de compatibilidad: `Badge` outline con el color del género (GENRE_ACCENTS) en una
+ * pastilla pequeña. El color va solo en el texto y el borde, nunca en bloques grandes.
+ */
 export function GenreTag({ genre, className }: GenreTagProps) {
-  const color = GENRE_ACCENTS[genre] ?? "var(--text-secondary)";
+  const color = GENRE_ACCENTS[genre];
   return (
-    <span
-      className={cn("inline-block rounded px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider", className)}
-      style={{ color, border: `1px solid ${color}` }}
-    >
+    <Badge variant="outline" tone="neutral" size="sm" className={cn(className)} style={color ? { color, borderColor: color } : undefined}>
       {genre}
-    </span>
+    </Badge>
   );
 }

@@ -3,16 +3,24 @@
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { Music2 } from "lucide-react";
 import type { Beat, BeatLicenseType } from "@/types/models";
 import type { SiteLegal } from "@/types/site-content";
-import { FilterChips } from "@/components/shared/filter-chips";
+import { EmptyState } from "@/components/ds/empty-state";
+import { FilterBar, FilterGroup } from "@/components/ds/filter-bar";
 import { LazyToaster } from "@/components/shared/lazy-toaster";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Chip } from "@/components/ui/chip";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Text } from "@/components/ui/text";
 import { GENRE_FILTER_VALUES } from "@/lib/constants";
-import { BeatCard, beatToTrack } from "@/features/beats/components/beat-card";
+import { BeatCard } from "@/features/beats/components/beat-card";
+import { BeatRow } from "@/features/beats/components/beat-row";
 import { BeatLicenseModal } from "@/features/beats/components/beat-license-modal";
+import { BeatsViewToggle, useBeatsView } from "@/features/beats/components/beats-view-toggle";
+import { beatToTrack } from "@/features/beats/components/use-beat-playback";
 import { usePlayerStore, type PlayerTrack } from "@/features/beats/stores/player-store";
 
 /** Formulario "Me interesa" (zod + react-hook-form): se descarga solo al elegir licencia. */
@@ -28,6 +36,11 @@ interface BeatsStoreProps {
   legal: Pick<SiteLegal, "businessName" | "policyVersion" | "ivaIncluded">;
 }
 
+/**
+ * Catálogo de beats: `FilterBar` sticky (género, mood, BPM, solo disponibles) con toggle lista/grilla
+ * persistido, vista lista (`BeatRow`) o grilla (`BeatCard`), modal de licencia y formulario de interés.
+ * La cola de la barra global son los beats visibles con preview, en el orden de la lista.
+ */
 export function BeatsStore({ initialItems, legal }: BeatsStoreProps) {
   const [genre, setGenre] = useState<string>(ALL);
   const [bpmMin, setBpmMin] = useState(60);
@@ -36,6 +49,7 @@ export function BeatsStore({ initialItems, legal }: BeatsStoreProps) {
   const [onlyAvail, setOnlyAvail] = useState(false);
   const [licenseBeat, setLicenseBeat] = useState<Beat | null>(null);
   const [interest, setInterest] = useState<{ beat: Beat; licenseType: BeatLicenseType } | null>(null);
+  const [view, setView] = useBeatsView();
 
   const genres = useMemo(() => {
     const s = new Set<string>(GENRE_FILTER_VALUES);
@@ -115,95 +129,152 @@ export function BeatsStore({ initialItems, legal }: BeatsStoreProps) {
   }, [initialItems]);
 
   const ivaIncluded = legal.ivaIncluded ?? true;
+  const hasFilters = genre !== ALL || mood !== ALL || onlyAvail || bpmMin !== 60 || bpmMax !== 200;
+
+  function resetFilters() {
+    setGenre(ALL);
+    setMood(ALL);
+    setOnlyAvail(false);
+    setBpmMin(60);
+    setBpmMax(200);
+  }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10 lg:px-8">
+    <div>
       <LazyToaster />
-      <div className="mb-8 space-y-5">
-        <FilterChips
-          label="Género"
-          chips={[{ value: ALL, label: "Todos", count: initialItems.length }, ...genres.map((g) => ({ value: g, label: g, count: counts.get(g) ?? 0 }))]}
-          active={genre}
-          onSelect={setGenre}
-        />
-        {moods.length ? (
-          <FilterChips
-            label="Mood"
-            chips={[{ value: ALL, label: "Cualquier mood" }, ...moods.map((m) => ({ value: m, label: m }))]}
-            active={mood}
-            onSelect={setMood}
-          />
-        ) : null}
-        <div className="flex flex-wrap items-end gap-4 rounded-lg border border-border bg-background-card p-4">
-          <div className="flex gap-3">
-            <div>
-              <Label htmlFor="bpm-min">BPM mín</Label>
-              <Input
-                id="bpm-min"
-                type="number"
-                inputMode="numeric"
-                className="mt-1 h-11 w-24"
-                value={bpmMin}
-                min={60}
-                max={200}
-                onChange={(e) => setBpmMin(Number(e.target.value) || 60)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="bpm-max">BPM máx</Label>
-              <Input
-                id="bpm-max"
-                type="number"
-                inputMode="numeric"
-                className="mt-1 h-11 w-24"
-                value={bpmMax}
-                min={60}
-                max={200}
-                onChange={(e) => setBpmMax(Number(e.target.value) || 200)}
-              />
-            </div>
+      <FilterBar
+        label="Filtros de beats"
+        /* Sticky solo desde lg: en móvil la barra (4 filas) taparía media pantalla. */
+        className="lg:sticky lg:top-[var(--nav-h,72px)] lg:z-40 lg:bg-ink-0/85 lg:backdrop-blur-md"
+        end={
+          <div className="flex w-full items-center justify-between gap-3 md:w-auto md:justify-end">
+            <p className="font-mono text-label text-text-3" aria-live="polite">
+              {filtered.length} {filtered.length === 1 ? "beat" : "beats"}
+              {ivaIncluded ? " · IVA incluido" : ""}
+            </p>
+            <BeatsViewToggle view={view} onChange={setView} />
           </div>
-          <label htmlFor="only-avail" className="flex min-h-11 cursor-pointer items-center gap-3 text-sm text-foreground">
-            <Checkbox id="only-avail" checked={onlyAvail} onCheckedChange={(v) => setOnlyAvail(v === true)} className="h-5 w-5" />
+        }
+      >
+        <FilterGroup as="nav" label="Género" showLabel>
+          <li>
+            <Chip selected={genre === ALL} count={initialItems.length} onClick={() => setGenre(ALL)}>
+              Todos
+            </Chip>
+          </li>
+          {genres.map((g) => (
+            <li key={g}>
+              <Chip selected={genre === g} count={counts.get(g) ?? 0} onClick={() => setGenre(g)}>
+                {g}
+              </Chip>
+            </li>
+          ))}
+        </FilterGroup>
+        {moods.length ? (
+          <FilterGroup as="nav" label="Mood" showLabel>
+            <li>
+              <Chip selected={mood === ALL} onClick={() => setMood(ALL)}>
+                Cualquier mood
+              </Chip>
+            </li>
+            {moods.map((m) => (
+              <li key={m}>
+                <Chip selected={mood === m} onClick={() => setMood(m)}>
+                  {m}
+                </Chip>
+              </li>
+            ))}
+          </FilterGroup>
+        ) : null}
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+          <span className="hidden text-label text-text-3 lg:inline">BPM</span>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="bpm-min" className="sr-only">
+              BPM mín
+            </Label>
+            <Input
+              id="bpm-min"
+              type="number"
+              inputMode="numeric"
+              aria-label="BPM mín"
+              className="h-11 w-20 font-mono tabular-nums"
+              value={bpmMin}
+              min={60}
+              max={200}
+              onChange={(e) => setBpmMin(Number(e.target.value) || 60)}
+            />
+            <span className="text-label text-text-3" aria-hidden>
+              —
+            </span>
+            <Label htmlFor="bpm-max" className="sr-only">
+              BPM máx
+            </Label>
+            <Input
+              id="bpm-max"
+              type="number"
+              inputMode="numeric"
+              aria-label="BPM máx"
+              className="h-11 w-20 font-mono tabular-nums"
+              value={bpmMax}
+              min={60}
+              max={200}
+              onChange={(e) => setBpmMax(Number(e.target.value) || 200)}
+            />
+            <span className="text-label text-text-3 lg:hidden">BPM</span>
+          </div>
+          <label htmlFor="only-avail" className="flex min-h-11 cursor-pointer items-center gap-3 text-body-sm text-text-1">
+            <Checkbox id="only-avail" checked={onlyAvail} onCheckedChange={(v) => setOnlyAvail(v === true)} />
             Solo disponibles
           </label>
-          <p className="ml-auto font-mono text-xs uppercase tracking-widest text-[var(--text-muted)]" aria-live="polite">
-            {filtered.length} {filtered.length === 1 ? "beat" : "beats"}
-            {ivaIncluded ? " · IVA incluido" : ""}
-          </p>
+          {hasFilters ? (
+            <Button type="button" variant="link" size="sm" onClick={resetFilters}>
+              Limpiar filtros
+            </Button>
+          ) : null}
         </div>
-      </div>
+      </FilterBar>
 
-      {filtered.length ? (
-        <div className="grid gap-3 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
-          {filtered.map((beat, i) => (
-            <BeatCard
-              key={beat.id}
-              beat={beat}
-              ivaIncluded={ivaIncluded}
-              priority={i < 3}
-              queue={queue}
-              onChooseLicense={() => setLicenseBeat(beat)}
-            />
-          ))}
-        </div>
-      ) : (
-        <p className="rounded-lg border border-dashed border-border px-6 py-14 text-center text-[var(--text-secondary)]">
-          No hay beats con esos filtros. Prueba otro género o{" "}
-          <Link href="/booking" className="text-primary underline underline-offset-2">
-            pide un beat a medida
+      <section className="container-page py-10 lg:py-14" aria-label="Catálogo de beats">
+        {filtered.length ? (
+          view === "list" ? (
+            <ul className="border-t border-line-1">
+              {filtered.map((beat, i) => (
+                <BeatRow key={beat.id} beat={beat} ivaIncluded={ivaIncluded} priority={i < 4} queue={queue} onChooseLicense={() => setLicenseBeat(beat)} />
+              ))}
+            </ul>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
+              {filtered.map((beat, i) => (
+                <BeatCard key={beat.id} beat={beat} ivaIncluded={ivaIncluded} priority={i < 4} queue={queue} onChooseLicense={() => setLicenseBeat(beat)} />
+              ))}
+            </div>
+          )
+        ) : (
+          <EmptyState
+            icon={Music2}
+            title="Sin beats con esos filtros"
+            description="Prueba otro género o mood, o pide un beat a medida."
+            action={
+              <div className="flex flex-wrap justify-center gap-3">
+                <Button type="button" variant="outline" onClick={resetFilters}>
+                  Quitar filtros
+                </Button>
+                <Button asChild withArrow>
+                  <Link href="/booking">Pedir un beat a medida</Link>
+                </Button>
+              </div>
+            }
+          />
+        )}
+
+        <Text size="body-sm" tone="3" className="mt-10 text-center">
+          Condiciones de uso en la{" "}
+          <Link href="/legal/licencia-beats" className="link-sweep text-fire-400">
+            Licencia de beats
           </Link>
           .
-        </p>
-      )}
-
-      <p className="mt-10 text-center text-xs leading-relaxed text-[var(--text-muted)]">
-        Condiciones de uso en la{" "}
-        <Link href="/legal/licencia-beats" className="text-primary underline underline-offset-2">
-          Licencia de beats
-        </Link>
-        .
-      </p>
+        </Text>
+      </section>
 
       {licenseBeat ? (
         <BeatLicenseModal

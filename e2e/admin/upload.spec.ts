@@ -7,11 +7,11 @@ test.describe("Admin · subida de imágenes", () => {
     await page.goto("/admin/dashboard/canales");
     await page.getByRole("button", { name: /nuevo canal/i }).click();
     const dialog = page.getByRole("dialog", { name: "Crear canal" });
-    await expect(dialog.getByLabel("Avatar")).toHaveValue("");
+    await expect(dialog.getByLabel("Avatar", { exact: true })).toHaveValue("");
 
     await dialog.locator("input[type='file']").setInputFiles({ name: "e2e-1x1.png", mimeType: "image/png", buffer: PNG_1X1 });
     await expectToast(page, /imagen subida/i);
-    const urlInput = dialog.getByLabel("Avatar");
+    const urlInput = dialog.getByLabel("Avatar", { exact: true });
     await expect(urlInput).toHaveValue(/^(https?:\/\/|\/uploads\/).+\.png$/i);
     const value = await urlInput.inputValue();
     const absolute = value.startsWith("http") ? value : `${API_URL}${value}`;
@@ -37,6 +37,6 @@ test.describe("Admin · subida de imágenes", () => {
     const dialog = page.getByRole("dialog", { name: "Crear canal" });
     await dialog.locator("input[type='file']").setInputFiles({ name: "nota.txt", mimeType: "text/plain", buffer: Buffer.from("hola") });
     await expectToast(page, /formato no admitido/i);
-    await expect(dialog.getByLabel("Avatar")).toHaveValue("");
+    await expect(dialog.getByLabel("Avatar", { exact: true })).toHaveValue("");
   });
 });

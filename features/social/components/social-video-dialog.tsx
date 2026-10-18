@@ -18,18 +18,18 @@ export function SocialVideoDialog({ video, onClose }: SocialVideoDialogProps) {
   const open = video !== null;
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-4xl gap-3 p-4 sm:p-5">
+      <DialogContent className="max-w-4xl gap-3 border-line-1 bg-ink-2 p-4 sm:p-5">
         {video ? (
           <>
             <DialogHeader className="pr-8">
-              <DialogTitle className="display-title text-xl text-foreground md:text-2xl">{video.title}</DialogTitle>
+              <DialogTitle className="text-title text-text-1">{video.title}</DialogTitle>
               <DialogDescription>{video.author?.trim() ? `${video.author} · YouTube` : "YouTube"}</DialogDescription>
             </DialogHeader>
             <YoutubeLazyEmbed
               src={`${videoEmbedUrl(video.videoId)}?autoplay=1&rel=0`}
               title={video.title}
               ctaLabel="Reproducir"
-              className="border-border"
+              className="border-line-1"
             />
           </>
         ) : null}

@@ -21,7 +21,7 @@ test.describe("Inicio", () => {
     await expect(page).toHaveURL(/\/productions$/, { timeout: 30_000 });
   });
 
-  test("pill «Lo último» del hero enlaza a /releases y cinta (marquee) de géneros", async ({ page, request }) => {
+  test("tarjeta «Lo último» del hero enlaza a /releases ", async ({ page, request }) => {
     const data = (await (await request.get(`${API_URL}/api/releases`)).json()) as {
       items: { slug: string; title: string }[];
     };
@@ -34,19 +34,62 @@ test.describe("Inicio", () => {
       await expect(pill).toBeVisible();
       await expect(pill).toHaveAttribute("href", /^\/releases(\/[^/]+)?$/);
       await expect(pill).toContainText(/nuevo|próximamente/i);
+      await expect(pill).toContainText(data.items[0].title);
+      await expect(pill).toContainText(/escuchar/i);
       // Altura táctil mínima (44 px).
       const box = await pill.boundingBox();
       expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
     }
+  });
 
-    const marquee = page.getByTestId("marquee-strip");
-    await expect(marquee).toBeVisible();
-    // Un grupo visible (el duplicado es aria-hidden) con los géneros sin «Otro» y los textos fijos.
-    const visibleItems = marquee.locator("ul:not([aria-hidden='true']) li");
-    for (const name of ["Champeta", "Trap", "Reggaeton", "Afrobeat", "Dancehall", "Est. 2016"]) {
-      await expect(visibleItems.filter({ hasText: name }).first()).toBeAttached();
+  test("historia anidada en «Quiénes somos» (hitos del CMS) y novedades: 1 destacada + lista con diálogo de video", async ({
+    page,
+    request,
+  }) => {
+    const cfg = (await (await request.get(`${API_URL}/api/site-config`)).json()) as {
+      content: { home: { milestones: { year: string; title: string }[] } };
+    };
+    const feed = (await (await request.get(`${API_URL}/api/social/feed?limit=5`)).json()) as {
+      items: { id: string; kind: string; title: string }[];
+    };
+    await page.goto("/");
+
+    // Historia vive dentro de la sección «Quiénes somos» (misma pantalla), con su propio titular.
+    const historia = page.locator("section[aria-labelledby='about-title'] section[aria-labelledby='historia-title']");
+    await historia.scrollIntoViewIfNeeded();
+    await expect(historia.getByRole("heading", { level: 2 })).toBeVisible();
+    const hitos = historia.getByRole("list", { name: "Hitos del sello" }).getByRole("listitem");
+    await expect(hitos).toHaveCount(cfg.content.home.milestones.length);
+    for (const m of cfg.content.home.milestones) {
+      await expect(historia.getByRole("heading", { level: 3, name: m.title })).toBeVisible();
+      await expect(historia.getByText(m.year, { exact: true })).toBeVisible();
     }
-    await expect(visibleItems.filter({ hasText: /^Otro/ })).toHaveCount(0);
+
+    // Novedades: solo si el feed tiene publicaciones (la sección no se renderiza sin datos).
+    const news = page.locator("section[aria-labelledby='news-title']");
+    if (feed.items.length === 0) {
+      await expect(news).toHaveCount(0);
+      return;
+    }
+    await news.scrollIntoViewIfNeeded();
+    await expect(news.getByRole("heading", { level: 2 })).toBeVisible();
+    await expect(news.getByRole("link", { name: /ver todas las novedades/i }).first()).toHaveAttribute("href", "/novedades");
+    const articles = news.locator("article");
+    await expect(articles).toHaveCount(Math.min(5, feed.items.length));
+    const featured = news.locator("article[aria-labelledby='home-news-featured']");
+    await expect(featured.getByRole("heading", { level: 3 })).toContainText(feed.items[0].title.slice(0, 20));
+    const first = feed.items[0];
+    if (first.kind === "YOUTUBE_VIDEO") {
+      // El botón «Ver» abre el diálogo de video (un solo iframe por página) y Esc lo cierra.
+      await featured.getByRole("button", { name: new RegExp(`^ver en youtube: `, "i") }).first().click();
+      const dialog = page.getByRole("dialog");
+      await expect(dialog).toBeVisible();
+      await expect(dialog.getByRole("heading")).toContainText(first.title.slice(0, 20));
+      await page.keyboard.press("Escape");
+      await expect(dialog).toBeHidden();
+    } else {
+      await expect(featured.getByRole("link", { name: /^abrir en /i })).toHaveAttribute("rel", /noopener/);
+    }
   });
 
   test("cifras visibles con su valor final (SSR) y grilla de géneros", async ({ page, request }) => {
@@ -69,6 +112,7 @@ test.describe("Inicio", () => {
     const genres = page.locator("section[aria-labelledby='genres-title']");
     await genres.scrollIntoViewIfNeeded();
     await expect(genres.getByRole("heading", { level: 2 })).toBeVisible();
+    // Lista editorial: 5 filas (FeatureRow) con número, nombre en h3 y descripción.
     const items = genres.getByRole("listitem");
     await expect(items).toHaveCount(5);
     for (const name of ["Champeta", "Trap", "Reggaeton", "Afrobeat", "Dancehall"]) {

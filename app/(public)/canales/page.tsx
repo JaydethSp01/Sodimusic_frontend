@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Youtube } from "lucide-react";
-import { PageHero } from "@/components/shared/page-hero";
+import { EmptyState } from "@/components/ds/empty-state";
+import { HeroPage } from "@/components/ds/hero-page";
+import { StatItem } from "@/components/ds/stat-item";
 import { Button } from "@/components/ui/button";
 import { ChannelCategoryChips } from "@/features/channels/components/channel-category-chips";
-import { ChannelsGrid } from "@/features/channels/components/channels-grid";
+import { ChannelsList } from "@/features/channels/components/channels-list";
 import { ChannelsPagination } from "@/features/channels/components/channels-pagination";
 import { ChannelsSearchForm } from "@/features/channels/components/channels-search-form";
 import { CHANNELS_PAGE_SIZE, fetchChannels } from "@/features/channels/api";
@@ -49,59 +51,62 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Sea
   }
   const filtered = Boolean(q || category);
   const youtube = site.youtube;
+  const countLine = `${data.total} ${data.total === 1 ? "canal" : "canales"}${category ? ` · ${category}` : ""}${q ? ` · «${q}»` : ""}`;
 
   return (
     <div>
-      <PageHero
+      <HeroPage
         eyebrow={youtube.sectionEyebrow}
         title={youtube.pageTitle?.trim() || "Canales de YouTube"}
         description={youtube.pageDescription?.trim() || undefined}
+        aside={
+          overview.total ? (
+            <StatItem value={overview.total} label={overview.total === 1 ? "Canal activo" : "Canales activos"} orientation="left" className="lg:border-l-0 lg:border-r lg:pl-0 lg:pr-4 lg:text-right" />
+          ) : undefined
+        }
       >
         <ChannelsSearchForm initialQuery={q ?? ""} category={category} />
-      </PageHero>
+      </HeroPage>
 
-      <section className="mx-auto max-w-7xl px-4 py-12 lg:px-8" aria-label="Listado de canales">
-        {categories.length > 1 ? (
-          <div className="mb-8">
-            <ChannelCategoryChips
-              categories={categories}
-              active={category}
-              q={q}
-              totalAll={overview.total}
-              totalActive={category ? data.total : undefined}
-            />
-          </div>
-        ) : null}
+      {categories.length > 1 ? (
+        <ChannelCategoryChips
+          categories={categories}
+          active={category}
+          q={q}
+          totalAll={overview.total}
+          totalActive={category ? data.total : undefined}
+        />
+      ) : null}
 
+      <section className="container-page py-12 lg:py-16" aria-label="Listado de canales">
         {data.items.length === 0 ? (
-          <div className="mx-auto flex max-w-lg flex-col items-center gap-5 rounded-lg border border-dashed border-border bg-background-card/50 px-6 py-14 text-center">
-            <Youtube className="h-10 w-10 text-[var(--text-muted)]" aria-hidden />
-            <p className="text-[var(--text-secondary)]">
-              {filtered
+          <EmptyState
+            icon={Youtube}
+            title={filtered ? "Sin canales con ese filtro" : "Todavía no hay canales"}
+            description={
+              filtered
                 ? `No encontramos canales${q ? ` para «${q}»` : ""}${category ? ` en «${category}»` : ""}.`
-                : "Todavía no hay canales publicados. Vuelve pronto."}
-            </p>
-            {filtered ? (
-              <Button asChild variant="outline" className="h-11">
-                <a href={buildChannelsHref({})}>Ver todos los canales</a>
-              </Button>
-            ) : null}
-          </div>
+                : "Todavía no hay canales publicados. Vuelve pronto."
+            }
+            action={
+              filtered ? (
+                <Button asChild variant="outline">
+                  <a href={buildChannelsHref({})}>Ver todos los canales</a>
+                </Button>
+              ) : undefined
+            }
+          />
         ) : (
           <>
             <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
-              <p className="font-mono text-xs uppercase tracking-widest text-[var(--text-muted)]">
-                {data.total} {data.total === 1 ? "canal" : "canales"}
-                {category ? ` · ${category}` : ""}
-                {q ? ` · «${q}»` : ""}
-              </p>
+              <p className="font-mono text-label text-text-3">{countLine}</p>
               {totalPages > 1 ? (
-                <p className="font-mono text-xs uppercase tracking-widest text-[var(--text-muted)]">
+                <p className="font-mono text-label text-text-3">
                   Página {Math.min(page, totalPages)} de {totalPages}
                 </p>
               ) : null}
             </div>
-            <ChannelsGrid channels={data.items} subscribeLabel={youtube.subscribeLabel} variant="grid" />
+            <ChannelsList channels={data.items} subscribeLabel={youtube.subscribeLabel} />
             <ChannelsPagination page={data.page} totalPages={totalPages} q={q} category={category} className="mt-12" />
           </>
         )}

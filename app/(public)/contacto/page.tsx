@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PageHero } from "@/components/shared/page-hero";
+import { HeroPage } from "@/components/ds/hero-page";
 import { ContactForm } from "@/features/contact/components/contact-form";
 import { DirectContact } from "@/features/contact/components/direct-contact";
 import { PressKit } from "@/features/contact/components/press-kit";
@@ -33,11 +33,11 @@ export default async function ContactoPage({ searchParams }: { searchParams?: Se
 
   return (
     <div>
-      <PageHero eyebrow="Prensa · demos · booking" title={contactPage.pageTitle} description={contactPage.pageDescription} />
+      <HeroPage eyebrow="Prensa · demos · booking" title={contactPage.pageTitle} accent="prensa" description={contactPage.pageDescription} />
 
-      <div className="mx-auto max-w-7xl px-4 py-10 lg:px-8 lg:py-16">
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-12">
-          <div>
+      <div className="container-page py-10 lg:py-16">
+        <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
+          <div className="min-w-0 lg:col-span-7">
             <h2 className="sr-only">Formulario de contacto</h2>
             <ContactForm
               subjects={subjects}
@@ -46,7 +46,7 @@ export default async function ContactoPage({ searchParams }: { searchParams?: Se
               initialSubject={searchParams?.asunto}
             />
           </div>
-          <aside className="space-y-8">
+          <aside className="min-w-0 space-y-12 lg:col-span-5">
             <DirectContact
               whatsapp={legal.phone || contact.whatsapp}
               email={contact.email || legal.email}

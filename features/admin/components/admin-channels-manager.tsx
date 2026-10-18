@@ -1,17 +1,19 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition, type FormEvent } from "react";
-import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, ExternalLink, Search, Youtube } from "lucide-react";
+import { ArrowDown, ArrowUp, Pencil, Plus, Search, Star, Trash2, Youtube } from "lucide-react";
 import { toast } from "sonner";
 import type { ChannelStatus, YoutubeChannel } from "@/types/models";
 import { resolveMediaUrl } from "@/lib/resolve-media-url";
 import { isYoutubeUrl, parseYoutubeChannelId, parseYoutubeVideoId } from "@/lib/youtube";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
+import { AdminTable, AdminTableActions, AdminTableBody, AdminTableCell, AdminTableHead, AdminTableHeader, AdminTableRow } from "@/components/ds/admin-table";
+import { EmptyState } from "@/components/ds/empty-state";
+import { Pagination } from "@/components/ds/pagination";
+import { Avatar } from "@/components/ui/avatar";
+import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog,
@@ -22,12 +24,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ImageUploadField } from "@/features/admin/components/image-upload-field";
+import {
+  AdminDialogFooter,
+  AdminField,
+  AdminModuleToolbar,
+  AdminNativeSelect,
+  AdminResultsBar,
+  RowAction,
+  adminDialogClass,
+} from "@/features/admin/components/admin-primitives";
 import {
   createChannelAction,
   deleteChannelAction,
@@ -37,13 +47,10 @@ import {
 
 export const ADMIN_CHANNELS_PAGE_SIZE = 20;
 
-const STATUS_META: Record<ChannelStatus, { label: string; className: string }> = {
-  ACTIVE: { label: "Activo", className: "border-transparent bg-primary-muted text-primary" },
-  HIDDEN: { label: "Oculto", className: "border-transparent bg-background-elevated text-[var(--text-secondary)]" },
+const STATUS_META: Record<ChannelStatus, { label: string; tone: BadgeTone }> = {
+  ACTIVE: { label: "Activo", tone: "success" },
+  HIDDEN: { label: "Oculto", tone: "neutral" },
 };
-
-const nativeSelectClass =
-  "flex h-10 w-full rounded-md border border-border bg-background-secondary px-3 py-2 text-sm text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
 type ChannelDraft = {
   name: string;
@@ -274,358 +281,260 @@ export function AdminChannelsManager({ items, total, page, pageSize, query, stat
     }
   }
 
+  const filtered = Boolean(query || status);
+
   return (
-    <>
-      <Card>
-        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <CardTitle className="font-display text-xl">Canales de YouTube</CardTitle>
-            <p className="mt-1 text-sm text-[var(--text-muted)]">
-              Canales del sello, crew y aliados que se muestran en el inicio (destacados) y en «/canales». Los textos de la
-              sección se editan en «Sitio web → Canales».
-            </p>
-          </div>
-          <Button type="button" onClick={openCreate}>
-            Nuevo canal
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <form onSubmit={onSearchSubmit} role="search" className="flex w-full max-w-md gap-2">
-              <div className="relative flex-1">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden />
-                <Input
-                  type="search"
-                  name="q"
-                  value={searchValue}
-                  onChange={(e) => setSearchValue(e.target.value)}
-                  placeholder="Buscar por nombre, @handle, URL…"
-                  aria-label="Buscar canales"
-                  className="pl-9"
-                />
-              </div>
-              <Button type="submit" variant="outline" disabled={navPending}>
-                Buscar
-              </Button>
-            </form>
-            <div className="flex items-center gap-2">
-              <Label htmlFor="admin-channels-status" className="text-xs text-[var(--text-secondary)]">
-                Estado
-              </Label>
-              <select
-                id="admin-channels-status"
-                className={cn(nativeSelectClass, "w-auto min-w-36")}
-                value={status}
-                disabled={navPending}
-                onChange={(e) => navigate({ status: e.target.value, page: 1 })}
-              >
-                <option value="">Todos</option>
-                <option value="ACTIVE">Activos</option>
-                <option value="HIDDEN">Ocultos</option>
-              </select>
+    <div className="space-y-4">
+      <AdminModuleToolbar
+        search={
+          <form onSubmit={onSearchSubmit} role="search" className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-3" aria-hidden />
+              <Input
+                type="search"
+                name="q"
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
+                placeholder="Buscar por nombre, @handle, URL…"
+                aria-label="Buscar canales"
+                className="pl-10"
+              />
             </div>
+            <Button type="submit" variant="outline" disabled={navPending}>
+              Buscar
+            </Button>
+          </form>
+        }
+        filters={
+          <div className="flex items-center gap-2">
+            <Label htmlFor="admin-channels-status" className="shrink-0">
+              Estado
+            </Label>
+            <AdminNativeSelect id="admin-channels-status" className="w-auto min-w-36" value={status} disabled={navPending} onChange={(e) => navigate({ status: e.target.value, page: 1 })}>
+              <option value="">Todos</option>
+              <option value="ACTIVE">Activos</option>
+              <option value="HIDDEN">Ocultos</option>
+            </AdminNativeSelect>
           </div>
+        }
+        summary={`${total} ${total === 1 ? "canal" : "canales"}`}
+        action={
+          <Button type="button" size="sm" onClick={openCreate}>
+            <Plus aria-hidden /> Nuevo canal
+          </Button>
+        }
+      />
 
-          <div className={cn("overflow-x-auto transition-opacity", navPending && "opacity-60")} aria-busy={navPending}>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-16">Avatar</TableHead>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Categoría</TableHead>
-                  <TableHead>Destacado</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Orden</TableHead>
-                  <TableHead>Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {items.map((ch, i) => {
-                  const meta = STATUS_META[ch.status] ?? STATUS_META.HIDDEN;
-                  const isBusy = rowBusy === ch.id;
-                  const avatar = ch.avatarUrl?.trim() ? resolveMediaUrl(ch.avatarUrl) : null;
-                  return (
-                    <TableRow key={ch.id} className={cn(isBusy && "opacity-60")}>
-                      <TableCell>
-                        {avatar ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={avatar} alt="" className="h-12 w-12 rounded-full border border-border object-cover" loading="lazy" />
-                        ) : (
-                          <div className="flex h-12 w-12 items-center justify-center rounded-full border border-dashed border-border text-[var(--text-muted)]">
-                            <Youtube className="h-4 w-4" aria-hidden />
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        <div className="flex max-w-[280px] flex-col">
-                          <span className="truncate">{ch.name}</span>
-                          <span className="truncate font-mono text-[11px] text-[var(--text-muted)]" title={ch.url}>
+      {items.length === 0 ? (
+        filtered ? (
+          <EmptyState icon={Search} title="Sin resultados" description="No hay canales que coincidan con el filtro. Prueba con otro texto o estado." />
+        ) : (
+          <EmptyState
+            icon={Youtube}
+            title="Aún no hay canales"
+            description="Añade el primero con su URL de YouTube: se mostrará en el inicio (si es destacado) y en /canales."
+            action={
+              <Button type="button" onClick={openCreate}>
+                <Plus aria-hidden /> Nuevo canal
+              </Button>
+            }
+          />
+        )
+      ) : (
+        <div className={cn("scroll-fade-x overflow-x-auto transition-opacity duration-150 md:[mask-image:none]", navPending && "opacity-60")} aria-busy={navPending}>
+          <AdminTable>
+            <AdminTableHead>
+              <AdminTableRow>
+                <AdminTableHeader>Canal</AdminTableHeader>
+                <AdminTableHeader>Categoría</AdminTableHeader>
+                <AdminTableHeader>Destacado</AdminTableHeader>
+                <AdminTableHeader>Estado</AdminTableHeader>
+                <AdminTableHeader>Orden</AdminTableHeader>
+                <AdminTableHeader align="right">
+                  <span className="sr-only">Acciones</span>
+                </AdminTableHeader>
+              </AdminTableRow>
+            </AdminTableHead>
+            <AdminTableBody>
+              {items.map((ch, i) => {
+                const meta = STATUS_META[ch.status] ?? STATUS_META.HIDDEN;
+                const isBusy = rowBusy === ch.id;
+                const avatar = ch.avatarUrl?.trim() ? resolveMediaUrl(ch.avatarUrl) : null;
+                return (
+                  <AdminTableRow key={ch.id} className={cn(isBusy && "opacity-60", ch.status === "HIDDEN" && "opacity-80")}>
+                    <AdminTableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar name={ch.name} src={avatar} size={40} />
+                        <div className="min-w-0 max-w-[280px]">
+                          <p className="truncate font-semibold">{ch.name}</p>
+                          <p className="truncate font-mono text-body-sm text-text-3" title={ch.url}>
                             {ch.handle ? `@${ch.handle}` : ch.channelId ?? ch.url}
-                          </span>
+                          </p>
                         </div>
-                      </TableCell>
-                      <TableCell>{ch.category}</TableCell>
-                      <TableCell>
-                        <label className="flex items-center gap-2 text-xs">
-                          <Checkbox
-                            checked={ch.featured}
-                            disabled={isBusy}
-                            aria-label={ch.featured ? "Quitar destacado" : "Marcar destacado"}
-                            onCheckedChange={() => void toggleFeatured(ch)}
-                          />
-                          <span className="text-[var(--text-muted)]">{ch.featured ? "Sí" : "No"}</span>
-                        </label>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={meta.className}>{meta.label}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <span className="w-6 font-mono text-xs">{ch.sortOrder}</span>
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8"
-                            aria-label={`Subir ${ch.name}`}
-                            disabled={i === 0 || isBusy || rowBusy !== null}
-                            onClick={() => void move(i, "up")}
-                          >
-                            <ArrowUp className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8"
-                            aria-label={`Bajar ${ch.name}`}
-                            disabled={i === items.length - 1 || isBusy || rowBusy !== null}
-                            onClick={() => void move(i, "down")}
-                          >
-                            <ArrowDown className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-2">
-                          <Button type="button" size="sm" variant="outline" onClick={() => openEdit(ch)}>
-                            Editar
-                          </Button>
-                          <Button size="sm" variant="ghost" asChild>
-                            <a href={ch.url} target="_blank" rel="noopener noreferrer">
-                              YouTube
-                              <ExternalLink className="ml-1 h-3.5 w-3.5" aria-hidden />
-                            </a>
-                          </Button>
-                          <Button type="button" size="sm" variant="ghost" onClick={() => setDeleteTarget(ch)}>
-                            Borrar
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-                {items.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="py-10 text-center text-[var(--text-muted)]">
-                      {query || status
-                        ? "No hay canales que coincidan con el filtro."
-                        : "No hay canales todavía. Crea el primero con «Nuevo canal»."}
-                    </TableCell>
-                  </TableRow>
-                ) : null}
-              </TableBody>
-            </Table>
-          </div>
+                      </div>
+                    </AdminTableCell>
+                    <AdminTableCell>{ch.category}</AdminTableCell>
+                    <AdminTableCell>
+                      <label className="flex min-h-11 cursor-pointer items-center gap-2 text-body-sm">
+                        <Checkbox checked={ch.featured} disabled={isBusy} aria-label={ch.featured ? "Quitar destacado" : "Marcar destacado"} onCheckedChange={() => void toggleFeatured(ch)} />
+                        {ch.featured ? (
+                          <Badge tone="gold" icon={<Star aria-hidden />}>
+                            Sí
+                          </Badge>
+                        ) : (
+                          <span className="text-text-3">No</span>
+                        )}
+                      </label>
+                    </AdminTableCell>
+                    <AdminTableCell>
+                      <Badge tone={meta.tone}>{meta.label}</Badge>
+                    </AdminTableCell>
+                    <AdminTableCell>
+                      <div className="flex items-center gap-1">
+                        <span className="w-6 font-mono text-body-sm tabular-nums text-text-2">{ch.sortOrder}</span>
+                        <RowAction label={`Subir ${ch.name}`} disabled={i === 0 || isBusy || rowBusy !== null} onClick={() => void move(i, "up")}>
+                          <ArrowUp />
+                        </RowAction>
+                        <RowAction label={`Bajar ${ch.name}`} disabled={i === items.length - 1 || isBusy || rowBusy !== null} onClick={() => void move(i, "down")}>
+                          <ArrowDown />
+                        </RowAction>
+                      </div>
+                    </AdminTableCell>
+                    <AdminTableActions>
+                      <RowAction label="Abrir en YouTube" asChild>
+                        <a href={ch.url} target="_blank" rel="noopener noreferrer">
+                          <Youtube />
+                        </a>
+                      </RowAction>
+                      <RowAction label="Editar" onClick={() => openEdit(ch)}>
+                        <Pencil />
+                      </RowAction>
+                      <RowAction label="Borrar" className="hover:text-danger" onClick={() => setDeleteTarget(ch)}>
+                        <Trash2 />
+                      </RowAction>
+                    </AdminTableActions>
+                  </AdminTableRow>
+                );
+              })}
+            </AdminTableBody>
+          </AdminTable>
+        </div>
+      )}
 
-          <div className="mt-4 flex flex-col items-center justify-between gap-3 sm:flex-row">
-            <p className="font-mono text-xs uppercase tracking-widest text-[var(--text-muted)]">
-              {total} {total === 1 ? "canal" : "canales"} · Página {Math.min(page, totalPages)} de {totalPages}
-            </p>
-            {totalPages > 1 ? (
-              <nav aria-label="Paginación" className="flex items-center gap-2">
-                <Button variant="outline" size="sm" asChild={page > 1} disabled={page <= 1}>
-                  {page > 1 ? (
-                    <Link href={buildAdminHref({ q: query, status, page: page - 1 })} rel="prev">
-                      <ChevronLeft className="h-4 w-4" aria-hidden />
-                      Anterior
-                    </Link>
+      <AdminResultsBar summary={`${total} ${total === 1 ? "canal" : "canales"} · Página ${Math.min(page, totalPages)} de ${totalPages}`}>
+        <Pagination page={page} pageCount={totalPages} hrefFor={(p) => buildAdminHref({ q: query, status, page: p })} />
+      </AdminResultsBar>
+
+      <Dialog open={open} onOpenChange={(o) => !busy && setOpen(o)}>
+        <DialogContent className={cn(adminDialogClass, "max-w-3xl")}>
+          <DialogHeader>
+            <DialogTitle className="text-title">{mode === "create" ? "Crear canal" : "Editar canal"}</DialogTitle>
+            <DialogDescription>Nombre y URL de YouTube son obligatorios. El channelId o el @handle se detectan solos.</DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-4">
+              <AdminField label="Nombre">
+                <Input value={draft.name} onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))} placeholder="Sodimusic" />
+              </AdminField>
+              <AdminField label="URL del canal" hint="Se autodetecta el channelId (UC…) o el @handle.">
+                <Input type="url" inputMode="url" value={draft.url} onChange={(e) => setDraft((p) => ({ ...p, url: e.target.value }))} placeholder="https://www.youtube.com/@sodimusic" />
+                <p className="font-mono text-body-sm text-text-3" aria-live="polite">
+                  {!draft.url.trim() ? (
+                    "Sin URL"
+                  ) : detected.channelId ? (
+                    <>
+                      channelId: <span className="text-fire-400">{detected.channelId}</span> · lista de subidas disponible
+                    </>
+                  ) : detected.handle ? (
+                    <>
+                      handle: <span className="text-fire-400">@{detected.handle}</span> · sin channelId: añade un video destacado para el embed
+                    </>
+                  ) : isYoutubeUrl(draft.url) ? (
+                    "URL de YouTube sin canal reconocible"
                   ) : (
-                    <span>
-                      <ChevronLeft className="h-4 w-4" aria-hidden />
-                      Anterior
-                    </span>
+                    <span className="text-danger">No parece una URL de YouTube</span>
                   )}
-                </Button>
-                <Button variant="outline" size="sm" asChild={page < totalPages} disabled={page >= totalPages}>
-                  {page < totalPages ? (
-                    <Link href={buildAdminHref({ q: query, status, page: page + 1 })} rel="next">
-                      Siguiente
-                      <ChevronRight className="h-4 w-4" aria-hidden />
-                    </Link>
-                  ) : (
-                    <span>
-                      Siguiente
-                      <ChevronRight className="h-4 w-4" aria-hidden />
-                    </span>
-                  )}
-                </Button>
-              </nav>
-            ) : null}
-          </div>
-        </CardContent>
-
-        <Dialog open={open} onOpenChange={(o) => !busy && setOpen(o)}>
-          <DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{mode === "create" ? "Crear canal" : "Editar canal"}</DialogTitle>
-            </DialogHeader>
-
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="space-y-4">
-                <Field label="Nombre">
-                  <Input value={draft.name} onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))} placeholder="Sodimusic" />
-                </Field>
-                <Field label="URL del canal" hint="Se autodetecta el channelId (UC…) o el @handle.">
-                  <Input
-                    type="url"
-                    inputMode="url"
-                    value={draft.url}
-                    onChange={(e) => setDraft((p) => ({ ...p, url: e.target.value }))}
-                    placeholder="https://www.youtube.com/@sodimusic"
-                  />
-                  <p className="font-mono text-[11px] text-[var(--text-muted)]" aria-live="polite">
-                    {!draft.url.trim() ? (
-                      "Sin URL"
-                    ) : detected.channelId ? (
+                </p>
+              </AdminField>
+              <AdminField label="Descripción">
+                <Textarea rows={4} value={draft.description} onChange={(e) => setDraft((p) => ({ ...p, description: e.target.value }))} placeholder="Qué publica este canal…" />
+              </AdminField>
+              <AdminField label="Video destacado (opcional)" hint="Si se indica, la tarjeta reproduce este video en vez de la lista de subidas.">
+                <Input type="url" inputMode="url" value={draft.featuredVideoUrl} onChange={(e) => setDraft((p) => ({ ...p, featuredVideoUrl: e.target.value }))} placeholder="https://youtu.be/…" />
+                {draft.featuredVideoUrl.trim() ? (
+                  <p className="font-mono text-body-sm text-text-3">
+                    {featuredVideoId ? (
                       <>
-                        channelId: <span className="text-primary">{detected.channelId}</span> · lista de subidas disponible
+                        videoId: <span className="text-fire-400">{featuredVideoId}</span>
                       </>
-                    ) : detected.handle ? (
-                      <>
-                        handle: <span className="text-primary">@{detected.handle}</span> · sin channelId: añade un video destacado
-                        para el embed
-                      </>
-                    ) : isYoutubeUrl(draft.url) ? (
-                      "URL de YouTube sin canal reconocible"
                     ) : (
-                      <span className="text-red-400">No parece una URL de YouTube</span>
+                      <span className="text-danger">No se reconoce el video</span>
                     )}
                   </p>
-                </Field>
-                <Field label="Descripción">
-                  <Textarea
-                    rows={4}
-                    value={draft.description}
-                    onChange={(e) => setDraft((p) => ({ ...p, description: e.target.value }))}
-                    placeholder="Qué publica este canal…"
-                  />
-                </Field>
-                <Field label="Video destacado (opcional)" hint="Si se indica, la tarjeta reproduce este video en vez de la lista de subidas.">
-                  <Input
-                    type="url"
-                    inputMode="url"
-                    value={draft.featuredVideoUrl}
-                    onChange={(e) => setDraft((p) => ({ ...p, featuredVideoUrl: e.target.value }))}
-                    placeholder="https://youtu.be/…"
-                  />
-                  {draft.featuredVideoUrl.trim() ? (
-                    <p className="font-mono text-[11px] text-[var(--text-muted)]">
-                      {featuredVideoId ? (
-                        <>
-                          videoId: <span className="text-primary">{featuredVideoId}</span>
-                        </>
-                      ) : (
-                        <span className="text-red-400">No se reconoce el video</span>
-                      )}
-                    </p>
-                  ) : null}
-                </Field>
-              </div>
-
-              <div className="space-y-4">
-                <ImageUploadField
-                  label="Avatar"
-                  aspect="square"
-                  value={draft.avatarUrl}
-                  onChange={(next) => setDraft((p) => ({ ...p, avatarUrl: next }))}
-                  hint="Cuadrado, mínimo 160×160. Si se deja vacío se usa la inicial del nombre."
-                  disabled={busy}
-                />
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Field label="Categoría">
-                    <Input
-                      list="admin-channel-categories"
-                      value={draft.category}
-                      onChange={(e) => setDraft((p) => ({ ...p, category: e.target.value }))}
-                      placeholder="Crew, Artista, Sello, Aliado…"
-                      maxLength={40}
-                    />
-                    <datalist id="admin-channel-categories">
-                      {categoryOptions.map((c) => (
-                        <option key={c} value={c} />
-                      ))}
-                    </datalist>
-                  </Field>
-                  <Field label="Estado">
-                    <select
-                      className={nativeSelectClass}
-                      value={draft.status}
-                      onChange={(e) => setDraft((p) => ({ ...p, status: e.target.value as ChannelStatus }))}
-                    >
-                      <option value="ACTIVE">Activo (visible)</option>
-                      <option value="HIDDEN">Oculto</option>
-                    </select>
-                  </Field>
-                </div>
-                <Field label="Destacado">
-                  <label className="flex items-center gap-2 text-sm">
-                    <Checkbox checked={draft.featured} onCheckedChange={(v) => setDraft((p) => ({ ...p, featured: v === true }))} />
-                    Mostrar en el bloque de canales del inicio
-                  </label>
-                </Field>
-
-                <div className="flex flex-wrap gap-2 pt-2 md:justify-end">
-                  <Button type="button" variant="outline" disabled={busy} onClick={() => setOpen(false)}>
-                    Cancelar
-                  </Button>
-                  <Button type="button" disabled={busy} onClick={() => void onSave()}>
-                    {saving ? "Guardando…" : "Guardar"}
-                  </Button>
-                </div>
-              </div>
+                ) : null}
+              </AdminField>
             </div>
-          </DialogContent>
-        </Dialog>
-      </Card>
+
+            <div className="space-y-4">
+              <ImageUploadField
+                label="Avatar"
+                aspect="square"
+                value={draft.avatarUrl}
+                onChange={(next) => setDraft((p) => ({ ...p, avatarUrl: next }))}
+                hint="Cuadrado, mínimo 160×160. Si se deja vacío se usa la inicial del nombre."
+                disabled={busy}
+              />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <AdminField label="Categoría">
+                  <Input list="admin-channel-categories" value={draft.category} onChange={(e) => setDraft((p) => ({ ...p, category: e.target.value }))} placeholder="Crew, Artista, Sello, Aliado…" maxLength={40} />
+                  <datalist id="admin-channel-categories">
+                    {categoryOptions.map((c) => (
+                      <option key={c} value={c} />
+                    ))}
+                  </datalist>
+                </AdminField>
+                <AdminField label="Estado">
+                  <AdminNativeSelect value={draft.status} onChange={(e) => setDraft((p) => ({ ...p, status: e.target.value as ChannelStatus }))}>
+                    <option value="ACTIVE">Activo (visible)</option>
+                    <option value="HIDDEN">Oculto</option>
+                  </AdminNativeSelect>
+                </AdminField>
+              </div>
+              <label className="flex min-h-11 cursor-pointer items-center gap-3 text-body-sm text-text-1">
+                <Checkbox checked={draft.featured} onCheckedChange={(v) => setDraft((p) => ({ ...p, featured: v === true }))} />
+                Destacado: mostrar en el bloque de canales del inicio
+              </label>
+            </div>
+          </div>
+
+          <AdminDialogFooter>
+            <Button type="button" variant="outline" disabled={busy} onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="button" loading={saving} onClick={() => void onSave()}>
+              Guardar
+            </Button>
+          </AdminDialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={deleteTarget !== null} onOpenChange={(o) => !o && !deleteBusy && setDeleteTarget(null)}>
-        <AlertDialogContent className="border-white/10 bg-background-card">
+        <AlertDialogContent className={adminDialogClass}>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Borrar este canal?</AlertDialogTitle>
+            <AlertDialogTitle className="text-title">¿Borrar este canal?</AlertDialogTitle>
             <AlertDialogDescription>
-              Se eliminará «{deleteTarget?.name ?? ""}» de la lista de canales. Esta acción no se puede deshacer. Si solo
-              quieres ocultarlo, cámbialo a «Oculto».
+              Se eliminará «{deleteTarget?.name ?? ""}» de la lista de canales. Esta acción no se puede deshacer. Si solo quieres ocultarlo, cámbialo a «Oculto».
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleteBusy}>Cancelar</AlertDialogCancel>
-            <Button type="button" variant="destructive" disabled={deleteBusy} onClick={() => void confirmDelete()}>
-              {deleteBusy ? "Borrando…" : "Borrar"}
+            <Button type="button" variant="danger" loading={deleteBusy} onClick={() => void confirmDelete()}>
+              Borrar
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
-  );
-}
-
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-2">
-      <Label className="text-xs font-medium text-[var(--text-secondary)]">{label}</Label>
-      {children}
-      {hint ? <p className="text-[11px] text-[var(--text-muted)]">{hint}</p> : null}
     </div>
   );
 }

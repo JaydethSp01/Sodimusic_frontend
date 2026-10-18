@@ -1,42 +1,37 @@
-/* Tipografía de los documentos legales. Los bloques con .not-prose (tablas, listas de identificación, índice) no se tocan. */
+/* Tipografía de los documentos legales (tokens v4). Los bloques con .not-prose (tablas, listas de identificación, índice) no se tocan. */
 .prose {
   max-width: 68ch;
-  font-size: 17px;
-  line-height: 1.75;
-  color: var(--text-secondary);
-}
-@media (max-width: 640px) {
-  .prose {
-    font-size: 16px;
-  }
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--text-2);
 }
 .prose :global(.lead) {
-  font-size: 1.125rem;
-  line-height: 1.7;
-  color: var(--text-primary);
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--text-1);
 }
 .prose h2 {
-  margin: 3rem 0 1rem;
-  font-family: var(--font-display), sans-serif;
-  font-size: 1.75rem;
-  letter-spacing: 0.04em;
-  line-height: 1.15;
-  color: var(--text-primary);
-  scroll-margin-top: 7rem;
-}
-@media (min-width: 768px) {
-  .prose h2 {
-    font-size: 2rem;
-  }
+  margin: 3.5rem 0 1rem;
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 800;
+  font-stretch: var(--display-stretch);
+  font-size: clamp(24px, 3vw, 40px);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  text-wrap: balance;
+  color: var(--text-1);
+  scroll-margin-top: calc(var(--nav-h, 72px) + 1.5rem);
 }
 .prose section:first-of-type h2 {
   margin-top: 1rem;
 }
 .prose h3 {
   margin: 2rem 0 0.75rem;
-  font-size: 1.1rem;
+  font-size: 20px;
+  line-height: 1.25;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-1);
 }
 .prose p {
   margin: 1rem 0;
@@ -57,26 +52,27 @@
   padding-left: 0.25rem;
 }
 .prose li::marker {
-  color: var(--primary);
+  color: var(--fire-500);
 }
 .prose a:not(:where(:global(.not-prose) *)) {
-  color: var(--primary);
+  color: var(--fire-400);
   text-decoration: underline;
   text-underline-offset: 4px;
   text-decoration-thickness: 1px;
+  transition: color 150ms var(--ease-out);
 }
 .prose a:not(:where(:global(.not-prose) *)):hover {
-  color: var(--primary-hover);
+  color: var(--fire-300);
 }
 .prose strong {
-  color: var(--text-primary);
+  color: var(--text-1);
   font-weight: 600;
 }
 .prose code {
   border-radius: 4px;
-  background: var(--background-elevated);
+  background: var(--ink-3);
   padding: 0.1em 0.4em;
-  font-family: var(--font-mono), monospace;
-  font-size: 0.85em;
-  color: var(--text-primary);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 14px;
+  color: var(--text-1);
 }

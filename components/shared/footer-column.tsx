@@ -13,7 +13,7 @@ interface FooterColumnProps {
   className?: string;
 }
 
-const headingClass = "font-mono text-xs uppercase tracking-widest text-[var(--text-muted)]";
+const headingClass = "text-label text-text-3";
 
 /**
  * Columna de navegación del pie: en móvil (< md) es un acordeón (botón con
@@ -34,7 +34,7 @@ export function FooterColumn({ title, id, children, className }: FooterColumnPro
         onClick={() => setOpen((v) => !v)}
         className={cn(
           headingClass,
-          "-mx-1 flex min-h-11 w-full items-center justify-between rounded-md px-1 text-left transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary md:hidden",
+          "-mx-1 flex min-h-11 w-full items-center justify-between rounded px-1 text-left transition-colors duration-150 hover:text-text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fire-500 md:hidden",
         )}
       >
         {title}

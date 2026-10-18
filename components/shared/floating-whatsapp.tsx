@@ -2,8 +2,8 @@
 
 import { useEffect, useState, type CSSProperties } from "react";
 import { usePathname } from "next/navigation";
+import { IconButton } from "@/components/ui/icon-button";
 import { WhatsAppIcon } from "@/components/shared/whatsapp-icon";
-import { cn } from "@/lib/utils";
 
 export type FloatingWhatsappConfig = {
   enabled: boolean;
@@ -94,8 +94,8 @@ function bottomOffsetFor(pathname: string): string {
 const BOTTOM_OFFSET_DESKTOP = "calc(1.5rem + var(--player-bar-h, 0px))";
 
 /**
- * Botón flotante de WhatsApp (56 px) con mensaje precargado según la ruta.
- * Oculto en /admin. Respeta safe-area-inset en móviles con barra inferior.
+ * Botón flotante de WhatsApp (`IconButton` whatsapp 52 px) con mensaje precargado según la ruta.
+ * Oculto en /admin. Respeta safe-area-inset y `--player-bar-h`; va en `z-player` (bajo overlays y modales).
  */
 export function FloatingWhatsapp({ config }: Props) {
   const pathname = usePathname() ?? "/";
@@ -124,16 +124,12 @@ export function FloatingWhatsapp({ config }: Props) {
   const href = `https://wa.me/${cfg.phone}?text=${encodeURIComponent(whatsappMessageFor(pathname, cfg.businessName))}`;
 
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
+    <IconButton
+      asChild
+      variant="whatsapp"
+      size="lg"
       aria-label={`Escribir a ${cfg.businessName} por WhatsApp`}
-      title="Escríbenos por WhatsApp"
-      className={cn(
-        "group fixed right-4 z-[150] flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-[#062b16] shadow-[0_10px_30px_rgba(37,211,102,0.35)] transition-transform duration-200 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transition-none motion-reduce:hover:scale-100 md:right-6",
-        "bottom-[var(--wa-bottom)] md:bottom-[var(--wa-bottom-md)]",
-      )}
+      className="group fixed bottom-[var(--wa-bottom)] right-4 z-player shadow-[0_10px_30px_rgba(37,211,102,0.35)] focus-visible:ring-offset-ink-0 md:bottom-[var(--wa-bottom-md)] md:right-6"
       style={
         {
           marginBottom: "env(safe-area-inset-bottom, 0px)",
@@ -142,10 +138,12 @@ export function FloatingWhatsapp({ config }: Props) {
         } as CSSProperties
       }
     >
-      <WhatsAppIcon className="h-7 w-7" />
-      <span className="pointer-events-none absolute right-full mr-3 hidden whitespace-nowrap rounded-md border border-border bg-background-elevated px-3 py-1.5 text-xs text-foreground opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 md:block">
-        Escríbenos por WhatsApp
-      </span>
-    </a>
+      <a href={href} target="_blank" rel="noopener noreferrer" title="Escríbenos por WhatsApp">
+        <WhatsAppIcon />
+        <span className="pointer-events-none absolute right-full mr-3 hidden whitespace-nowrap rounded border border-line-2 bg-ink-3 px-3 py-1.5 text-body-sm text-text-1 opacity-0 shadow-pop transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100 md:block">
+          Escríbenos por WhatsApp
+        </span>
+      </a>
+    </IconButton>
   );
 }

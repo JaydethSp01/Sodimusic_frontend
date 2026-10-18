@@ -61,7 +61,7 @@ test.describe("Admin · Tienda (CRUD de productos por UI)", () => {
     expect(res?.status()).toBe(200);
     await expect(page.getByRole("heading", { level: 1, name: name })).toBeVisible();
     await expect(page.getByText(/^Antes/).first()).toContainText("$ 95.000");
-    await expect(page.getByText("$ 80.000", { exact: true })).toBeVisible();
+    await expect(page.getByText("$ 80.000", { exact: true }).first()).toBeVisible();
     await expect(page.getByText(/COP · IVA incluido/)).toBeVisible();
     const sizes = page.getByRole("group", { name: "Talla" });
     await expect(sizes.getByRole("button")).toHaveCount(3);

@@ -23,7 +23,9 @@ test.describe("Contacto y prensa", () => {
     await expect(form.getByLabel("Asunto")).toHaveAttribute("aria-invalid", "true");
     await expect(form.getByLabel("Asunto")).toBeFocused();
 
-    await form.getByLabel("Asunto").selectOption("PRENSA");
+    // El asunto es un grupo de chips (radiogroup accesible); el valor enviado sigue siendo el `value` del CMS.
+    await form.getByRole("radiogroup", { name: "Asunto" }).getByRole("radio", { name: "Prensa y medios" }).click();
+    await expect(form.getByRole("radio", { name: "Prensa y medios" })).toHaveAttribute("aria-checked", "true");
     await form.getByLabel("Nombre").fill("E2E Prensa");
     await form.getByLabel("Correo").fill(email);
     await form.getByLabel(/teléfono/i).fill("abc");
@@ -56,7 +58,8 @@ test.describe("Contacto y prensa", () => {
 
   test("asunto preseleccionado por query, contacto directo y kit de prensa con logo", async ({ page }) => {
     await page.goto("/contacto?asunto=DEMO");
-    await expect(page.getByLabel("Asunto")).toHaveValue("DEMO");
+    await expect(page.getByRole("radiogroup", { name: "Asunto" }).getByRole("radio", { name: "Enviar demo" })).toHaveAttribute("aria-checked", "true");
+    await expect(page.locator("input[name='subject']")).toHaveValue("DEMO");
 
     const direct = page.getByRole("region", { name: "Hablemos" });
     await expect(direct.getByRole("link", { name: /whatsapp/i })).toHaveAttribute("href", /^https:\/\/wa\.me\/\d+\?text=/);

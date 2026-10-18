@@ -1,5 +1,5 @@
 import { fetchAdmin } from "@/lib/api-admin";
-import { SectionCallout } from "@/components/shared/section-callout";
+import { AdminErrorNotice } from "@/features/admin/components/admin-primitives";
 import {
   AdminDashboardInsights,
   type DashboardStatsPayload,
@@ -13,7 +13,7 @@ export default async function AdminDashboardPage() {
     fetchAdmin("/api/admin/messages?status=NEW&page=1&pageSize=5"),
   ]);
   if (!res.ok) {
-    return <p className="text-red-500">No se pudieron cargar las métricas.</p>;
+    return <AdminErrorNotice>No se pudieron cargar las métricas.</AdminErrorNotice>;
   }
   const recentMessages: RecentMessage[] = msgRes.ok
     ? ((await msgRes.json()) as Paginated<RecentMessage>).items.slice(0, 5)
@@ -44,19 +44,5 @@ export default async function AdminDashboardPage() {
     sessionsByStatus: raw.sessionsByStatus ?? [],
   };
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-3xl tracking-wide">Panel</h1>
-        <div className="mt-2 max-w-2xl">
-          <SectionCallout>
-            Resumen rápido para gestionar el día a día: sesiones, beats, mensajes, suscriptores, visitas al sitio,
-            producciones y tienda.
-          </SectionCallout>
-        </div>
-      </div>
-
-      <AdminDashboardInsights data={data} recentMessages={recentMessages} />
-    </div>
-  );
+  return <AdminDashboardInsights data={data} recentMessages={recentMessages} />;
 }

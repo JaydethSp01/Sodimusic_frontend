@@ -1,5 +1,5 @@
-import { SectionCallout } from "@/components/shared/section-callout";
 import { AdminMessagesManager, type MessagesTab } from "@/features/admin/components/admin-messages-manager";
+import { AdminErrorNotice } from "@/features/admin/components/admin-primitives";
 import { fetchAdmin } from "@/lib/api-admin";
 import { getSiteContent } from "@/lib/site-config-server";
 import { SITE_CONTENT_DEFAULTS } from "@/lib/site-defaults";
@@ -37,7 +37,7 @@ export default async function AdminMensajesPage({ searchParams }: { searchParams
   ]);
 
   if (!msgRes.ok && !intRes.ok) {
-    return <p className="text-red-500">No se pudieron cargar los mensajes.</p>;
+    return <AdminErrorNotice>No se pudieron cargar los mensajes.</AdminErrorNotice>;
   }
 
   const messages = msgRes.ok ? ((await msgRes.json()) as Paginated<ContactMessage>) : emptyPage<ContactMessage>(page);
@@ -48,26 +48,14 @@ export default async function AdminMensajesPage({ searchParams }: { searchParams
   const businessName = site.legal?.businessName ?? SITE_CONTENT_DEFAULTS.legal.businessName;
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="font-display text-3xl tracking-wide">Mensajes</h1>
-        <div className="mt-2 max-w-3xl">
-          <SectionCallout>
-            Mensajes del formulario de contacto/prensa y personas interesadas en beats. Marca como leído lo que ya
-            atendiste y archiva lo cerrado; los nuevos cuentan en el panel.
-          </SectionCallout>
-        </div>
-      </div>
-
-      <AdminMessagesManager
-        tab={tab}
-        messages={messages}
-        status={status}
-        interests={interests}
-        q={q}
-        subjectLabels={subjectLabels}
-        businessName={businessName}
-      />
-    </div>
+    <AdminMessagesManager
+      tab={tab}
+      messages={messages}
+      status={status}
+      interests={interests}
+      q={q}
+      subjectLabels={subjectLabels}
+      businessName={businessName}
+    />
   );
 }

@@ -18,14 +18,11 @@ export default async function Page({ searchParams }: { searchParams?: { baja?: s
   return (
     <LegalDocument title={PRIVACY_TITLE} description={PRIVACY_DESCRIPTION} updated={legal.policyVersion} isAdmin={isAdmin}>
       {baja === "ok" ? (
-        <p
-          role="status"
-          className="mb-8 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200"
-        >
+        <p role="status" className="not-prose mb-8 rounded border border-success/40 bg-success/10 px-4 py-3 text-body-sm text-success">
           Listo: tu correo fue dado de baja del boletín. No volverás a recibir comunicaciones comerciales nuestras.
         </p>
       ) : baja === "error" ? (
-        <p role="alert" className="mb-8 rounded-md border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+        <p role="alert" className="not-prose mb-8 rounded border border-danger/40 bg-danger/10 px-4 py-3 text-body-sm text-danger">
           El enlace de baja no es válido o ya caducó. Escríbenos a {legal.email || "nuestro correo de contacto"} y te damos de
           baja de inmediato.
         </p>

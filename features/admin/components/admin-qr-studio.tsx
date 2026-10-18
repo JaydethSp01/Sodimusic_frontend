@@ -146,15 +146,6 @@ export function AdminQrStudio({
     <div className="space-y-6">
       <style dangerouslySetInnerHTML={{ __html: PRINT_SHEET_CSS }} />
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="font-display text-3xl tracking-wide">Estudio de código QR</h1>
-          <p className="mt-2 max-w-2xl text-sm text-[var(--text-muted)]">
-            Genera un QR para flyers, tarjetas o el estudio. Elige colores, tamaño y descárgalo en PNG o SVG.
-          </p>
-        </div>
-      </div>
-
       <SectionCallout>
         El QR lleva a la URL indicada abajo. Si quieres cambiar la URL que usa el sitio público, edítala en{" "}
         <Link href="/admin/dashboard/site#site-section-qr" className="text-primary underline underline-offset-2">

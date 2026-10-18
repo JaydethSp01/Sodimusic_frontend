@@ -1,24 +1,19 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ExternalLink } from "lucide-react";
+import { Eye, Save, Upload } from "lucide-react";
 import type { SiteContent, SiteCrewMember, SiteMilestone, SiteNavLink, SiteStat } from "@/types/site-content";
 import { saveSiteDraftAction, publishSiteAction } from "@/app/actions/site-config-actions";
 import { setSitePreview } from "@/app/actions/site-preview";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SectionCallout } from "@/components/shared/section-callout";
 import { ImageUploadField } from "@/features/admin/components/image-upload-field";
 import { SITE_CONTENT_DEFAULTS } from "@/lib/site-defaults";
-import { Field, SECTION_CARD, SubsectionTitle } from "./editor-field";
+import { EditorHint, EditorLink, EditorNote, EditorSection, EditorToggle, Field, SubsectionTitle } from "./editor-field";
 import { LegalCard } from "./legal-card";
 import { ContactPageCard } from "./contact-page-card";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 const SECTIONS: { id: string; label: string }[] = [
@@ -60,6 +55,8 @@ export function SiteConfigEditor({
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  /** Qué botón lanzó la transición (solo para el spinner). */
+  const [action, setAction] = useState<"preview" | "save" | "publish" | null>(null);
 
   function updateNavLink(i: number, patch: Partial<SiteNavLink>) {
     setC((prev) => {
@@ -142,6 +139,7 @@ export function SiteConfigEditor({
   function saveDraft() {
     setErr(null);
     setMsg(null);
+    setAction("save");
     start(async () => {
       const r = await saveSiteDraftAction(c);
       if (!r.ok) {
@@ -158,6 +156,7 @@ export function SiteConfigEditor({
   function publish() {
     setErr(null);
     setMsg(null);
+    setAction("publish");
     start(async () => {
       const r = await publishSiteAction();
       if (!r.ok) {
@@ -173,6 +172,7 @@ export function SiteConfigEditor({
 
   function preview() {
     setErr(null);
+    setAction("preview");
     start(async () => {
       const r = await saveSiteDraftAction(c);
       if (!r.ok) {
@@ -187,58 +187,22 @@ export function SiteConfigEditor({
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="font-display text-3xl tracking-wide">Sitio web público</h1>
-        <p className="mt-2 max-w-2xl text-sm text-[var(--text-muted)]">
-          Edita textos, enlaces e imágenes. Guarda borrador, previsualiza y publica cuando esté listo. Beats, producciones,
-          releases y productos se gestionan en sus propias secciones del panel.
-        </p>
-        <p className="mt-2 font-mono text-xs text-[var(--text-muted)]">
-          Borrador: {new Date(draftUpdatedAt).toLocaleString("es-CO")}
-          {publishedAt ? ` · Publicado: ${new Date(publishedAt).toLocaleString("es-CO")}` : " · Aún sin publicar formal"}
-        </p>
+    <div className="space-y-8 pb-4">
+      <div className="sticky top-14 z-30 -mx-4 border-b border-line-1 bg-ink-0/90 backdrop-blur-md sm:-mx-6 md:top-0 lg:-mx-8">
+        <nav aria-label="Secciones del editor" className="scroll-fade-x flex gap-2 overflow-x-auto px-4 py-3 sm:px-6 lg:px-8">
+          {SECTIONS.map((s) => (
+            <a
+              key={s.id}
+              href={`#${s.id}`}
+              className="inline-flex min-h-11 shrink-0 cursor-pointer items-center rounded-full border border-line-2 px-4 text-label text-text-2 transition-colors duration-150 ease-out hover:border-fire-500/60 hover:text-text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fire-500 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-0"
+            >
+              {s.label}
+            </a>
+          ))}
+        </nav>
       </div>
 
-      <div
-        className={cn(
-          "sticky top-14 z-20 -mx-6 border-y border-border bg-background-secondary/85 px-6 py-3 backdrop-blur md:top-0 md:-mx-8 md:px-8",
-          "supports-[backdrop-filter]:bg-background-secondary/70",
-        )}
-      >
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <nav aria-label="Secciones del editor" className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 lg:pb-0">
-            {SECTIONS.map((s) => (
-              <a
-                key={s.id}
-                href={`#${s.id}`}
-                className="shrink-0 rounded-full border border-border px-3 py-1 text-xs text-[var(--text-secondary)] transition-colors hover:border-primary/40 hover:text-foreground"
-              >
-                {s.label}
-              </a>
-            ))}
-          </nav>
-          <div className="flex shrink-0 flex-wrap gap-2">
-            <Button type="button" size="sm" variant="outline" disabled={pending} onClick={() => preview()}>
-              Vista previa
-            </Button>
-            <Button type="button" size="sm" variant="secondary" disabled={pending} onClick={() => saveDraft()}>
-              Guardar borrador
-            </Button>
-            <Button type="button" size="sm" disabled={pending} onClick={() => publish()}>
-              {pending ? "Procesando…" : "Publicar"}
-            </Button>
-          </div>
-        </div>
-        {msg ? <p className="mt-2 text-xs text-primary">{msg}</p> : null}
-        {err ? <p className="mt-2 text-xs text-red-500">{err}</p> : null}
-      </div>
-
-      <Card id="site-section-hero" className={SECTION_CARD}>
-        <CardHeader>
-          <CardTitle className="font-display text-xl">Hero</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
+      <EditorSection id="site-section-hero" title="Hero" contentClassName="grid gap-4 md:grid-cols-2">
           <div className="space-y-4">
             <Field label="Línea superior (eyebrow)">
               <Input value={c.hero.eyebrow} onChange={(e) => setC((p) => ({ ...p, hero: { ...p.hero, eyebrow: e.target.value } }))} />
@@ -285,14 +249,9 @@ export function SiteConfigEditor({
               hint="Recomendado 1920×1080 o mayor. JPG/WebP · máximo 4,5 MB."
             />
           </div>
-        </CardContent>
-      </Card>
+        </EditorSection>
 
-      <Card id="site-section-brand" className={SECTION_CARD}>
-        <CardHeader>
-          <CardTitle className="font-display text-xl">Marca y navegación</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <EditorSection id="site-section-brand" title="Marca y navegación">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Logo (texto)">
               <Input value={c.brand.logoText} onChange={(e) => setC((p) => ({ ...p, brand: { ...p.brand, logoText: e.target.value } }))} />
@@ -309,13 +268,13 @@ export function SiteConfigEditor({
               {c.nav.links.map((link, i) => (
                 <div key={i} className="flex flex-wrap gap-2">
                   <Input
-                    className="flex-1 min-w-[120px]"
+                    className="min-w-[120px] flex-1"
                     value={link.label}
                     onChange={(e) => updateNavLink(i, { label: e.target.value })}
                     placeholder="Etiqueta"
                   />
                   <Input
-                    className="flex-1 min-w-[120px]"
+                    className="min-w-[120px] flex-1"
                     value={link.href}
                     onChange={(e) => updateNavLink(i, { href: e.target.value })}
                     placeholder="/ruta"
@@ -344,14 +303,9 @@ export function SiteConfigEditor({
               />
             </Field>
           </div>
-        </CardContent>
-      </Card>
+        </EditorSection>
 
-      <Card id="site-section-home" className={SECTION_CARD}>
-        <CardHeader>
-          <CardTitle className="font-display text-xl">Inicio — secciones</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <EditorSection id="site-section-home" title="Inicio — secciones">
           <Field label="Quiénes somos — eyebrow / título">
             <div className="grid gap-2 sm:grid-cols-2">
               <Input value={c.home.aboutEyebrow} onChange={(e) => setC((p) => ({ ...p, home: { ...p.home, aboutEyebrow: e.target.value } }))} />
@@ -419,10 +373,10 @@ export function SiteConfigEditor({
           </Field>
 
           <div>
-            <p className="mb-2 text-xs font-medium text-[var(--text-secondary)]">Hitos (línea de tiempo)</p>
+            <SubsectionTitle>Hitos (línea de tiempo)</SubsectionTitle>
             <div className="space-y-3">
               {c.home.milestones.map((m, i) => (
-                <div key={i} className="rounded-md border border-border p-3 space-y-2">
+                <div key={i} className="rounded border border-line-1 bg-ink-1/60 p-4 space-y-3">
                   <div className="grid gap-2 sm:grid-cols-3">
                     <Input value={m.year} onChange={(e) => updateMilestone(i, { year: e.target.value })} placeholder="Año" />
                     <Input value={m.title} onChange={(e) => updateMilestone(i, { title: e.target.value })} placeholder="Título" />
@@ -440,13 +394,13 @@ export function SiteConfigEditor({
           </div>
 
           <div>
-            <p className="mb-1 text-xs font-medium text-[var(--text-secondary)]">Cifras (contadores animados bajo «Quiénes somos»)</p>
-            <p className="mb-2 text-[11px] text-[var(--text-muted)]">
+            <SubsectionTitle>Cifras (contadores animados bajo «Quiénes somos»)</SubsectionTitle>
+            <EditorHint className="mb-2">
               Valor numérico + sufijo (p. ej. «+», «%», «k») + etiqueta. Mínimo una cifra.
-            </p>
+            </EditorHint>
             <div className="space-y-2">
               {(c.home.stats ?? []).map((st, i) => (
-                <div key={i} className="grid gap-2 rounded-md border border-border p-3 sm:grid-cols-[110px_90px_minmax(0,1fr)_auto]">
+                <div key={i} className="grid gap-2 rounded border border-line-1 bg-ink-1/60 p-3 sm:grid-cols-[110px_90px_minmax(0,1fr)_auto]">
                   <Input
                     type="number"
                     value={st.value}
@@ -472,28 +426,17 @@ export function SiteConfigEditor({
               </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </EditorSection>
 
-      <Card id="site-section-youtube" className={SECTION_CARD}>
-        <CardHeader>
-          <CardTitle className="font-display text-xl">Canales de YouTube</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <SectionCallout>
+      <EditorSection id="site-section-youtube" title="Canales de YouTube">
+          <EditorNote>
             Los canales ahora se gestionan en{" "}
-            <Link href="/admin/dashboard/canales" className="inline-flex items-center gap-1 text-primary underline underline-offset-2">
-              Admin → Canales <ExternalLink className="h-3 w-3" aria-hidden />
-            </Link>
-            . Aquí solo se editan los textos de la sección del inicio y de la página <code className="font-mono text-xs">/canales</code>.
-          </SectionCallout>
-          <label className="flex items-center gap-2 text-sm">
-            <Checkbox
-              checked={c.youtube.showOnHome}
-              onCheckedChange={(v) => setC((p) => ({ ...p, youtube: { ...p.youtube, showOnHome: v === true } }))}
-            />
+            <EditorLink href="/admin/dashboard/canales">Admin → Canales</EditorLink>
+            . Aquí solo se editan los textos de la sección del inicio y de la página <code className="font-mono text-body-sm text-text-1">/canales</code>.
+          </EditorNote>
+          <EditorToggle checked={c.youtube.showOnHome} onChange={(v) => setC((p) => ({ ...p, youtube: { ...p.youtube, showOnHome: v } }))}>
             Mostrar en el inicio
-          </label>
+          </EditorToggle>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Eyebrow">
               <Input
@@ -559,29 +502,18 @@ export function SiteConfigEditor({
               />
             </Field>
           </div>
-        </CardContent>
-      </Card>
+        </EditorSection>
 
-      <Card id="site-section-shop" className={SECTION_CARD}>
-        <CardHeader>
-          <CardTitle className="font-display text-xl">Tienda</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <SectionCallout>
-            Aquí se editan los textos de la página <code className="font-mono text-xs">/tienda</code>. Los productos se gestionan en{" "}
-            <Link href="/admin/dashboard/tienda" className="inline-flex items-center gap-1 text-primary underline underline-offset-2">
-              Tienda <ExternalLink className="h-3 w-3" aria-hidden />
-            </Link>
+      <EditorSection id="site-section-shop" title="Tienda">
+          <EditorNote>
+            Aquí se editan los textos de la página <code className="font-mono text-body-sm text-text-1">/tienda</code>. Los productos se gestionan en{" "}
+            <EditorLink href="/admin/dashboard/tienda">Tienda</EditorLink>
             .
-          </SectionCallout>
+          </EditorNote>
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox
-                checked={c.shop.enabled}
-                onCheckedChange={(v) => setC((p) => ({ ...p, shop: { ...p.shop, enabled: v === true } }))}
-              />
-              Tienda activada (visible en el sitio)
-            </label>
+            <EditorToggle checked={c.shop.enabled} onChange={(v) => setC((p) => ({ ...p, shop: { ...p.shop, enabled: v } }))}>
+            Tienda activada (visible en el sitio)
+          </EditorToggle>
             <Field label="Etiqueta en el menú">
               <Input value={c.shop.navLabel} onChange={(e) => setC((p) => ({ ...p, shop: { ...p.shop, navLabel: e.target.value } }))} />
             </Field>
@@ -661,13 +593,9 @@ export function SiteConfigEditor({
           </Field>
 
           <SubsectionTitle>Bloque en el inicio</SubsectionTitle>
-          <label className="flex items-center gap-2 text-sm">
-            <Checkbox
-              checked={c.shop.showOnHome}
-              onCheckedChange={(v) => setC((p) => ({ ...p, shop: { ...p.shop, showOnHome: v === true } }))}
-            />
+          <EditorToggle checked={c.shop.showOnHome} onChange={(v) => setC((p) => ({ ...p, shop: { ...p.shop, showOnHome: v } }))}>
             Mostrar productos destacados en el inicio
-          </label>
+          </EditorToggle>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Eyebrow">
               <Input
@@ -694,14 +622,9 @@ export function SiteConfigEditor({
               />
             </Field>
           </div>
-        </CardContent>
-      </Card>
+        </EditorSection>
 
-      <Card id="site-section-footer" className={SECTION_CARD}>
-        <CardHeader>
-          <CardTitle className="font-display text-xl">Pie de página y contacto</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <EditorSection id="site-section-footer" title="Pie de página y contacto">
           <Field label="Tagline pie">
             <Textarea rows={2} value={c.footer.tagline} onChange={(e) => setC((p) => ({ ...p, footer: { ...p.footer, tagline: e.target.value } }))} />
           </Field>
@@ -722,8 +645,7 @@ export function SiteConfigEditor({
               <Input value={c.contact.whatsapp} onChange={(e) => setC((p) => ({ ...p, contact: { ...p.contact, whatsapp: e.target.value } }))} />
             </Field>
           </div>
-        </CardContent>
-      </Card>
+        </EditorSection>
 
       <LegalCard legal={c.legal} onChange={(patch) => setC((p) => ({ ...p, legal: { ...p.legal, ...patch } }))} />
 
@@ -732,11 +654,7 @@ export function SiteConfigEditor({
         onChange={(patch) => setC((p) => ({ ...p, contactPage: { ...p.contactPage, ...patch } }))}
       />
 
-      <Card id="site-section-seo" className={SECTION_CARD}>
-        <CardHeader>
-          <CardTitle className="font-display text-xl">SEO y redes</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <EditorSection id="site-section-seo" title="SEO y redes">
           <Field label="Título página inicio (meta)">
             <Input value={c.seo.homeTitle} onChange={(e) => setC((p) => ({ ...p, seo: { ...p.seo, homeTitle: e.target.value } }))} />
           </Field>
@@ -760,22 +678,15 @@ export function SiteConfigEditor({
               <Input value={c.social.tiktok} onChange={(e) => setC((p) => ({ ...p, social: { ...p.social, tiktok: e.target.value } }))} />
             </Field>
           </div>
-        </CardContent>
-      </Card>
+        </EditorSection>
 
-      <Card id="site-section-qr" className={SECTION_CARD}>
-        <CardHeader>
-          <CardTitle className="font-display text-xl">Código QR</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <SectionCallout>
+      <EditorSection id="site-section-qr" title="Código QR">
+          <EditorNote>
             El QR del sitio apunta a la URL de abajo (vacía = URL principal del sitio). Para descargarlo, imprimirlo o
             cambiar colores ve a{" "}
-            <Link href="/admin/dashboard/qr" className="inline-flex items-center gap-1 text-primary underline underline-offset-2">
-              Código QR <ExternalLink className="h-3 w-3" aria-hidden />
-            </Link>
+            <EditorLink href="/admin/dashboard/qr">Código QR</EditorLink>
             .
-          </SectionCallout>
+          </EditorNote>
           <Field label="URL destino" hint="Déjala vacía para usar la URL del sitio. Debe empezar por https://">
             <Input
               value={c.qr.targetUrl ?? ""}
@@ -786,27 +697,18 @@ export function SiteConfigEditor({
           <Field label="Etiqueta (texto junto al QR)">
             <Input value={c.qr.label} onChange={(e) => setC((p) => ({ ...p, qr: { ...p.qr, label: e.target.value } }))} />
           </Field>
-          <label className="flex items-center gap-2 text-sm">
-            <Checkbox
-              checked={c.qr.showInFooter}
-              onCheckedChange={(v) => setC((p) => ({ ...p, qr: { ...p.qr, showInFooter: v === true } }))}
-            />
+          <EditorToggle checked={c.qr.showInFooter} onChange={(v) => setC((p) => ({ ...p, qr: { ...p.qr, showInFooter: v } }))}>
             Mostrar el QR en el pie de página
-          </label>
+          </EditorToggle>
           <Field label="Leyenda del pie">
             <Input
               value={c.qr.footerCaption}
               onChange={(e) => setC((p) => ({ ...p, qr: { ...p.qr, footerCaption: e.target.value } }))}
             />
           </Field>
-        </CardContent>
-      </Card>
+        </EditorSection>
 
-      <Card id="site-section-booking" className={SECTION_CARD}>
-        <CardHeader>
-          <CardTitle className="font-display text-xl">Booking (Agenda)</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <EditorSection id="site-section-booking" title="Booking (Agenda)">
           <Field label="Hero - título">
             <Input value={c.booking.heroTitle} onChange={(e) => setC((p) => ({ ...p, booking: { ...p.booking, heroTitle: e.target.value } }))} />
           </Field>
@@ -819,7 +721,7 @@ export function SiteConfigEditor({
           </Field>
 
           <div className="space-y-3">
-            <p className="text-xs font-medium text-[var(--text-secondary)]">Labels del wizard (5 pasos)</p>
+            <SubsectionTitle>Labels del wizard (5 pasos)</SubsectionTitle>
             <div className="grid gap-2 sm:grid-cols-2">
               {c.booking.stepLabels.map((v, i) => (
                 <Field key={i} label={`Paso ${i + 1}`}>
@@ -839,10 +741,10 @@ export function SiteConfigEditor({
           </div>
 
           <div className="space-y-3">
-            <p className="text-xs font-medium text-[var(--text-secondary)]">Servicios (Step 1)</p>
+            <SubsectionTitle>Servicios (Step 1)</SubsectionTitle>
             <div className="space-y-4">
               {c.booking.services.map((svc, idx) => (
-                <div key={idx} className="rounded-lg border border-border bg-background-card p-4 space-y-3">
+                <div key={idx} className="space-y-3 rounded border border-line-1 bg-ink-1/60 p-4">
                   <div className="grid gap-3 sm:grid-cols-3">
                     <Field label="Icono">
                       <Input
@@ -978,14 +880,9 @@ export function SiteConfigEditor({
               }}
             />
           </Field>
-        </CardContent>
-      </Card>
+        </EditorSection>
 
-      <Card id="site-section-artists" className={SECTION_CARD}>
-        <CardHeader>
-          <CardTitle className="font-display text-xl">Artistas (Crew)</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <EditorSection id="site-section-artists" title="Artistas (Crew)">
           <Field label="Hero - título">
             <Input value={c.artists.pageHeroTitle} onChange={(e) => setC((p) => ({ ...p, artists: { ...p.artists, pageHeroTitle: e.target.value } }))} />
           </Field>
@@ -1056,10 +953,10 @@ export function SiteConfigEditor({
           </Field>
 
           <div className="space-y-3">
-            <p className="text-xs font-medium text-[var(--text-secondary)]">Miembros del crew (grid)</p>
+            <SubsectionTitle>Miembros del crew (grid)</SubsectionTitle>
             <div className="space-y-4">
               {c.artists.members.map((m, idx) => (
-                <div key={idx} className="rounded-lg border border-border bg-background-card p-4 space-y-3">
+                <div key={idx} className="space-y-3 rounded border border-line-1 bg-ink-1/60 p-4">
                   <div className="grid gap-3 sm:grid-cols-2">
                     <Field label="Nombre">
                       <Input
@@ -1175,18 +1072,13 @@ export function SiteConfigEditor({
               </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </EditorSection>
 
-      <Card id="site-section-beats" className={SECTION_CARD}>
-        <CardHeader>
-          <CardTitle className="font-display text-xl">Página pública — Beats</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-xs text-[var(--text-muted)]">
-            En la descripción del hero puedes usar <code className="font-mono">{"{{count}}"}</code> para insertar el número de
+      <EditorSection id="site-section-beats" title="Página pública — Beats">
+          <EditorHint>
+            En la descripción del hero puedes usar <code className="font-mono text-text-1">{"{{count}}"}</code> para insertar el número de
             beats disponibles.
-          </p>
+          </EditorHint>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Meta título">
               <Input
@@ -1227,18 +1119,13 @@ export function SiteConfigEditor({
             value={c.beatsPage.heroImageUrl ?? ""}
             onChange={(v) => setC((p) => ({ ...p, beatsPage: { ...p.beatsPage, heroImageUrl: v } }))}
           />
-        </CardContent>
-      </Card>
+        </EditorSection>
 
-      <Card id="site-section-productions" className={SECTION_CARD}>
-        <CardHeader>
-          <CardTitle className="font-display text-xl">Página pública — Producciones</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-xs text-[var(--text-muted)]">
-            Usa <code className="font-mono">{"{{total}}"}</code> en el texto del hero y en la línea sobre la cuadrícula para el total
+      <EditorSection id="site-section-productions" title="Página pública — Producciones">
+          <EditorHint>
+            Usa <code className="font-mono text-text-1">{"{{total}}"}</code> en el texto del hero y en la línea sobre la cuadrícula para el total
             del catálogo.
-          </p>
+          </EditorHint>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Meta título">
               <Input
@@ -1285,14 +1172,9 @@ export function SiteConfigEditor({
             value={c.productionsPage.heroImageUrl ?? ""}
             onChange={(v) => setC((p) => ({ ...p, productionsPage: { ...p.productionsPage, heroImageUrl: v } }))}
           />
-        </CardContent>
-      </Card>
+        </EditorSection>
 
-      <Card id="site-section-releases" className={SECTION_CARD}>
-        <CardHeader>
-          <CardTitle className="font-display text-xl">Página pública — Lanzamientos</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <EditorSection id="site-section-releases" title="Página pública — Lanzamientos">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Meta título">
               <Input
@@ -1340,17 +1222,12 @@ export function SiteConfigEditor({
             value={c.releasesPage.heroImageUrl ?? ""}
             onChange={(v) => setC((p) => ({ ...p, releasesPage: { ...p.releasesPage, heroImageUrl: v } }))}
           />
-        </CardContent>
-      </Card>
+        </EditorSection>
 
-      <Card id="site-section-booking-success" className={SECTION_CARD}>
-        <CardHeader>
-          <CardTitle className="font-display text-xl">Booking — página de confirmación</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-xs text-[var(--text-muted)]">
-            Textos de <code className="font-mono">/booking/success</code> (no indexada en buscadores).
-          </p>
+      <EditorSection id="site-section-booking-success" title="Booking — página de confirmación">
+          <EditorHint>
+            Textos de <code className="font-mono text-text-1">/booking/success</code> (no indexada en buscadores).
+          </EditorHint>
           <Field label="Meta título">
             <Input
               value={c.bookingSuccess.metaTitle}
@@ -1395,18 +1272,13 @@ export function SiteConfigEditor({
               />
             </Field>
           </div>
-        </CardContent>
-      </Card>
+        </EditorSection>
 
-      <Card id="site-section-release-detail" className={SECTION_CARD}>
-        <CardHeader>
-          <CardTitle className="font-display text-xl">Ficha de lanzamiento (/releases/[slug])</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-xs text-[var(--text-muted)]">
+      <EditorSection id="site-section-release-detail" title="Ficha de lanzamiento (/releases/[slug])">
+          <EditorHint>
             Etiquetas compartidas en la vista pública de cada release (título y descripción del SEO siguen saliendo del propio
             release).
-          </p>
+          </EditorHint>
           <Field label="Badge &quot;próximo&quot;">
             <Input
               value={c.releaseDetail.upcomingBadge}
@@ -1447,8 +1319,42 @@ export function SiteConfigEditor({
               />
             </Field>
           </div>
-        </CardContent>
-      </Card>
+        </EditorSection>
+
+      <div className="sticky bottom-0 z-30 -mx-4 border-t border-line-1 bg-ink-1/90 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="min-w-0">
+            <p className="font-mono text-label-sm text-text-3">
+              Borrador: {new Date(draftUpdatedAt).toLocaleString("es-CO")}
+              {publishedAt ? ` · Publicado: ${new Date(publishedAt).toLocaleString("es-CO")}` : " · Aún sin publicar"}
+            </p>
+            {msg ? (
+              <p role="status" className="mt-1 text-body-sm text-success">
+                {msg}
+              </p>
+            ) : null}
+            {err ? (
+              <p role="alert" className="mt-1 text-body-sm text-danger">
+                {err}
+              </p>
+            ) : null}
+          </div>
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <Button type="button" size="sm" variant="outline" disabled={pending} loading={pending && action === "preview"} onClick={() => preview()}>
+              <Eye aria-hidden />
+              Vista previa
+            </Button>
+            <Button type="button" size="sm" variant="secondary" disabled={pending} loading={pending && action === "save"} onClick={() => saveDraft()}>
+              <Save aria-hidden />
+              Guardar borrador
+            </Button>
+            <Button type="button" size="sm" disabled={pending} loading={pending && action === "publish"} onClick={() => publish()}>
+              <Upload aria-hidden />
+              Publicar
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

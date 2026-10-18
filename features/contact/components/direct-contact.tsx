@@ -1,4 +1,7 @@
 import { Clock, Mail, MapPin } from "lucide-react";
+import { ListRow } from "@/components/ds/list-row";
+import { Eyebrow } from "@/components/ui/eyebrow";
+import { Heading } from "@/components/ui/heading";
 import { WhatsAppIcon } from "@/components/shared/whatsapp-icon";
 
 type Props = {
@@ -9,7 +12,7 @@ type Props = {
   city?: string;
 };
 
-/** Contacto directo: WhatsApp (wa.me con mensaje), correo y horario. */
+/** Contacto directo (§6.5): «Hablemos» en display-md, WhatsApp y correo como `ListRow` grandes, horario y dirección en mono. */
 export function DirectContact({ whatsapp, email, businessName, hours, city }: Props) {
   const phone = whatsapp.replace(/\D/g, "");
   const waHref = phone
@@ -18,55 +21,61 @@ export function DirectContact({ whatsapp, email, businessName, hours, city }: Pr
   const pretty = phone ? `+${phone.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})$/, "$1 $2 $3 $4")}` : "";
 
   return (
-    <section aria-labelledby="direct-contact-title" className="card-surface p-6 sm:p-8">
-      <p className="eyebrow">Directo</p>
-      <h2 id="direct-contact-title" className="display-title mt-3 text-4xl text-foreground sm:text-5xl">
+    <section aria-labelledby="direct-contact-title">
+      <Eyebrow>Directo</Eyebrow>
+      <Heading as="h2" size="display-md" id="direct-contact-title" accent="Hablemos" className="mt-4">
         Hablemos
-      </h2>
-      <ul className="mt-5 space-y-3">
+      </Heading>
+      <ul className="mt-6 border-t border-line-1">
         {waHref ? (
-          <li>
-            <a
-              href={waHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex min-h-[44px] items-center gap-3 rounded-md border border-[color:var(--whatsapp)]/30 bg-[color:var(--whatsapp)]/10 px-4 py-3 text-sm text-foreground transition-colors hover:bg-[color:var(--whatsapp)]/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            >
-              <WhatsAppIcon className="h-5 w-5 shrink-0 text-[color:var(--whatsapp)]" />
-              <span className="min-w-0">
-                <span className="block font-medium">WhatsApp</span>
-                <span className="block text-xs text-[var(--text-secondary)]">{pretty}</span>
+          <ListRow
+            as="li"
+            href={waHref}
+            title="WhatsApp"
+            meta={<span className="font-mono text-label text-text-2">{pretty}</span>}
+            media={
+              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-whatsapp/[0.14] text-whatsapp">
+                <WhatsAppIcon className="h-6 w-6" />
               </span>
-            </a>
-          </li>
+            }
+            action={<span className="text-label text-text-3">Abrir chat</span>}
+            className="min-h-[88px] px-0"
+          />
         ) : null}
         {email ? (
-          <li>
-            <a
-              href={`mailto:${email}`}
-              className="flex min-h-[44px] items-center gap-3 rounded-md border border-border bg-background-secondary/60 px-4 py-3 text-sm text-foreground transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            >
-              <Mail className="h-5 w-5 shrink-0 text-primary" aria-hidden />
-              <span className="min-w-0">
-                <span className="block font-medium">Correo</span>
-                <span className="block truncate text-xs text-[var(--text-secondary)]">{email}</span>
+          <ListRow
+            as="li"
+            href={`mailto:${email}`}
+            title="Correo"
+            meta={<span className="truncate font-mono text-label normal-case text-text-2">{email}</span>}
+            media={
+              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-fire-500/[0.14] text-fire-400">
+                <Mail className="h-6 w-6" strokeWidth={1.75} aria-hidden />
               </span>
-            </a>
-          </li>
-        ) : null}
-        {hours ? (
-          <li className="flex items-center gap-3 px-4 py-2 text-sm text-[var(--text-secondary)]">
-            <Clock className="h-4 w-4 shrink-0 text-[var(--text-muted)]" aria-hidden />
-            {hours}
-          </li>
-        ) : null}
-        {city ? (
-          <li className="flex items-center gap-3 px-4 py-2 text-sm text-[var(--text-secondary)]">
-            <MapPin className="h-4 w-4 shrink-0 text-[var(--text-muted)]" aria-hidden />
-            {city}
-          </li>
+            }
+            action={<span className="text-label text-text-3">Escribir</span>}
+            className="min-h-[88px] px-0"
+          />
         ) : null}
       </ul>
+      {hours || city ? (
+        <dl className="mt-6 space-y-3">
+          {hours ? (
+            <div className="flex items-start gap-3">
+              <dt className="sr-only">Horario</dt>
+              <Clock className="mt-0.5 h-4 w-4 shrink-0 text-text-3" strokeWidth={1.75} aria-hidden />
+              <dd className="font-mono text-label normal-case text-text-2">{hours}</dd>
+            </div>
+          ) : null}
+          {city ? (
+            <div className="flex items-start gap-3">
+              <dt className="sr-only">Dirección</dt>
+              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-text-3" strokeWidth={1.75} aria-hidden />
+              <dd className="font-mono text-label normal-case text-text-2">{city}</dd>
+            </div>
+          ) : null}
+        </dl>
+      ) : null}
     </section>
   );
 }

@@ -2,35 +2,88 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ---------------------------------------------------------------------------
+   Tokens — Sodimusic Design Language v4 "Caribe de noche, editorial"
+   (docs/superpowers/specs/2026-10-18-sodimusic-design-language-v4.md §2)
+   --------------------------------------------------------------------------- */
 :root {
-  --background: #080808;
-  --background-secondary: #111111;
-  --background-card: #161616;
-  --background-elevated: #1e1e1e;
+  /* Tinta (fondos) — negro cálido */
+  --ink-0: #050404; /* fondo de página */
+  --ink-1: #0b0a09; /* secciones alternas */
+  --ink-2: #131110; /* tarjetas */
+  --ink-3: #1b1816; /* elevado: inputs, popovers */
+  --ink-4: #262220; /* hover de elevado */
 
-  --primary: #ff6b00;
-  --primary-hover: #ff8c33;
-  --primary-muted: rgba(255, 107, 0, 0.15);
-  /* Texto sobre superficies naranja (6.9:1 sobre --primary; blanco solo daba 2.9:1). */
-  --primary-foreground: #120a04;
+  /* Acento principal — naranja pico */
+  --fire-300: #ffb380;
+  --fire-400: #ff8c33;
+  --fire-500: #ff6b00;
+  --fire-600: #d95a00;
+  --fire-on: #120a04; /* texto sobre fire */
 
-  --gold: #d4a017;
-  --gold-muted: rgba(212, 160, 23, 0.15);
+  /* Acento frío — mar Caribe (uso ≤ 10 %) */
+  --sea-400: #4fd1c5;
+  --sea-500: #19b3a6;
+  --sea-on: #04211e;
 
-  --text-primary: #f0ede8;
-  /* 9.5:1 sobre --background, 7.9:1 sobre --background-elevated */
-  --text-secondary: #b8b2a8;
-  /* 5.8:1 sobre --background, 4.9:1 sobre --background-elevated (antes #5a5550 = 2.7:1) */
-  --text-muted: #8f8a82;
+  /* Oro — destacado/premium */
+  --gold-400: #e6b83a;
+  --gold-500: #d4a017;
 
+  /* Texto */
+  --text-1: #f3efe8; /* 15.6:1 sobre ink-0 */
+  --text-2: #bdb6ac; /* 9.4:1 */
+  --text-3: #8f8a82; /* 5.6:1 — mínimo para texto; nunca < 12 px */
+
+  /* Líneas y velos */
+  --line-1: rgba(255, 255, 255, 0.07);
+  --line-2: rgba(255, 255, 255, 0.14);
+  --line-fire: rgba(255, 107, 0, 0.35);
+  --veil-warm: linear-gradient(180deg, rgba(5, 4, 4, 0.15) 0%, rgba(5, 4, 4, 0.65) 60%, #050404 100%);
+  --duotone-a: #2a1206; /* sombras */
+  --duotone-b: #ff6b00; /* luces */
+
+  /* Semánticos */
+  --success: #3cc878;
+  --warning: #e6b83a;
+  --danger: #ff5a5a;
+  --info: #4fd1c5;
   --whatsapp: #25d366;
 
-  --border: rgba(255, 255, 255, 0.08);
-  --border-hover: rgba(255, 107, 0, 0.45);
-  --border-accent: rgba(255, 107, 0, 0.18);
+  /* Movimiento */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
 
-  --radius: 4px;
-  --radius-lg: 8px;
+  /* Display: Archivo expandido (wdth 125) desde md. En < md se usa wdth 100: medido con la fuente
+     cargada, "PRODUCCIONES" a 44 px ocupa 373 px con wdth 100 y 464 px con wdth 125, y el contenido
+     a 390 px mide 358 px. Con wdth 100 y display-lg a 40 px (339 px) cabe sin partir la palabra. */
+  --display-stretch: 100%;
+
+  /* Alias de compatibilidad (no usar en código nuevo) */
+  --background: var(--ink-0);
+  --background-secondary: var(--ink-1);
+  --background-card: var(--ink-2);
+  --background-elevated: var(--ink-3);
+  --primary: var(--fire-500);
+  --primary-hover: var(--fire-400);
+  --primary-foreground: var(--fire-on);
+  --primary-muted: rgba(255, 107, 0, 0.14);
+  --gold: var(--gold-500);
+  --gold-muted: rgba(212, 160, 23, 0.15);
+  --text-primary: var(--text-1);
+  --text-secondary: var(--text-2);
+  --text-muted: var(--text-3);
+  --border: var(--line-1);
+  --border-hover: var(--line-fire);
+  --border-accent: rgba(255, 107, 0, 0.18);
+  --radius: 8px;
+  --radius-lg: 16px;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --display-stretch: 125%;
+  }
 }
 
 @keyframes gradientShift {
@@ -69,21 +122,34 @@
   }
 }
 
+@keyframes spinSlow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @layer base {
   * {
-    @apply border-border;
+    @apply border-line-1;
   }
 
-  /* Fondo de respaldo: evita destellos blancos fuera del gradiente (p. ej. overscroll en móvil). */
+  /* Fondo de respaldo: evita destellos claros fuera del gradiente (p. ej. overscroll en móvil). */
   html {
-    background-color: var(--background);
+    background-color: var(--ink-0);
+    color-scheme: dark;
   }
 
   body {
-    @apply font-body antialiased text-foreground;
-    background: radial-gradient(ellipse at top left, #1a0a00 0%, #080808 50%, #000d1a 100%);
+    @apply font-body antialiased text-text-1;
+    /* Escenario: negro cálido con una luz ámbar arriba-izquierda y un rastro frío abajo-derecha. */
+    background:
+      radial-gradient(ellipse 70% 55% at 12% -8%, rgba(255, 107, 0, 0.09) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 100% 110%, rgba(25, 179, 166, 0.05) 0%, transparent 60%),
+      var(--ink-0);
     background-attachment: fixed;
     min-height: 100vh;
+    font-size: 16px;
+    line-height: 1.6;
   }
 
   body::before {
@@ -96,9 +162,15 @@
     opacity: 0.4;
   }
 
+  /* h1/h2 heredan la display; `.text-display-*` y `Heading` fijan peso, ancho y caja. */
   h1,
   h2 {
     @apply font-display;
+  }
+
+  ::selection {
+    background: rgba(255, 107, 0, 0.35);
+    color: var(--text-1);
   }
 
   a:focus-visible,
@@ -106,8 +178,9 @@
   input:focus-visible,
   textarea:focus-visible,
   select:focus-visible,
-  summary:focus-visible {
-    outline: 2px solid var(--primary);
+  summary:focus-visible,
+  [role="button"]:focus-visible {
+    outline: 2px solid var(--fire-500);
     outline-offset: 2px;
   }
 }
@@ -122,38 +195,293 @@
 }
 
 @layer utilities {
-  /* Contraste de botones primarios: cualquier superficie naranja usa texto oscuro.
-     Cubre `Button` (variant default) sin tocar components/ui/button.tsx. */
+  /* ---------------- Escala tipográfica (§2.2) ----------------
+     `.text-display-*` fija tamaño, interlínea, caja alta, tracking y ancho (wdth). La familia y el peso
+     van aparte para poder usar la misma escala con `font-display font-extrabold` (Heading lo hace solo),
+     `font-mono` (cifras, Price lg) o `text-accent` (Kicker, citas). Los utilitarios de esta capa se
+     emiten DESPUÉS de los generados por Tailwind, por eso no deben pisar familia/peso. */
+  .text-display-xl,
+  .text-display-lg,
+  .text-display-md,
+  .text-display-sm {
+    font-stretch: var(--display-stretch);
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+
+  .text-display-xl {
+    font-size: clamp(56px, 11vw, 152px);
+    line-height: 0.92;
+  }
+
+  .text-display-lg {
+    font-size: clamp(40px, 7.5vw, 104px);
+    line-height: 0.95;
+  }
+
+  .text-display-md {
+    font-size: clamp(32px, 4.5vw, 64px);
+    line-height: 1;
+  }
+
+  .text-display-sm {
+    font-size: clamp(24px, 3vw, 40px);
+    line-height: 1.05;
+  }
+
+  .text-title {
+    font-family: var(--font-body), system-ui, sans-serif;
+    font-size: 20px;
+    line-height: 1.25;
+    font-weight: 600;
+  }
+
+  .text-body-lg {
+    font-size: 18px;
+    line-height: 1.6;
+  }
+
+  .text-body {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  .text-body-sm {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .text-label {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: 12px;
+    line-height: 1.2;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .text-label-sm {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: 11px;
+    line-height: 1.2;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  /* Acento serif: solo en itálica. */
+  .text-accent {
+    font-family: var(--font-accent), Georgia, serif;
+    font-style: italic;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  /* Colores de texto cortos (equivalen a text-text-1/2/3). */
+  .text-1 {
+    color: var(--text-1);
+  }
+
+  .text-2 {
+    color: var(--text-2);
+  }
+
+  .text-3 {
+    color: var(--text-3);
+  }
+
+  /* ---------------- Espaciado y contenedores (§2.3) ---------------- */
+  .py-section {
+    padding-top: clamp(64px, 10vw, 144px);
+    padding-bottom: clamp(64px, 10vw, 144px);
+  }
+
+  .container-page {
+    width: 100%;
+    max-width: 1280px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .container-prose {
+    max-width: 68ch;
+  }
+
+  .container-wide {
+    width: 100%;
+    max-width: 1440px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  @media (min-width: 640px) {
+    .container-page {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container-page {
+      padding-left: 2rem;
+      padding-right: 2rem;
+    }
+  }
+
+  /* ---------------- Tratamiento de imagen (§2.4) ---------------- */
+  /* Duotono: la foto se desatura y se tiñe sombra→naranja. `.is-reveal` (o un `.group` padre en hover)
+     devuelve el color en 400 ms: el hover revela. */
+  /* No fija `position`: el contenedor la pone (relative/absolute) para no pisar utilidades de Tailwind. */
+  .media-duotone {
+    isolation: isolate;
+    overflow: hidden;
+    background: var(--duotone-a);
+  }
+
+  .media-duotone > img,
+  .media-duotone img {
+    filter: grayscale(1) contrast(1.05);
+    transition: filter 400ms var(--ease-out);
+  }
+
+  .media-duotone::before,
+  .media-duotone::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    transition: opacity 400ms var(--ease-out);
+  }
+
+  .media-duotone::before {
+    background: var(--duotone-a);
+    mix-blend-mode: multiply;
+    opacity: 0.55;
+    z-index: 1;
+  }
+
+  .media-duotone::after {
+    background: linear-gradient(160deg, var(--duotone-a) 0%, var(--duotone-b) 100%);
+    mix-blend-mode: screen;
+    opacity: 0.45;
+    z-index: 2;
+  }
+
+  .media-duotone.is-reveal:hover::before,
+  .media-duotone.is-reveal:hover::after,
+  .group:hover .media-duotone.is-reveal::before,
+  .group:hover .media-duotone.is-reveal::after,
+  .group:focus-visible .media-duotone.is-reveal::before,
+  .group:focus-visible .media-duotone.is-reveal::after {
+    opacity: 0;
+  }
+
+  .media-duotone.is-reveal:hover img,
+  .group:hover .media-duotone.is-reveal img,
+  .group:focus-visible .media-duotone.is-reveal img {
+    filter: none;
+  }
+
+  /* Velo cálido para poner texto encima de una foto (el contenedor debe estar posicionado). */
+  .media-veil::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--veil-warm);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  /* Grano (el mismo ruido de body::before) para heros a sangre (el contenedor debe estar posicionado). */
+  .grain::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.5'/%3E%3C/svg%3E");
+    opacity: 0.25;
+    mix-blend-mode: overlay;
+    pointer-events: none;
+    z-index: 3;
+  }
+
+  /* Hover que revela: la imagen interior escala 1.04 (nunca el contenedor). */
+  .hover-zoom img {
+    transition: transform 600ms var(--ease-out);
+  }
+
+  .group:hover .hover-zoom img,
+  .hover-zoom:hover img {
+    transform: scale(1.04);
+  }
+
+  /* Subrayado barrido (enlaces de navegación y de texto). */
+  .link-sweep {
+    position: relative;
+    display: inline-block;
+  }
+
+  .link-sweep::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -2px;
+    height: 1px;
+    width: 100%;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 250ms var(--ease-out);
+  }
+
+  .link-sweep:hover::after,
+  .link-sweep:focus-visible::after,
+  .link-sweep.is-active::after,
+  .group:hover .link-sweep::after {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+
+  /* Desvanecidos laterales para scroll horizontal (FilterBar). */
+  .scroll-fade-x {
+    mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 32px), transparent 100%);
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 32px), transparent 100%);
+  }
+
+  .animate-spin-slow {
+    animation: spinSlow 1.1s linear infinite;
+  }
+
+  /* ---------------- Compatibilidad: utilidades previas ---------------- */
+  /* Cualquier superficie naranja usa texto oscuro (cubre usos antiguos de `bg-primary text-white`). */
   .bg-primary.text-white,
   .bg-primary {
-    color: var(--primary-foreground);
+    color: var(--fire-on);
   }
 
   .text-balance {
     text-wrap: balance;
   }
 
-  /* Titulares display: Bebas Neue con tracking amplio. */
+  /* Titular display antiguo (páginas sin migrar): ahora Archivo expandido. */
   .display-title {
-    @apply font-display uppercase leading-[0.95] tracking-[0.04em];
+    @apply font-display uppercase font-extrabold leading-[0.95] tracking-display;
+    font-stretch: var(--display-stretch);
   }
 
-  /* Eyebrow con línea de acento a la izquierda. */
+  /* Eyebrow antiguo: línea + mono, con la escala nueva. */
   .eyebrow {
-    @apply inline-flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.28em] text-primary;
+    @apply inline-flex items-center gap-3 font-mono text-label text-fire-500;
   }
 
   .eyebrow::before {
     content: "";
-    @apply h-px w-6 bg-primary;
+    @apply h-px w-6 bg-fire-500;
   }
 
-  /* Separador suave entre secciones (en lugar de bordes duros). */
-  /* Superficie de tarjeta/formulario (la usan contacto y prensa). */
   .card-surface {
-    @apply rounded-lg border border-border;
-    background: rgba(22, 22, 22, 0.8);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    @apply rounded-lg border border-line-1 bg-ink-2 shadow-card;
   }
 
   .section-divider {
@@ -171,7 +499,7 @@
   }
 
   .glass-card {
-    background: linear-gradient(180deg, rgba(30, 30, 30, 0.8) 0%, rgba(17, 17, 17, 0.92) 100%);
+    background: linear-gradient(180deg, rgba(27, 24, 22, 0.8) 0%, rgba(11, 10, 9, 0.92) 100%);
     backdrop-filter: blur(6px);
   }
 
@@ -200,17 +528,18 @@
 
   .nav-link-underline::after {
     content: "";
-    @apply pointer-events-none absolute bottom-0 left-0 h-px w-full origin-left scale-x-0 bg-primary transition-transform duration-300;
+    @apply pointer-events-none absolute bottom-0 left-0 h-px w-full origin-right scale-x-0 bg-fire-500;
+    transition: transform 250ms var(--ease-out);
   }
 
   .nav-link-underline:hover::after,
   .nav-link-underline:focus-visible::after,
   .nav-link-underline.is-active::after {
-    @apply scale-x-100;
+    @apply origin-left scale-x-100;
   }
 
   .booking-calendar.rdp-root {
-    --rdp-accent-color: var(--primary);
+    --rdp-accent-color: var(--fire-500);
     --rdp-accent-background-color: rgba(255, 107, 0, 0.18);
     --rdp-disabled-opacity: 0.3;
   }
@@ -243,9 +572,9 @@
   opacity: 0;
 }
 
-/* Entrada del hero (server component): 0.8 s · cubic-bezier(0.25,0.1,0.25,1) con retardo por elemento. */
+/* Entrada del hero (server component): 0.8 s · ease-out con retardo por elemento. */
 .hero-enter {
-  animation: heroEnter 0.8s cubic-bezier(0.25, 0.1, 0.25, 1) var(--enter-delay, 0s) backwards;
+  animation: heroEnter 0.8s var(--ease-out) var(--enter-delay, 0s) backwards;
 }
 
 /* Con movimiento reducido todo es visible de inmediato (la regla global ya anula las animaciones). */
@@ -270,19 +599,19 @@ body {
 .beat-progress::-webkit-slider-runnable-track {
   height: 4px;
   border-radius: 999px;
-  background: linear-gradient(to right, var(--primary) var(--progress, 0%), rgba(255, 255, 255, 0.25) var(--progress, 0%));
+  background: linear-gradient(to right, var(--fire-500) var(--progress, 0%), rgba(255, 255, 255, 0.18) var(--progress, 0%));
 }
 
 .beat-progress::-moz-range-track {
   height: 4px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .beat-progress::-moz-range-progress {
   height: 4px;
   border-radius: 999px;
-  background: var(--primary);
+  background: var(--fire-500);
 }
 
 .beat-progress::-webkit-slider-thumb {
@@ -292,16 +621,16 @@ body {
   height: 14px;
   width: 14px;
   border-radius: 999px;
-  background: #fff;
-  border: 2px solid var(--primary);
+  background: var(--text-1);
+  border: 2px solid var(--fire-500);
 }
 
 .beat-progress::-moz-range-thumb {
   height: 14px;
   width: 14px;
   border-radius: 999px;
-  background: #fff;
-  border: 2px solid var(--primary);
+  background: var(--text-1);
+  border: 2px solid var(--fire-500);
 }
 
 .beat-progress:focus-visible::-webkit-slider-thumb,
@@ -340,7 +669,7 @@ body {
   display: block;
   width: 3px;
   border-radius: 1px;
-  background: var(--primary);
+  background: var(--fire-500);
   transform-origin: bottom;
   animation: beatEq 0.9s ease-in-out infinite;
 }
@@ -359,24 +688,9 @@ body {
   height: 75%;
 }
 
-/* marquee */
-/* Cinta editorial de la home (components/landing/marquee-strip.tsx): dos copias del mismo grupo,
-   la pista se desplaza -50 % en bucle. Se pausa al pasar el cursor. Con `prefers-reduced-motion`
-   la regla global ya anula la animación y el componente muestra los ítems una sola vez con flex-wrap. */
-@keyframes marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-
-.marquee-track {
-  animation: marquee 40s linear infinite;
-  will-change: transform;
-}
-
-.marquee:hover .marquee-track {
-  animation-play-state: paused;
+/* Anillo de progreso del PlayButton (SVG): el trazo avanza con `--progress` (0–100). */
+.play-ring circle.play-ring-bar {
+  stroke-dasharray: 100;
+  stroke-dashoffset: calc(100 - var(--progress, 0));
+  transition: stroke-dashoffset 250ms linear;
 }

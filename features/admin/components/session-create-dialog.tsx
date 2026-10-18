@@ -4,23 +4,12 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createBookingSessionAdmin } from "@/app/actions/admin-actions";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { AdminDialogFooter, AdminField, adminDialogClass } from "@/features/admin/components/admin-primitives";
 import { SERVICE_TYPE_LABELS } from "@/lib/constants";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
@@ -98,20 +87,21 @@ export function SessionCreateDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button type="button" className="gap-2">
-          <Plus className="h-4 w-4" />
+        <Button type="button" size="sm">
+          <Plus aria-hidden />
           Nueva sesión
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[90vh] overflow-y-auto border-white/10 bg-background-card sm:max-w-lg">
+      <DialogContent className={`${adminDialogClass} sm:max-w-lg`}>
         <DialogHeader>
-          <DialogTitle className="font-display text-xl">Crear sesión manual</DialogTitle>
+          <DialogTitle className="text-title">Crear sesión manual</DialogTitle>
+          <DialogDescription>Alta directa sin pasar por el booking público. La franja debe estar libre.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={(e) => void onSubmit(e)} className="space-y-4 text-sm">
-          <div className="space-y-2">
-            <Label>Servicio</Label>
+        <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="sess-service">Servicio</Label>
             <Select value={serviceType} onValueChange={setServiceType}>
-              <SelectTrigger className="border-white/10 bg-black/30">
+              <SelectTrigger id="sess-service">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -124,97 +114,36 @@ export function SessionCreateDialog() {
             </Select>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="sess-artist">Nombre artístico</Label>
-              <Input
-                id="sess-artist"
-                value={artistName}
-                onChange={(e) => setArtistName(e.target.value)}
-                required
-                className="border-white/10 bg-black/30"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="sess-email">Email</Label>
-              <Input
-                id="sess-email"
-                type="email"
-                value={artistEmail}
-                onChange={(e) => setArtistEmail(e.target.value)}
-                required
-                className="border-white/10 bg-black/30"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="sess-phone">Teléfono</Label>
-              <Input
-                id="sess-phone"
-                value={artistPhone}
-                onChange={(e) => setArtistPhone(e.target.value)}
-                required
-                placeholder="+57…"
-                className="border-white/10 bg-black/30"
-              />
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="sess-ig">Instagram (opcional)</Label>
-              <Input
-                id="sess-ig"
-                value={artistInstagram}
-                onChange={(e) => setArtistInstagram(e.target.value)}
-                placeholder="@usuario"
-                className="border-white/10 bg-black/30"
-              />
-            </div>
+            <AdminField label="Nombre artístico" htmlFor="sess-artist" className="sm:col-span-2">
+              <Input id="sess-artist" value={artistName} onChange={(e) => setArtistName(e.target.value)} required />
+            </AdminField>
+            <AdminField label="Email" htmlFor="sess-email">
+              <Input id="sess-email" type="email" value={artistEmail} onChange={(e) => setArtistEmail(e.target.value)} required />
+            </AdminField>
+            <AdminField label="Teléfono" htmlFor="sess-phone">
+              <Input id="sess-phone" value={artistPhone} onChange={(e) => setArtistPhone(e.target.value)} required placeholder="+57…" />
+            </AdminField>
+            <AdminField label="Instagram (opcional)" htmlFor="sess-ig" className="sm:col-span-2">
+              <Input id="sess-ig" value={artistInstagram} onChange={(e) => setArtistInstagram(e.target.value)} placeholder="@usuario" />
+            </AdminField>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="sess-ref">Referencia musical (URL)</Label>
-            <Input
-              id="sess-ref"
-              type="url"
-              value={musicReference}
-              onChange={(e) => setMusicReference(e.target.value)}
-              required
-              placeholder="https://open.spotify.com/…"
-              className="border-white/10 bg-black/30"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="sess-genres">Géneros (texto)</Label>
-            <Input
-              id="sess-genres"
-              value={genres}
-              onChange={(e) => setGenres(e.target.value)}
-              required
-              className="border-white/10 bg-black/30"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="sess-vision">Visión / notas del artista (opcional)</Label>
-            <Textarea
-              id="sess-vision"
-              value={vision}
-              onChange={(e) => setVision(e.target.value)}
-              rows={2}
-              className="resize-none border-white/10 bg-black/30"
-            />
-          </div>
+          <AdminField label="Referencia musical (URL)" htmlFor="sess-ref">
+            <Input id="sess-ref" type="url" value={musicReference} onChange={(e) => setMusicReference(e.target.value)} required placeholder="https://open.spotify.com/…" />
+          </AdminField>
+          <AdminField label="Géneros (texto)" htmlFor="sess-genres">
+            <Input id="sess-genres" value={genres} onChange={(e) => setGenres(e.target.value)} required />
+          </AdminField>
+          <AdminField label="Visión / notas del artista (opcional)" htmlFor="sess-vision">
+            <Textarea id="sess-vision" value={vision} onChange={(e) => setVision(e.target.value)} rows={2} className="min-h-[72px] resize-none" />
+          </AdminField>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="sess-date">Fecha</Label>
-              <Input
-                id="sess-date"
-                type="date"
-                value={scheduledDate}
-                onChange={(e) => setScheduledDate(e.target.value)}
-                required
-                className="border-white/10 bg-black/30"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Franja</Label>
+            <AdminField label="Fecha" htmlFor="sess-date">
+              <Input id="sess-date" type="date" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} required />
+            </AdminField>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="sess-slot">Franja</Label>
               <Select value={timeSlot} onValueChange={(v) => setTimeSlot(v as typeof timeSlot)}>
-                <SelectTrigger className="border-white/10 bg-black/30">
+                <SelectTrigger id="sess-slot">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -225,24 +154,17 @@ export function SessionCreateDialog() {
               </Select>
             </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="sess-internal">Notas internas (opcional)</Label>
-            <Textarea
-              id="sess-internal"
-              value={internalNotes}
-              onChange={(e) => setInternalNotes(e.target.value)}
-              rows={2}
-              className="resize-none border-white/10 bg-black/30"
-            />
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
+          <AdminField label="Notas internas (opcional)" htmlFor="sess-internal">
+            <Textarea id="sess-internal" value={internalNotes} onChange={(e) => setInternalNotes(e.target.value)} rows={2} className="min-h-[72px] resize-none" />
+          </AdminField>
+          <AdminDialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" loading={loading}>
               {loading ? "Creando…" : "Crear sesión"}
             </Button>
-          </div>
+          </AdminDialogFooter>
         </form>
       </DialogContent>
     </Dialog>

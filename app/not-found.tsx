@@ -3,6 +3,11 @@ import Link from "next/link";
 import { ArrowLeft, Compass } from "lucide-react";
 import { Navbar } from "@/components/shared/navbar";
 import { Footer } from "@/components/shared/footer";
+import { Button } from "@/components/ui/button";
+import { Chip } from "@/components/ui/chip";
+import { Eyebrow } from "@/components/ui/eyebrow";
+import { Heading } from "@/components/ui/heading";
+import { Text } from "@/components/ui/text";
 import { getSiteContent } from "@/lib/site-config-server";
 
 export const metadata: Metadata = {
@@ -25,46 +30,47 @@ export default async function NotFound() {
     <>
       <Navbar site={site} />
       <main id="contenido-principal" className="relative z-[2]">
-        <section className="relative overflow-hidden px-4 py-24 sm:py-32 lg:px-8">
+        <section className="relative isolate overflow-hidden bg-ink-1 py-section" aria-labelledby="not-found-title">
           <div
-            className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_0%,rgba(255,107,0,0.14),transparent)]"
+            className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_70%_50%_at_50%_0%,rgba(255,107,0,0.14),transparent)]"
             aria-hidden
           />
-          <div className="relative mx-auto max-w-3xl text-center">
-            <p className="eyebrow mx-auto justify-center text-primary">Error 404</p>
-            <h1 className="display-title mt-4 text-[clamp(56px,14vw,120px)] leading-[0.9] text-foreground">
+          <span
+            className="text-accent pointer-events-none absolute top-4 left-1/2 -z-10 -translate-x-1/2 text-display-xl text-fire-500/10"
+            aria-hidden
+          >
+            404
+          </span>
+          <div className="container-page flex flex-col items-center text-center">
+            <Eyebrow align="center">Error 404</Eyebrow>
+            <Heading as="h1" size="display-xl" id="not-found-title" accent="pista" className="mt-5">
               Esa pista no existe
-            </h1>
-            <p className="mx-auto mt-6 max-w-xl text-lg text-[var(--text-secondary)]">
-              La página que buscas no está en nuestro catálogo o cambió de dirección. Vuelve al inicio o explora lo que sí
-              está sonando.
-            </p>
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-              <Link
-                href="/"
-                className="inline-flex min-h-12 items-center gap-2 rounded-md bg-primary px-6 font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-              >
-                <ArrowLeft className="h-4 w-4" aria-hidden />
-                Volver al inicio
-              </Link>
-              <Link
-                href="/contacto"
-                className="inline-flex min-h-12 items-center gap-2 rounded-md border border-border px-6 font-semibold text-foreground transition-colors hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-              >
-                <Compass className="h-4 w-4" aria-hidden />
-                Escríbenos
-              </Link>
+            </Heading>
+            <Text as="p" size="body-lg" tone="2" prose className="mt-6">
+              La página que buscas no está en nuestro catálogo o cambió de dirección. Vuelve al inicio o explora lo que sí está
+              sonando.
+            </Text>
+            <div className="mt-10 flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-center">
+              <Button asChild size="lg">
+                <Link href="/">
+                  <ArrowLeft aria-hidden />
+                  Volver al inicio
+                </Link>
+              </Button>
+              <Button asChild size="lg" variant="outline">
+                <Link href="/contacto">
+                  <Compass aria-hidden />
+                  Escríbenos
+                </Link>
+              </Button>
             </div>
             <nav aria-label="Secciones" className="mt-14">
               <ul className="flex flex-wrap items-center justify-center gap-2">
                 {links.map((l) => (
                   <li key={l.href}>
-                    <Link
-                      href={l.href}
-                      className="inline-flex min-h-11 items-center rounded-full border border-border px-4 font-mono text-xs uppercase tracking-wider text-[var(--text-secondary)] transition-colors hover:border-primary/40 hover:text-foreground"
-                    >
+                    <Chip href={l.href} scroll>
                       {l.label}
-                    </Link>
+                    </Chip>
                   </li>
                 ))}
               </ul>

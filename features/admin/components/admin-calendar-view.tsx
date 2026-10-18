@@ -225,13 +225,9 @@ export function AdminCalendarView({
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="font-display text-3xl tracking-wide text-foreground">Calendario del estudio</h1>
-          <p className="mt-1 max-w-2xl text-sm text-[var(--text-secondary)]">
-            Vista mensual: la barra indica mañana, tarde y noche. Naranja o naranja primario = sesión agendada en esa
-            franja. Debajo verás quién reservó. Toca un día para el detalle completo.
-          </p>
-        </div>
+        <p className="container-prose text-body-sm text-text-2">
+          Vista mensual: la barra indica mañana, tarde y noche. Toca un día para ver el detalle y bloquear franjas.
+        </p>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" asChild className="shrink-0 border-white/10 bg-black/20">
             <Link href={`/admin/dashboard/calendar?month=${prevMonth}`} aria-label="Mes anterior">

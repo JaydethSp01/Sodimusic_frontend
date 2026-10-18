@@ -4,11 +4,14 @@ import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, Eye, EyeOff, Loader2, Lock, Mail, Shield } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { FieldError } from "@/components/ui/field-error";
+import { Heading } from "@/components/ui/heading";
+import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
+import { Text } from "@/components/ui/text";
+import { AdminField } from "@/features/admin/components/admin-primitives";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -33,98 +36,38 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="relative isolate flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-12">
-      {/* Fondo: malla + viñeta (respeta prefers-reduced-motion vía motion-reduce) */}
-      <div className="pointer-events-none absolute inset-0 bg-[#050508]" aria-hidden />
-      <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,rgba(255,107,0,0.18),transparent_55%)]"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_100%_50%,rgba(212,160,23,0.08),transparent_50%)]"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.35] [background-image:linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] [background-size:48px_48px]"
-        aria-hidden
-      />
+    <main className="relative isolate flex min-h-screen flex-col items-center justify-center overflow-hidden bg-ink-0 px-4 py-12">
+      {/* Fondo: luz de pico arriba a la izquierda + grano. Sin movimiento. */}
+      <div className="grain pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_60%_at_15%_0%,rgba(255,107,0,0.22),transparent_60%)]" aria-hidden />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_100%_100%,rgba(79,209,197,0.07),transparent_60%)]" aria-hidden />
+      <p className="pointer-events-none absolute -left-4 top-6 select-none font-display text-display-xl font-black uppercase leading-none text-text-1/[0.04] [font-stretch:125%] md:-left-10" aria-hidden>
+        Sodimusic
+      </p>
 
-      <div
-        className={cn(
-          "pointer-events-none absolute -left-32 top-1/4 h-[28rem] w-[28rem] rounded-full bg-primary/30 blur-[100px] motion-safe:animate-login-blob motion-reduce:animate-none",
-        )}
-        aria-hidden
-      />
-      <div
-        className={cn(
-          "pointer-events-none absolute -right-24 bottom-1/4 h-[22rem] w-[22rem] rounded-full bg-gold/20 blur-[90px] motion-safe:animate-login-blob motion-reduce:animate-none [animation-delay:-7s]",
-        )}
-        aria-hidden
-      />
-      <div
-        className={cn(
-          "pointer-events-none absolute left-1/2 top-1/2 h-[18rem] w-[18rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-orange-950/40 blur-[80px] motion-safe:animate-login-blob motion-reduce:animate-none [animation-delay:-12s]",
-        )}
-        aria-hidden
-      />
-
-      <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,#050508_75%)]"
-        aria-hidden
-      />
-
-      <div className="relative z-10 w-full max-w-[420px] motion-safe:animate-login-fade-in motion-reduce:opacity-100">
-        <div className="mb-8 flex flex-col items-center text-center">
-          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/5 shadow-[0_0_40px_-8px_rgba(255,107,0,0.45)] backdrop-blur-sm">
-            <Shield className="h-7 w-7 text-primary" aria-hidden />
-          </div>
-          <p className="font-display text-xs font-medium uppercase tracking-[0.35em] text-primary/90">
+      <div className="relative z-10 w-full max-w-md">
+        <div className="mb-8 flex flex-col items-start">
+          <Link href="/" className="inline-flex items-center rounded font-display text-title font-black uppercase tracking-wordmark text-text-1 [font-stretch:125%] transition-colors duration-150 hover:text-fire-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fire-500 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-0">
             Sodimusic
-          </p>
-          <h1 className="mt-2 font-display text-3xl font-normal tracking-wide text-foreground">
-            Panel admin
-          </h1>
-          <p className="mt-2 max-w-xs text-sm leading-relaxed text-[var(--text-secondary)]">
+          </Link>
+          <Heading as="h1" size="display-md" className="mt-6">
+            Panel <em>admin</em>
+          </Heading>
+          <Text size="body" tone="2" className="mt-3">
             Acceso restringido al equipo. Usa las credenciales autorizadas.
-          </p>
+          </Text>
         </div>
 
-        <form
-          onSubmit={(e) => void onSubmit(e)}
-          className="space-y-5 rounded-2xl border border-white/[0.08] bg-black/35 p-8 shadow-[0_24px_80px_-24px_rgba(0,0,0,0.9),inset_0_1px_0_0_rgba(255,255,255,0.06)] backdrop-blur-xl"
-          noValidate
-        >
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-[var(--text-secondary)]">
-              Email
-            </Label>
+        <form onSubmit={(e) => void onSubmit(e)} className="space-y-5 rounded-lg border border-line-1 bg-ink-2 p-6 shadow-card sm:p-8" noValidate>
+          <AdminField label="Email" htmlFor="email">
             <div className="relative">
-              <Mail
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]"
-                aria-hidden
-              />
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                placeholder="tu@correo.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="h-11 border-white/10 bg-black/40 pl-10 text-[15px] placeholder:text-[var(--text-muted)] focus-visible:border-primary/40 focus-visible:ring-primary/30"
-              />
+              <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-3" strokeWidth={1.75} aria-hidden />
+              <Input id="email" type="email" autoComplete="email" placeholder="tu@correo.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="pl-10" />
             </div>
-          </div>
+          </AdminField>
 
-          <div className="space-y-2">
-            <Label htmlFor="password" className="text-[var(--text-secondary)]">
-              Contraseña
-            </Label>
+          <AdminField label="Contraseña" htmlFor="password">
             <div className="relative">
-              <Lock
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]"
-                aria-hidden
-              />
+              <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-3" strokeWidth={1.75} aria-hidden />
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
@@ -133,57 +76,39 @@ export default function AdminLoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="h-11 border-white/10 bg-black/40 pl-10 pr-11 text-[15px] placeholder:text-[var(--text-muted)] focus-visible:border-primary/40 focus-visible:ring-primary/30"
+                className="pl-10 pr-12"
               />
-              <button
-                type="button"
+              <IconButton
+                size="sm"
+                variant="ghost"
+                className="absolute right-1 top-1/2 -translate-y-1/2"
                 onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-md text-[var(--text-muted)] transition-colors hover:bg-white/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0c]"
                 aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                aria-pressed={showPassword}
               >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
+                {showPassword ? <EyeOff /> : <Eye />}
+              </IconButton>
             </div>
-          </div>
+          </AdminField>
 
           {error ? (
-            <div
-              className="flex gap-3 rounded-lg border border-red-500/25 bg-red-950/40 px-3 py-3 text-sm text-red-200"
-              role="alert"
-              aria-live="polite"
-            >
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" aria-hidden />
-              <span>{error}</span>
+            <div className="rounded border border-danger/40 bg-danger/[0.08] px-3 py-2" aria-live="polite">
+              <FieldError className="mt-0">{error}</FieldError>
             </div>
           ) : null}
 
-          <Button
-            type="submit"
-            size="lg"
-            className="h-11 w-full rounded-lg text-[15px] font-medium shadow-[0_8px_32px_-4px_rgba(255,107,0,0.35)]"
-            disabled={loading}
-            aria-label="Iniciar sesión en el panel"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                Entrando…
-              </>
-            ) : (
-              "Entrar al panel"
-            )}
+          <Button type="submit" size="lg" className="w-full" loading={loading} aria-label="Iniciar sesión en el panel">
+            {loading ? "Entrando…" : "Entrar al panel"}
           </Button>
         </form>
 
-        <p className="mt-8 text-center text-sm text-[var(--text-muted)]">
-          <Link
-            href="/"
-            className="text-[var(--text-secondary)] underline-offset-4 transition-colors hover:text-primary hover:underline"
-          >
-            ← Volver al sitio público
+        <p className="mt-8">
+          <Link href="/" className="inline-flex min-h-11 items-center gap-2 rounded text-body-sm text-text-2 transition-colors duration-150 hover:text-fire-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fire-500 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-0">
+            <ArrowLeft className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+            Volver al sitio público
           </Link>
         </p>
       </div>
-    </div>
+    </main>
   );
 }

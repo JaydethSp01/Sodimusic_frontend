@@ -50,9 +50,9 @@ export default async function ReleasesPage({ searchParams }: { searchParams: Rec
         backgroundImageUrl={site.releasesPage.heroImageUrl}
         aside={
           data.items.length ? (
-            <div className="grid grid-cols-2 gap-6 lg:flex lg:flex-col lg:items-end lg:gap-4">
-              <StatItem value={data.items.length} label={data.items.length === 1 ? "Lanzamiento" : "Lanzamientos"} orientation="left" className="lg:border-l-0 lg:border-r lg:pl-0 lg:pr-4 lg:text-right" />
-              <StatItem value={upcomingCount} label={upcomingCount === 1 ? "Próximo" : "Próximos"} orientation="left" className="lg:border-l-0 lg:border-r lg:pl-0 lg:pr-4 lg:text-right" />
+            <div className="grid grid-cols-2 gap-6 lg:flex lg:flex-col lg:items-start lg:gap-4">
+              <StatItem value={data.items.length} label={data.items.length === 1 ? "Lanzamiento" : "Lanzamientos"} orientation="left" />
+              <StatItem value={upcomingCount} label={upcomingCount === 1 ? "Próximo" : "Próximos"} orientation="left" />
             </div>
           ) : undefined
         }

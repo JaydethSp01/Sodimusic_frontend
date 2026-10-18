@@ -40,7 +40,7 @@ export function HeroPage({
   return (
     <section
       aria-labelledby={titleId}
-      className={cn("relative isolate overflow-hidden pb-12 pt-24 lg:pt-28", bg ? "media-veil" : "bg-ink-1", className)}
+      className={cn("relative isolate overflow-hidden pb-10 pt-16 lg:pt-20", bg ? "media-veil" : "bg-ink-1", className)}
     >
       {bg ? (
         <Image src={bg} alt="" fill priority quality={60} sizes="100vw" className="-z-10 object-cover object-center opacity-80 grayscale-[0.35]" />

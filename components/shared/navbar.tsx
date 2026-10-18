@@ -154,7 +154,7 @@ export function Navbar({ site }: { site: NavbarSite }) {
                 href={l.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "nav-link-underline inline-flex min-h-11 items-center text-body-sm font-medium transition-colors duration-150 hover:text-text-1",
+                  "nav-link-underline inline-flex min-h-11 items-center text-body font-medium transition-colors duration-150 hover:text-text-1",
                   active ? "is-active text-fire-400" : "text-text-2",
                 )}
               >
@@ -162,7 +162,7 @@ export function Navbar({ site }: { site: NavbarSite }) {
               </Link>
             );
           })}
-          <Button asChild pill size="md">
+          <Button asChild pill size="sm" className="h-10 px-5 shadow-none hover:shadow-none">
             <Link href={site.nav.ctaHref}>{site.nav.ctaLabel}</Link>
           </Button>
           {shopEnabled ? <CartButton className="-mr-2" /> : null}

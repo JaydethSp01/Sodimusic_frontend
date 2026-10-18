@@ -63,10 +63,10 @@ export default async function BeatsPage() {
         description={heroDescription}
         backgroundImageUrl={site.beatsPage.heroImageUrl}
         aside={
-          <div className="flex flex-col gap-6 lg:items-end">
-            <StatItem value={avail} label={avail === 1 ? "Beat disponible" : "Beats disponibles"} orientation="left" className="lg:border-l-0 lg:border-r lg:pl-0 lg:pr-4 lg:text-right" />
+          <div className="flex flex-col gap-6 lg:items-start">
+            <StatItem value={avail} label={avail === 1 ? "Beat disponible" : "Beats disponibles"} orientation="left" />
             {floors.length ? (
-              <ul className="flex flex-col gap-2 lg:items-end" aria-label="Licencias y precio desde">
+              <ul className="flex flex-col gap-2 lg:items-start" aria-label="Licencias y precio desde">
                 {floors.map((f) => (
                   <li key={f.type} className="flex items-center gap-3">
                     <Badge tone={f.type === "EXCLUSIVE" ? "gold" : "fire"} size="md">

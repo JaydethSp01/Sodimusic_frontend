@@ -23,7 +23,7 @@ export function CtaBand({ title, accent, lead, actions, aside, tone = "fire", id
     <section
       aria-labelledby={id}
       className={cn(
-        "relative isolate overflow-hidden py-section",
+        "relative isolate overflow-hidden py-16 lg:py-24",
         fire
           ? "bg-[linear-gradient(120deg,#d95a00_0%,#ff6b00_55%,#ff8c33_100%)] text-fire-on"
           : "border-t border-fire-500/40 bg-ink-1 text-text-1",

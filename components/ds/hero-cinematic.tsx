@@ -60,7 +60,7 @@ export function HeroCinematic({
   const latestLabel = latest?.upcoming ? "Próximamente" : "Nuevo";
 
   return (
-    <section aria-label={ariaLabel} className={cn("relative isolate flex min-h-[88svh] flex-col justify-end overflow-visible", className)}>
+    <section aria-label={ariaLabel} className={cn("relative isolate flex min-h-[78svh] flex-col justify-end overflow-visible", className)}>
       {/* Foto tratada */}
       <div className="media-duotone grain absolute inset-0 -z-10 overflow-hidden">
         <Image src={imageUrl} alt={imageAlt} fill priority quality={70} sizes="100vw" className="object-cover object-center" />

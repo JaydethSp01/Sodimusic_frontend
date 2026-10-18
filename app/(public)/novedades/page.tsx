@@ -42,7 +42,7 @@ export default async function NovedadesPage({ searchParams }: { searchParams: Se
         description={SOCIAL_COPY.pageDescription}
         aside={
           overview.items.length ? (
-            <StatItem value={overview.items.length} label={updated ? `Publicaciones · ${SOCIAL_COPY.updatedPrefix} ${updated}` : "Publicaciones"} orientation="left" className="lg:border-l-0 lg:border-r lg:pl-0 lg:pr-4 lg:text-right" />
+            <StatItem value={overview.items.length} label={updated ? `Publicaciones · ${SOCIAL_COPY.updatedPrefix} ${updated}` : "Publicaciones"} orientation="left" />
           ) : undefined
         }
       />

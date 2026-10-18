@@ -61,7 +61,7 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Sea
         description={youtube.pageDescription?.trim() || undefined}
         aside={
           overview.total ? (
-            <StatItem value={overview.total} label={overview.total === 1 ? "Canal activo" : "Canales activos"} orientation="left" className="lg:border-l-0 lg:border-r lg:pl-0 lg:pr-4 lg:text-right" />
+            <StatItem value={overview.total} label={overview.total === 1 ? "Canal activo" : "Canales activos"} orientation="left" />
           ) : undefined
         }
       >

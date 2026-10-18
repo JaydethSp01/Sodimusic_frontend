@@ -131,9 +131,9 @@ export default async function ProductionsPage({ searchParams }: { searchParams: 
         description={heroDescription}
         backgroundImageUrl={site.productionsPage.heroImageUrl}
         aside={
-          <div className="grid grid-cols-2 gap-6 lg:flex lg:flex-col lg:items-end lg:gap-4">
-            <StatItem value={countData.total} label="Producciones" orientation="left" className="lg:border-l-0 lg:border-r lg:pl-0 lg:pr-4 lg:text-right" />
-            <StatItem value={facets.years.length ? `${Math.min(...facets.years)}–${String(Math.max(...facets.years)).slice(-2)}` : "—"} label="Años" orientation="left" className="lg:border-l-0 lg:border-r lg:pl-0 lg:pr-4 lg:text-right" />
+          <div className="flex flex-wrap gap-8 lg:justify-end">
+            <StatItem value={countData.total} label="Producciones" orientation="left" />
+            <StatItem value={facets.years.length ? `${Math.min(...facets.years)}–${String(Math.max(...facets.years)).slice(-2)}` : "—"} label="Años" orientation="left" />
           </div>
         }
       />

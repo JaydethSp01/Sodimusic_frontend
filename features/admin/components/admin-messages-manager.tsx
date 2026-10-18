@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/ds/empty-state";
 import { Pagination } from "@/components/ds/pagination";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
+import { LEAD_SUBJECT } from "@/features/contact/contact-schema";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { Input } from "@/components/ui/input";
@@ -216,7 +217,13 @@ function MessageCard({ row, subjectLabel }: { row: ContactMessage; subjectLabel:
           <div className="min-w-0 space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
               <Badge tone={STATUS_TONE[current]}>{STATUS_LABEL[current]}</Badge>
-              <Badge variant="outline">{subjectLabel}</Badge>
+              {row.subject === LEAD_SUBJECT ? (
+                <Badge tone="gold" variant="solid">
+                  Cotización
+                </Badge>
+              ) : (
+                <Badge variant="outline">{subjectLabel}</Badge>
+              )}
               <time suppressHydrationWarning dateTime={row.createdAt} className="font-mono text-label-sm text-text-3">
                 {formatDateTime(row.createdAt)}
               </time>

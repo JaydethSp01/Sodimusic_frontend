@@ -37,6 +37,7 @@ export default async function AdminDashboardPage() {
     ...(typeof raw.messagesNew === "number" ? { messagesNew: raw.messagesNew } : {}),
     ...(typeof raw.subscribersActive === "number" ? { subscribersActive: raw.subscribersActive } : {}),
     ...(typeof raw.beatInterests30d === "number" ? { beatInterests30d: raw.beatInterests30d } : {}),
+    leadsNew: typeof raw.leadsNew === "number" ? raw.leadsNew : 0,
     pageViewsTotal: raw.pageViewsTotal ?? 0,
     pageViewsLast7Days: raw.pageViewsLast7Days ?? 0,
     pageViewsByDay: raw.pageViewsByDay ?? emptyDays(),

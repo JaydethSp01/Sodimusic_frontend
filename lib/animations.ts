@@ -13,8 +13,8 @@ export const staggerContainer = {
 };
 
 export const cardHover = {
-  rest: { y: 0, boxShadow: "0 0 0 1px rgba(255,107,0,0.1)" },
-  hover: { y: -4, boxShadow: "0 8px 32px rgba(255,107,0,0.25)" },
+  rest: { y: 0, boxShadow: "0 0 0 1px rgba(217,166,42,0.1)" },
+  hover: { y: -4, boxShadow: "0 8px 32px rgba(217,166,42,0.25)" },
 };
 
 export const pageTransition = {

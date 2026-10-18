@@ -13,6 +13,7 @@ import {
   Inbox,
   LayoutGrid,
   Mail,
+  MessageSquareQuote,
   Music2,
   ShoppingBag,
   Tv,
@@ -74,6 +75,8 @@ export type DashboardStatsPayload = {
   subscribersActive?: number;
   /** v3: intereses en beats en los últimos 30 días */
   beatInterests30d?: number;
+  /** Cotizaciones (mensajes NEW con asunto COTIZACION); 0 si el backend aún no lo devuelve */
+  leadsNew?: number;
   pageViewsTotal: number;
   pageViewsLast7Days: number;
   pageViewsByDay: { date: string; count: number }[];
@@ -161,6 +164,7 @@ const SUBJECT_LABEL: Record<string, string> = {
   DEMO: "Demo",
   BOOKING_ARTISTA: "Booking",
   COLABORACION: "Colaboración",
+  COTIZACION: "Cotización",
   OTRO: "Otro",
 };
 
@@ -223,6 +227,7 @@ export function AdminDashboardInsights({
     ...(typeof data.messagesNew === "number"
       ? [{ title: "Mensajes nuevos", value: data.messagesNew, icon: Inbox, hint: "Sin leer", href: "/admin/dashboard/mensajes" }]
       : []),
+    { title: "Leads (cotizaciones)", value: data.leadsNew ?? 0, icon: MessageSquareQuote, hint: "Cotizaciones sin leer", href: "/admin/dashboard/mensajes" },
     ...(typeof data.subscribersActive === "number"
       ? [{ title: "Suscriptores", value: data.subscribersActive, icon: Mail, hint: "Boletín activo", href: "/admin/dashboard/suscriptores" }]
       : []),

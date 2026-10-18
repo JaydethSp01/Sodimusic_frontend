@@ -232,3 +232,49 @@ export interface SocialStatus {
   env: { youtubeApiKey: boolean; facebookPageToken: boolean; cronSecret: boolean };
   counts: { sources: number; posts: number; hidden: number };
 }
+
+/* ------------------------------------------------------------------ */
+/* Artistas                                                            */
+/* ------------------------------------------------------------------ */
+
+export type ArtistStatus = "ACTIVE" | "HIDDEN";
+
+/** Rol libre; los valores sugeridos son los del contrato (§1.1). */
+export type ArtistRole = "Productor principal" | "Artista" | "Crew" | "Aliado" | (string & {});
+
+export interface Artist {
+  id: string;
+  slug: string;
+  name: string;
+  role: ArtistRole;
+  /** 1–2 frases (tarjetas) */
+  shortBio: string | null;
+  /** Párrafos separados por \n\n */
+  bio: string | null;
+  photoUrl: string | null;
+  coverUrl: string | null;
+  city: string | null;
+  genres: string[];
+  spotifyUrl: string | null;
+  instagramUrl: string | null;
+  youtubeUrl: string | null;
+  tiktokUrl: string | null;
+  facebookUrl: string | null;
+  appleUrl: string | null;
+  /** UC… (para listar sus videos del feed) */
+  youtubeChannelId: string | null;
+  /** Alias para asociar producciones/releases por nombre */
+  aliases: string[];
+  featured: boolean;
+  status: ArtistStatus;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ArtistDetail {
+  artist: Artist;
+  productions: Production[];
+  releases: Release[];
+  posts: SocialPost[];
+}

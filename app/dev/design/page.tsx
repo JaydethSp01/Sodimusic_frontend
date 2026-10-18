@@ -70,11 +70,11 @@ const COLORS: { group: string; items: { name: string; cls: string; hex: string }
   {
     group: "Fire",
     items: [
-      { name: "fire-300", cls: "bg-fire-300", hex: "#ffb380" },
-      { name: "fire-400", cls: "bg-fire-400", hex: "#ff8c33" },
-      { name: "fire-500", cls: "bg-fire-500", hex: "#ff6b00" },
-      { name: "fire-600", cls: "bg-fire-600", hex: "#d95a00" },
-      { name: "fire-on", cls: "bg-fire-on", hex: "#120a04" },
+      { name: "fire-300", cls: "bg-fire-300", hex: "#f0cf7a" },
+      { name: "fire-400", cls: "bg-fire-400", hex: "#e6b83a" },
+      { name: "fire-500", cls: "bg-fire-500", hex: "#d9a62a" },
+      { name: "fire-600", cls: "bg-fire-600", hex: "#b3861b" },
+      { name: "fire-on", cls: "bg-fire-on", hex: "#1a1203" },
     ],
   },
   {

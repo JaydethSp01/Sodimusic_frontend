@@ -46,7 +46,7 @@ export function HeroPage({
         <Image src={bg} alt="" fill priority quality={60} sizes="100vw" className="-z-10 object-cover object-center opacity-80 grayscale-[0.35]" />
       ) : (
         <div
-          className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_60%_80%_at_0%_0%,rgba(255,107,0,0.12),transparent)]"
+          className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_60%_80%_at_0%_0%,rgba(217,166,42,0.12),transparent)]"
           aria-hidden
         />
       )}

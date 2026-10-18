@@ -56,7 +56,7 @@ export default async function ReleaseDetailPage({ params }: Props) {
 
   return (
     <article className="relative overflow-hidden pb-16 pt-24 lg:pb-24 lg:pt-28">
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_60%_80%_at_0%_0%,rgba(255,107,0,0.12),transparent)]" aria-hidden />
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_60%_80%_at_0%_0%,rgba(217,166,42,0.12),transparent)]" aria-hidden />
       <div className="container-page">
         <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
           <div className="lg:col-span-5">

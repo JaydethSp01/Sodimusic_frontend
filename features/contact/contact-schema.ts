@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+/** Asunto con el que se guardan las cotizaciones de la portada (badge «Cotización» y KPI de leads en el admin). */
+export const LEAD_SUBJECT = "COTIZACION";
+
 /** Esquema compartido (cliente + server action) del formulario de contacto/prensa. */
 export const contactMessageSchema = z.object({
   subject: z.string().trim().min(1, "Elige un asunto").max(40),

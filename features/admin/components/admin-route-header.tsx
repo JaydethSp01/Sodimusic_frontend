@@ -13,6 +13,7 @@ const routes: { match: string; title: string; description: string }[] = [
   { match: "/admin/dashboard", title: "Panel", description: "Resumen del día a día: sesiones, beats, mensajes, suscriptores, visitas, producciones y tienda." },
   { match: "/admin/dashboard/site", title: "Sitio web público", description: "Textos, imágenes y secciones de la web. Guarda un borrador, previsualízalo y publícalo cuando esté listo." },
   { match: "/admin/dashboard/sessions", title: "Sesiones", description: "Alta manual, cambio de estado, notas internas y eliminación. Las confirmaciones pueden avisar al artista por correo." },
+  { match: "/admin/dashboard/artistas", title: "Artistas", description: "Fichas públicas del productor, el crew y los aliados: foto, bio, géneros, plataformas y alias para asociar sus temas. Ordena, destaca u oculta." },
   { match: "/admin/dashboard/productions", title: "Producciones", description: "Portafolio público: título, artista, ciudad, año, género y video de YouTube." },
   { match: "/admin/dashboard/beats", title: "Beats", description: "Catálogo de beats: estado, precios por licencia, portada y preview de audio." },
   { match: "/admin/dashboard/releases", title: "Releases", description: "Lanzamientos con smart links, fecha y portada. Lo que se ve en /releases." },

@@ -6,7 +6,13 @@ const backendUrl = process.env.BACKEND_URL ?? "http://localhost:4000";
 
 export type SendContactMessageResult =
   | { ok: true }
-  | { ok: false; error: string; fieldErrors?: ContactFieldErrors };
+  | {
+      ok: false;
+      error: string;
+      fieldErrors?: ContactFieldErrors;
+      /** Código HTTP del backend cuando el error viene de él (p. ej. 429 = límite de envíos por IP). */
+      status?: number;
+    };
 
 /**
  * Envía un mensaje de contacto/prensa: POST {BACKEND_URL}/api/contact/messages → 201.
@@ -33,7 +39,14 @@ export async function sendContactMessageAction(raw: unknown): Promise<SendContac
   }
   if (!res.ok) {
     const data = (await res.json().catch(() => ({}))) as { error?: string };
-    return { ok: false, error: data.error ?? "No se pudo enviar el mensaje. Inténtalo de nuevo." };
+    if (res.status === 429) {
+      return {
+        ok: false,
+        status: 429,
+        error: data.error ?? "Has enviado varios mensajes seguidos. Espera unos minutos o escríbenos por WhatsApp.",
+      };
+    }
+    return { ok: false, status: res.status, error: data.error ?? "No se pudo enviar el mensaje. Inténtalo de nuevo." };
   }
   return { ok: true };
 }

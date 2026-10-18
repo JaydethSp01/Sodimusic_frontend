@@ -1,4 +1,25 @@
-import { test, expect, API_URL, cleanup, uniqEmail, whatsappText, createAdminApi } from "../fixtures";
+import type { APIRequestContext } from "@playwright/test";
+import { test, expect, API_URL, cleanup, uniq, uniqEmail, whatsappText, createAdminApi } from "../fixtures";
+
+type LatestSource = "feed" | "productions" | "both";
+type HomeConfig = {
+  content: {
+    home: {
+      milestones: { year: string; title: string }[];
+      stats: { value: number; suffix: string; label: string }[];
+      latest?: { source?: LatestSource; limit?: number; ctaLabel?: string; ctaHref?: string; secondaryCtaLabel?: string; secondaryCtaHref?: string };
+      merch?: { limit?: number; ctaLabel?: string };
+      lead?: { enabled?: boolean; successMessage?: string; ctaLabel?: string };
+    };
+  };
+};
+type FeedItem = { id: string; kind: string; title: string; url: string };
+
+/** El backend puede no traer aún `home.latest/merch/lead`: el frontend mezcla con sus defaults, aquí igual. */
+async function getHomeConfig(request: APIRequestContext): Promise<HomeConfig["content"]["home"]> {
+  const cfg = (await (await request.get(`${API_URL}/api/site-config`)).json()) as HomeConfig;
+  return cfg.content.home;
+}
 
 test.describe("Inicio", () => {
   test("hero con H1 y CTAs que navegan", async ({ page }) => {
@@ -21,37 +42,41 @@ test.describe("Inicio", () => {
     await expect(page).toHaveURL(/\/productions$/, { timeout: 30_000 });
   });
 
-  test("tarjeta «Lo último» del hero enlaza a /releases ", async ({ page, request }) => {
-    const data = (await (await request.get(`${API_URL}/api/releases`)).json()) as {
-      items: { slug: string; title: string }[];
-    };
+  test("tarjeta «Lo último» del hero usa el mismo origen que la sección (feed o lanzamientos)", async ({ page, request }) => {
+    const home = await getHomeConfig(request);
+    const source: LatestSource = home.latest?.source ?? "feed";
+    const feed = (await (await request.get(`${API_URL}/api/social/feed?limit=1`)).json()) as { items: FeedItem[] };
+    const releases = (await (await request.get(`${API_URL}/api/releases`)).json()) as { items: { slug: string; title: string }[] };
     await page.goto("/");
     const hero = page.getByRole("region", { name: "Presentación" });
     const pill = hero.getByTestId("hero-latest");
-    if (data.items.length === 0) {
+    const first = source !== "productions" ? feed.items[0] : undefined;
+    if (first) {
+      // Publicación más reciente del feed (abre en pestaña nueva).
+      await expect(pill).toBeVisible();
+      await expect(pill).toHaveAttribute("href", first.url);
+      await expect(pill).toHaveAttribute("rel", /noopener/);
+      await expect(pill).toContainText(/nuevo/i);
+      await expect(pill).toContainText(first.title.slice(0, 20));
+      await expect(pill).toContainText(/ver|abrir/i);
+    } else if (releases.items.length === 0) {
       await expect(pill).toHaveCount(0);
     } else {
       await expect(pill).toBeVisible();
       await expect(pill).toHaveAttribute("href", /^\/releases(\/[^/]+)?$/);
       await expect(pill).toContainText(/nuevo|próximamente/i);
-      await expect(pill).toContainText(data.items[0].title);
+      await expect(pill).toContainText(releases.items[0].title);
       await expect(pill).toContainText(/escuchar/i);
+    }
+    if (await pill.count()) {
       // Altura táctil mínima (44 px).
       const box = await pill.boundingBox();
       expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
     }
   });
 
-  test("historia anidada en «Quiénes somos» (hitos del CMS) y novedades: 1 destacada + lista con diálogo de video", async ({
-    page,
-    request,
-  }) => {
-    const cfg = (await (await request.get(`${API_URL}/api/site-config`)).json()) as {
-      content: { home: { milestones: { year: string; title: string }[] } };
-    };
-    const feed = (await (await request.get(`${API_URL}/api/social/feed?limit=5`)).json()) as {
-      items: { id: string; kind: string; title: string }[];
-    };
+  test("historia anidada en «Quiénes somos» (hitos del CMS)", async ({ page, request }) => {
+    const home = await getHomeConfig(request);
     await page.goto("/");
 
     // Historia vive dentro de la sección «Quiénes somos» (misma pantalla), con su propio titular.
@@ -59,36 +84,69 @@ test.describe("Inicio", () => {
     await historia.scrollIntoViewIfNeeded();
     await expect(historia.getByRole("heading", { level: 2 })).toBeVisible();
     const hitos = historia.getByRole("list", { name: "Hitos del sello" }).getByRole("listitem");
-    await expect(hitos).toHaveCount(cfg.content.home.milestones.length);
-    for (const m of cfg.content.home.milestones) {
+    await expect(hitos).toHaveCount(home.milestones.length);
+    for (const m of home.milestones) {
       await expect(historia.getByRole("heading", { level: 3, name: m.title })).toBeVisible();
       await expect(historia.getByText(m.year, { exact: true })).toBeVisible();
     }
+  });
 
-    // Novedades: solo si el feed tiene publicaciones (la sección no se renderiza sin datos).
-    const news = page.locator("section[aria-labelledby='news-title']");
-    if (feed.items.length === 0) {
-      await expect(news).toHaveCount(0);
+  test("«Lo último»: una sola sección (sin «Últimas producciones» ni «Novedades») con dos CTAs y contenido según la fuente", async ({
+    page,
+    request,
+  }) => {
+    const home = await getHomeConfig(request);
+    const latest = {
+      source: home.latest?.source ?? "feed",
+      limit: home.latest?.limit ?? 5,
+      ctaLabel: home.latest?.ctaLabel ?? "Ver todas las producciones",
+      ctaHref: home.latest?.ctaHref ?? "/productions",
+      secondaryCtaLabel: home.latest?.secondaryCtaLabel ?? "Ver novedades",
+      secondaryCtaHref: home.latest?.secondaryCtaHref ?? "/novedades",
+    };
+    const feed = (await (await request.get(`${API_URL}/api/social/feed?limit=${latest.limit}`)).json()) as { items: FeedItem[] };
+    const productions = (await (await request.get(`${API_URL}/api/productions?featured=1&pageSize=${latest.limit}`)).json()) as {
+      items: { id: string }[];
+    };
+    await page.goto("/");
+
+    // Las secciones antiguas ya no existen; «Lo último» es única.
+    await expect(page.locator("section[aria-labelledby='feat-title']")).toHaveCount(0);
+    await expect(page.locator("section[aria-labelledby='news-title']")).toHaveCount(0);
+    const section = page.locator("section[aria-labelledby='latest-title']");
+    await expect(section).toHaveCount(1);
+    await section.scrollIntoViewIfNeeded();
+    await expect(section.getByRole("heading", { level: 2 })).toBeVisible();
+    await expect(section.getByRole("link", { name: latest.ctaLabel }).first()).toHaveAttribute("href", latest.ctaHref);
+    if (latest.secondaryCtaLabel) {
+      await expect(section.getByRole("link", { name: latest.secondaryCtaLabel }).first()).toHaveAttribute("href", latest.secondaryCtaHref);
+    }
+
+    const useFeed = latest.source !== "productions";
+    const useProductions = latest.source !== "feed";
+    const feedCount = useFeed ? Math.min(latest.source === "both" ? 1 : latest.limit, feed.items.length) : 0;
+    const bentoCount = useProductions ? Math.min(latest.source === "both" ? 3 : latest.limit, productions.items.length) : 0;
+    const articles = section.locator("article");
+    await expect(articles).toHaveCount(feedCount + bentoCount);
+    if (feedCount === 0 && bentoCount === 0) {
+      await expect(section.getByText(/pronto verás aquí/i)).toBeVisible();
       return;
     }
-    await news.scrollIntoViewIfNeeded();
-    await expect(news.getByRole("heading", { level: 2 })).toBeVisible();
-    await expect(news.getByRole("link", { name: /ver todas las novedades/i }).first()).toHaveAttribute("href", "/novedades");
-    const articles = news.locator("article");
-    await expect(articles).toHaveCount(Math.min(5, feed.items.length));
-    const featured = news.locator("article[aria-labelledby='home-news-featured']");
-    await expect(featured.getByRole("heading", { level: 3 })).toContainText(feed.items[0].title.slice(0, 20));
-    const first = feed.items[0];
-    if (first.kind === "YOUTUBE_VIDEO") {
-      // El botón «Ver» abre el diálogo de video (un solo iframe por página) y Esc lo cierra.
-      await featured.getByRole("button", { name: new RegExp(`^ver en youtube: `, "i") }).first().click();
-      const dialog = page.getByRole("dialog");
-      await expect(dialog).toBeVisible();
-      await expect(dialog.getByRole("heading")).toContainText(first.title.slice(0, 20));
-      await page.keyboard.press("Escape");
-      await expect(dialog).toBeHidden();
-    } else {
-      await expect(featured.getByRole("link", { name: /^abrir en /i })).toHaveAttribute("rel", /noopener/);
+    if (feedCount > 0) {
+      const featured = section.locator("article[aria-labelledby='home-news-featured']");
+      const first = feed.items[0];
+      await expect(featured.getByRole("heading", { level: 3 })).toContainText(first.title.slice(0, 20));
+      if (first.kind === "YOUTUBE_VIDEO") {
+        // El botón «Ver» abre el diálogo de video (un solo iframe por página) y Esc lo cierra.
+        await featured.getByRole("button", { name: /^ver en youtube: /i }).first().click();
+        const dialog = page.getByRole("dialog");
+        await expect(dialog).toBeVisible();
+        await expect(dialog.getByRole("heading")).toContainText(first.title.slice(0, 20));
+        await page.keyboard.press("Escape");
+        await expect(dialog).toBeHidden();
+      } else {
+        await expect(featured.getByRole("link", { name: /^abrir en /i })).toHaveAttribute("rel", /noopener/);
+      }
     }
   });
 
@@ -120,19 +178,11 @@ test.describe("Inicio", () => {
     }
   });
 
-  test("producciones destacadas, canales con «Ver todos», merch, servicios y bloque de contacto", async ({ page, request }) => {
+  test("canales con «Ver todos», merch (hasta `limit`, destacados primero), servicios y bloque de contacto", async ({ page, request }) => {
+    const home = await getHomeConfig(request);
+    const merchLimit = home.merch?.limit ?? 4;
+    const merchCta = home.merch?.ctaLabel ?? "Ver la tienda";
     await page.goto("/");
-
-    const featured = page.locator("section[aria-labelledby='feat-title']");
-    await featured.scrollIntoViewIfNeeded();
-    await expect(featured.getByRole("heading", { level: 2 })).toBeVisible();
-    const cards = featured.locator("article");
-    expect(await cards.count()).toBeGreaterThanOrEqual(1);
-    expect(await cards.count()).toBeLessThanOrEqual(3);
-    await expect(featured.getByRole("link", { name: /ver todas las producciones/i }).first()).toHaveAttribute(
-      "href",
-      "/productions",
-    );
 
     const channels = page.locator("section[aria-labelledby='youtube-title']");
     await channels.scrollIntoViewIfNeeded();
@@ -155,8 +205,19 @@ test.describe("Inicio", () => {
     const shop = page.locator("section[aria-labelledby='home-shop-title']");
     await shop.scrollIntoViewIfNeeded();
     await expect(shop.getByRole("heading", { level: 2 })).toBeVisible();
-    expect(await shop.locator("article").count()).toBeGreaterThanOrEqual(1);
-    await expect(shop.getByRole("link", { name: /ver toda la tienda/i }).first()).toHaveAttribute("href", "/tienda");
+    const products = shop.locator("article");
+    const productCount = await products.count();
+    expect(productCount).toBeGreaterThanOrEqual(1);
+    expect(productCount).toBeLessThanOrEqual(merchLimit);
+    // Destacados primero: si hay alguno marcado «Destacado», va en la primera tarjeta.
+    if ((await shop.getByText("Destacado", { exact: true }).count()) > 0) {
+      await expect(products.first().getByText("Destacado", { exact: true })).toBeVisible();
+    }
+    // «Añadir» flotante (QuickAddButton) en las tarjetas no agotadas.
+    expect(await shop.getByRole("button", { name: /^añadir .* al pedido$/i }).count() + (await shop.getByRole("link", { name: /^elegir talla de /i }).count())).toBeGreaterThanOrEqual(1);
+    if (productCount >= 4) {
+      await expect(shop.getByRole("link", { name: merchCta.replace(/[\s→]+$/, "") }).first()).toHaveAttribute("href", "/tienda");
+    }
 
     const services = page.locator("section[aria-labelledby='services-title']");
     await services.scrollIntoViewIfNeeded();
@@ -170,6 +231,102 @@ test.describe("Inicio", () => {
     const wa = contact.getByRole("link", { name: /escribir por whatsapp/i });
     await expect(wa).toHaveAttribute("href", /^https:\/\/wa\.me\/\d+/);
     await expect(wa).toHaveAttribute("rel", /noopener/);
+  });
+});
+
+test.describe("Cotización rápida (leads)", () => {
+  const emails: string[] = [];
+  test.afterEach(() => {
+    for (const e of emails.splice(0)) cleanup.contactMessagesByEmail(e);
+  });
+
+  test("validación inline y envío con consentimiento → éxito con WhatsApp prellenado y mensaje COTIZACION en el CRM", async ({
+    page,
+    request,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "Envío real solo en escritorio: el backend limita los formularios públicos a 10 envíos / 10 min por IP");
+    const home = await getHomeConfig(request);
+    test.skip(home.lead?.enabled === false, "Formulario de cotización desactivado en el CMS");
+    const name = `E2E Lead-${uniq("lead")}`;
+    const email = uniqEmail("e2e-lead");
+    emails.push(email);
+
+    await page.goto("/");
+    const section = page.locator("section[aria-labelledby='lead-title']");
+    await section.scrollIntoViewIfNeeded();
+    await expect(section.getByRole("heading", { level: 2 })).toBeVisible();
+    await expect(section.getByRole("list", { name: "Beneficios" }).getByRole("listitem").first()).toBeVisible();
+    await expect(section.getByRole("link", { name: /hablar por whatsapp/i })).toHaveAttribute("href", /^https:\/\/wa\.me\/\d+\?text=/);
+
+    const form = section.getByRole("form", { name: "Cotización" });
+    const submit = form.getByRole("button", { name: home.lead?.ctaLabel ?? /quiero una cotización/i });
+    await submit.click();
+    await expect(form.getByRole("alert").filter({ hasText: /escribe tu nombre/i })).toBeVisible();
+    await expect(form.getByRole("alert").filter({ hasText: /whatsapp/i })).toBeVisible();
+    await expect(form.getByRole("alert").filter({ hasText: /correo válido/i })).toBeVisible();
+    await expect(form.getByRole("alert").filter({ hasText: /elige un servicio/i })).toBeVisible();
+    await expect(form.getByRole("alert").filter({ hasText: /revisa los campos/i })).toBeVisible();
+    await expect(form.getByLabel("Nombre")).toBeFocused();
+
+    await form.getByLabel("Nombre").fill(name);
+    await form.getByLabel("WhatsApp").fill("+57 300 000 0000");
+    await form.getByLabel("Correo").fill(email);
+    const radios = form.getByRole("radiogroup", { name: "Servicio" }).getByRole("radio");
+    const serviceName = (await radios.first().textContent())?.trim() ?? "";
+    await radios.first().click();
+    await expect(radios.first()).toHaveAttribute("aria-checked", "true");
+    await form.getByLabel(/mensaje/i).fill("Prueba automatizada e2e");
+    // Sin consentimiento → error del checkbox y no se envía.
+    await submit.click();
+    await expect(form.getByRole("alert").filter({ hasText: /autorización para responderte/i })).toBeVisible();
+
+    await form.getByRole("checkbox", { name: /autorizo a/i }).check();
+    await submit.click();
+    const success = section.getByTestId("lead-success");
+    await expect(success).toBeVisible({ timeout: 20_000 });
+    await expect(success).toContainText(home.lead?.successMessage ?? /listo/i);
+    const wa = success.getByRole("link", { name: /whatsapp/i });
+    await expect(wa).toHaveAttribute("rel", /noopener/);
+    const href = (await wa.getAttribute("href")) ?? "";
+    expect(href).toMatch(/^https:\/\/wa\.me\/\d{8,15}\?text=/);
+    expect(whatsappText(href)).toContain(name);
+    expect(whatsappText(href)).toContain(serviceName);
+
+    const api = await createAdminApi(request);
+    const list = await api.get<{ items: { email: string; subject: string; status: string; name: string; message: string }[] }>(
+      "/api/admin/messages?status=NEW&pageSize=100",
+    );
+    const row = list.items.find((m) => m.email === email);
+    expect(row).toBeTruthy();
+    expect(row!.subject).toBe("COTIZACION");
+    expect(row!.name).toBe(name);
+    expect(row!.message).toContain(`Servicio: ${serviceName}`);
+    expect(row!.message).toContain("WhatsApp: ");
+  });
+});
+
+test.describe("Barra CTA móvil", () => {
+  test("aparece al pasar el hero con «Agendar» y WhatsApp, y sustituye al botón flotante", async ({ page, isMobile }) => {
+    test.skip(!isMobile, "Solo móvil (< lg)");
+    await page.goto("/");
+    const bar = page.getByTestId("mobile-cta-bar");
+    await expect(bar).toHaveAttribute("aria-hidden", "true");
+    const floating = page.getByRole("link", { name: /^escribir a .* por whatsapp$/i });
+    await expect(floating).toBeVisible();
+
+    await page.locator("section[aria-labelledby='latest-title']").scrollIntoViewIfNeeded();
+    await expect(bar).toHaveAttribute("aria-hidden", "false");
+    await expect(bar.getByRole("link", { name: /agendar sesión/i })).toHaveAttribute("href", "/booking");
+    const wa = bar.getByRole("link", { name: /^whatsapp: agendar con /i });
+    await expect(wa).toHaveAttribute("href", /^https:\/\/wa\.me\/\d+\?text=/);
+    await expect(wa).toHaveAttribute("rel", /noopener/);
+    // El botón flotante se oculta mientras la barra está visible (la barra ya incluye WhatsApp).
+    await expect(page.locator("[data-floating-whatsapp]")).toBeHidden();
+
+    // Al volver al hero, la barra desaparece.
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect(bar).toHaveAttribute("aria-hidden", "true");
   });
 });
 

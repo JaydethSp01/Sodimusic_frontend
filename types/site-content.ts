@@ -58,6 +58,47 @@ export type SiteContact = {
   pressKitUrl: string;
 };
 
+/** Origen de la sección «Lo último» de la portada. */
+export type SiteHomeLatestSource = "feed" | "productions" | "both";
+
+export type SiteHomeLatest = {
+  eyebrow: string;
+  /** El acento serif («último») lo pone el componente con `Heading accent`; aquí va texto plano. */
+  title: string;
+  subtitle: string;
+  /** "feed" = novedades automáticas (YouTube/Facebook) · "productions" = producciones destacadas · "both" = destacada del feed + producciones */
+  source: SiteHomeLatestSource;
+  limit: number;
+  ctaLabel: string;
+  ctaHref: string;
+  secondaryCtaLabel: string;
+  secondaryCtaHref: string;
+};
+
+export type SiteHomeMerch = {
+  title: string;
+  subtitle: string;
+  ctaLabel: string;
+  limit: number;
+  onlyFeatured: boolean;
+};
+
+export type SiteHomeLead = {
+  enabled: boolean;
+  eyebrow: string;
+  /** El acento serif («tema») lo pone el componente con `Heading accent`; aquí va texto plano. */
+  title: string;
+  subtitle: string;
+  bullets: string[];
+  ctaLabel: string;
+  whatsappLabel: string;
+  successMessage: string;
+};
+
+export type SiteTestimonial = { quote: string; author: string; role?: string; avatarUrl?: string };
+
+export type SiteHomeTestimonials = { title: string; items: SiteTestimonial[] };
+
 export type SiteYoutubeChannel = {
   name: string;
   /** URL pública del canal */
@@ -107,6 +148,14 @@ export type SiteContent = {
     milestones: SiteMilestone[];
     /** Cifras animadas bajo «Quiénes somos» */
     stats: SiteStat[];
+    /** Sección única «Lo último» (sustituye a «Últimas producciones» + «Novedades») */
+    latest: SiteHomeLatest;
+    /** Merch en la portada (los productos viven en /api/products) */
+    merch: SiteHomeMerch;
+    /** Captación de cotizaciones (leads) */
+    lead: SiteHomeLead;
+    /** Testimonios; vacío = sección oculta */
+    testimonials: SiteHomeTestimonials;
   };
   footer: {
     tagline: string;

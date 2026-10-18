@@ -29,11 +29,11 @@ const config: Config = {
         },
         /* Acento principal */
         fire: {
-          300: "#ffb380",
-          400: "#ff8c33",
-          500: "#ff6b00",
-          600: "#d95a00",
-          on: "#120a04",
+          300: "#f0cf7a",
+          400: "#e6b83a",
+          500: "#d9a62a",
+          600: "#b3861b",
+          on: "#1a1203",
         },
         /* Acento frío (≤ 10 %) */
         sea: {
@@ -57,7 +57,7 @@ const config: Config = {
         line: {
           1: "rgba(255, 255, 255, 0.07)",
           2: "rgba(255, 255, 255, 0.14)",
-          fire: "rgba(255, 107, 0, 0.35)",
+          fire: "rgba(217, 166, 42, 0.35)",
         },
         success: "#3cc878",
         warning: "#e6b83a",
@@ -98,7 +98,7 @@ const config: Config = {
       },
       boxShadow: {
         card: "inset 0 1px 0 rgba(255,255,255,0.04), 0 20px 50px -30px rgba(0,0,0,0.8)",
-        fire: "0 12px 40px -12px rgba(255,107,0,0.45)",
+        fire: "0 12px 40px -12px rgba(217,166,42,0.45)",
         pop: "0 1px 0 rgba(255,255,255,0.05) inset, 0 24px 60px -20px rgba(0,0,0,0.85), 0 0 0 1px rgba(255,255,255,0.06)",
       },
       fontFamily: {

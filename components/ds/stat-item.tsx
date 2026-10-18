@@ -33,9 +33,9 @@ export function StatItem({
         className,
       )}
     >
-      <ValueTag className="font-display font-extrabold text-display-sm tabular-nums text-fire-500">
+      <ValueTag className="font-display font-extrabold text-display-sm tabular-nums text-text-1">
         {value}
-        {suffix ? <span className="text-fire-400">{suffix}</span> : null}
+        {suffix ? <span className="text-text-2">{suffix}</span> : null}
       </ValueTag>
       <LabelTag className="mt-2 text-label text-text-3">{label}</LabelTag>
     </Tag>

@@ -1,9 +1,20 @@
 import type { CSSProperties } from "react";
-import { ExternalLink, Music2, Youtube } from "lucide-react";
+import { ExternalLink, Facebook, Instagram, Music2, Youtube } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /** Botón outline con icono de plataforma; en hover/foco toma el color de marca de `platform`. */
-export type SmartLinkPlatform = "spotify" | "apple" | "youtube" | "deezer" | "amazon" | "tidal" | "soundcloud" | "other";
+export type SmartLinkPlatform =
+  | "spotify"
+  | "apple"
+  | "youtube"
+  | "deezer"
+  | "amazon"
+  | "tidal"
+  | "soundcloud"
+  | "instagram"
+  | "tiktok"
+  | "facebook"
+  | "other";
 
 function SpotifyIcon({ className }: { className?: string }) {
   return (
@@ -21,6 +32,14 @@ function AppleIcon({ className }: { className?: string }) {
   );
 }
 
+function TiktokIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M12.53.02C13.84 0 15.14.01 16.44 0c.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-1.99 6.13-1.59.02 1.48-.04 2.96-.04 4.44-.98-.32-2.13-.23-2.99.37-.62.41-1.1 1.03-1.34 1.73-.2.5-.14 1.06-.13 1.59.24 1.62 1.8 2.98 3.46 2.83 1.1-.01 2.16-.65 2.73-1.59.19-.33.39-.66.4-1.05.1-1.78.06-3.55.07-5.33.01-4.01-.01-8.01.02-12.01z" />
+    </svg>
+  );
+}
+
 const BRAND: Record<SmartLinkPlatform, { label: string; color: string; Icon: (p: { className?: string }) => JSX.Element }> = {
   spotify: { label: "Spotify", color: "#1db954", Icon: SpotifyIcon },
   apple: { label: "Apple Music", color: "#fa5c7c", Icon: AppleIcon },
@@ -29,7 +48,10 @@ const BRAND: Record<SmartLinkPlatform, { label: string; color: string; Icon: (p:
   amazon: { label: "Amazon Music", color: "#46c3d6", Icon: ({ className }) => <Music2 className={className} aria-hidden /> },
   tidal: { label: "Tidal", color: "#f3efe8", Icon: ({ className }) => <Music2 className={className} aria-hidden /> },
   soundcloud: { label: "SoundCloud", color: "#ff7a1a", Icon: ({ className }) => <Music2 className={className} aria-hidden /> },
-  other: { label: "Escuchar", color: "#ffb380", Icon: ({ className }) => <ExternalLink className={className} aria-hidden /> },
+  instagram: { label: "Instagram", color: "#e1306c", Icon: ({ className }) => <Instagram className={className} aria-hidden /> },
+  tiktok: { label: "TikTok", color: "#69c9d0", Icon: TiktokIcon },
+  facebook: { label: "Facebook", color: "#1877f2", Icon: ({ className }) => <Facebook className={className} aria-hidden /> },
+  other: { label: "Escuchar", color: "#f0cf7a", Icon: ({ className }) => <ExternalLink className={className} aria-hidden /> },
 };
 
 export interface SmartLinkButtonProps {

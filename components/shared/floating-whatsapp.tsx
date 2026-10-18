@@ -129,6 +129,7 @@ export function FloatingWhatsapp({ config }: Props) {
       variant="whatsapp"
       size="lg"
       aria-label={`Escribir a ${cfg.businessName} por WhatsApp`}
+      data-floating-whatsapp=""
       className="group fixed bottom-[var(--wa-bottom)] right-4 z-player shadow-[0_10px_30px_rgba(37,211,102,0.35)] focus-visible:ring-offset-ink-0 md:bottom-[var(--wa-bottom-md)] md:right-6"
       style={
         {

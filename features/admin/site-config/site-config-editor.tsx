@@ -10,16 +10,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageUploadField } from "@/features/admin/components/image-upload-field";
-import { SITE_CONTENT_DEFAULTS } from "@/lib/site-defaults";
+import { SITE_CONTENT_DEFAULTS, withHomeDefaults } from "@/lib/site-defaults";
 import { EditorHint, EditorLink, EditorNote, EditorSection, EditorToggle, Field, SubsectionTitle } from "./editor-field";
 import { LegalCard } from "./legal-card";
 import { ContactPageCard } from "./contact-page-card";
+import { HomeSectionsCard } from "./home-sections-card";
 import { toast } from "sonner";
 
 const SECTIONS: { id: string; label: string }[] = [
   { id: "site-section-hero", label: "Hero" },
   { id: "site-section-brand", label: "Marca y menú" },
   { id: "site-section-home", label: "Inicio" },
+  { id: "site-section-home-latest", label: "Inicio · Lo último" },
   { id: "site-section-youtube", label: "YouTube" },
   { id: "site-section-shop", label: "Tienda" },
   { id: "site-section-footer", label: "Pie y contacto" },
@@ -47,7 +49,7 @@ export function SiteConfigEditor({
 }) {
   const router = useRouter();
   const [c, setC] = useState<SiteContent>(() => ({
-    ...initialDraft,
+    ...withHomeDefaults(initialDraft),
     youtube: { ...SITE_CONTENT_DEFAULTS.youtube, ...initialDraft.youtube },
     legal: { ...SITE_CONTENT_DEFAULTS.legal, ...(initialDraft.legal ?? {}) },
     contactPage: { ...SITE_CONTENT_DEFAULTS.contactPage, ...(initialDraft.contactPage ?? {}) },
@@ -427,6 +429,8 @@ export function SiteConfigEditor({
             </div>
           </div>
         </EditorSection>
+
+      <HomeSectionsCard home={c.home} onChange={(patch) => setC((p) => ({ ...p, home: { ...p.home, ...patch } }))} />
 
       <EditorSection id="site-section-youtube" title="Canales de YouTube">
           <EditorNote>

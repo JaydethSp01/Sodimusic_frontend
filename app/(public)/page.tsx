@@ -2,20 +2,21 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import Link from "next/link";
 import { Facebook, Instagram, Youtube } from "lucide-react";
-import { BentoGrid } from "@/components/ds/bento-grid";
 import { CtaBand } from "@/components/ds/cta-band";
 import { EditorialSplit } from "@/components/ds/editorial-split";
 import { HeroCinematic, type HeroLatest } from "@/components/ds/hero-cinematic";
-import { MediaCard } from "@/components/ds/media-card";
 import { SectionHeader } from "@/components/ds/section-header";
-import { HomeFadeSection, HomeStagger, HomeStaggerItem } from "@/components/landing/home-page-motion";
+import { HomeFadeSection } from "@/components/landing/home-page-motion";
 import { StatsSection } from "@/components/landing/stats-section";
 import { GenresGrid, HOME_GENRES } from "@/components/landing/genres-grid";
 import { HomeStoryTimeline } from "@/components/landing/home-story-timeline";
 import { HomeServicesSection } from "@/components/landing/home-services-section";
-import { HomeShopSection, stripTrailingArrow } from "@/components/landing/home-shop-section";
+import { HomeShopSection } from "@/components/landing/home-shop-section";
+import { HomeLatestSection } from "@/components/landing/home-latest-section";
+import { HomeLeadSection } from "@/components/landing/home-lead-section";
+import { HomeTestimonialsSection } from "@/components/landing/home-testimonials-section";
+import { MobileCtaBar } from "@/components/landing/mobile-cta-bar";
 import { HomeChannelsSection } from "@/features/channels/components/home-channels-section";
-import { HomeNewsSection } from "@/features/social/components/home-news-section";
 import { WhatsAppIcon } from "@/components/shared/whatsapp-icon";
 import { SpotifyIcon } from "@/features/productions/components/production-card";
 import { Badge } from "@/components/ui/badge";
@@ -24,11 +25,15 @@ import { IconButton } from "@/components/ui/icon-button";
 import { Text } from "@/components/ui/text";
 import { fetchPublic } from "@/lib/api";
 import { fetchProducts } from "@/features/shop/api";
+import { fetchSocialFeed } from "@/features/social/api";
+import { SOCIAL_KIND_LABEL } from "@/features/social/copy";
 import { genreColor } from "@/lib/genre-colors";
 import { resolveMediaUrl } from "@/lib/resolve-media-url";
 import { getSiteContent } from "@/lib/site-config-server";
+import { SITE_CONTENT_DEFAULTS } from "@/lib/site-defaults";
 import { isFutureRelease } from "@/app/(public)/releases/_components/release-date";
-import type { Production, Release } from "@/types/models";
+import type { Product, Production, Release, SocialPost } from "@/types/models";
+import type { SiteHomeMerch } from "@/types/site-content";
 
 /** Foto fija en /public; sustituye el Unsplash antiguo guardado en el CMS. */
 const ABOUT_ASIDE_IMAGE = "/maria_la_bajafoto.jpg";
@@ -92,7 +97,39 @@ async function getProductions(query: string): Promise<Production[]> {
   }
 }
 
-const getFeaturedProductions = () => getProductions("featured=1&pageSize=3");
+const getFeaturedProductions = (n: number) => getProductions(`featured=1&pageSize=${Math.min(12, Math.max(1, n))}`);
+
+/**
+ * Merch de la portada: destacados primero y, si `onlyFeatured` es false, relleno con los más recientes
+ * (orden de `/api/products`) hasta `limit`, sin repetir. Devuelve también el total de la tienda.
+ */
+async function getHomeMerch(merch: SiteHomeMerch): Promise<{ items: Product[]; total: number }> {
+  const featured = await fetchProducts({ featured: true, pageSize: merch.limit });
+  if (merch.onlyFeatured || featured.items.length >= merch.limit) {
+    return { items: featured.items.slice(0, merch.limit), total: merch.onlyFeatured ? featured.total : featured.total };
+  }
+  const recent = await fetchProducts({ pageSize: merch.limit });
+  const seen = new Set<string>();
+  const items = [...featured.items, ...recent.items].filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true))).slice(0, merch.limit);
+  return { items, total: recent.total };
+}
+
+/** Tarjeta «Lo último» del hero a partir del post más reciente del feed social (mismo origen que la sección). */
+function heroLatestFromPost(post: SocialPost): HeroLatest {
+  const network = SOCIAL_KIND_LABEL[post.kind] ?? SOCIAL_KIND_LABEL.LINK;
+  return {
+    title: post.title,
+    artistName: post.author?.trim() || network,
+    slug: "",
+    upcoming: false,
+    coverUrl: post.imageUrl?.trim() || null,
+    href: post.url,
+    external: true,
+    label: post.kind === "YOUTUBE_VIDEO" ? "Nuevo video" : "Nuevo",
+    ctaLabel: post.kind === "YOUTUBE_VIDEO" ? "Ver" : "Abrir",
+    unoptimized: true,
+  };
+}
 
 /** Portada por género (para la imagen flotante de la lista de géneros): la primera producción de cada uno. */
 async function getGenreImages(): Promise<Record<string, string>> {
@@ -135,21 +172,27 @@ async function getLatestRelease(): Promise<HeroLatest | null> {
   }
 }
 
-const productionIconBtn = "border-white/25 bg-black/40 text-text-1 backdrop-blur-sm hover:border-fire-500 hover:bg-fire-500 hover:text-fire-on";
-
 export default async function HomePage() {
   const site = await getSiteContent();
   const showShop = site.shop.enabled && site.shop.showOnHome;
   const showYoutube = site.youtube.showOnHome;
-  const [featured, featuredProducts, latest, genreImages] = await Promise.all([
-    getFeaturedProductions(),
-    showShop ? fetchProducts({ featured: true, pageSize: 4 }).then((r) => r.items) : Promise.resolve([]),
-    getLatestRelease(),
+  const latestCfg = site.home.latest;
+  const wantFeed = latestCfg.source !== "productions";
+  const wantProductions = latestCfg.source !== "feed";
+  const [feed, featured, merch, latestRelease, genreImages] = await Promise.all([
+    wantFeed ? fetchSocialFeed(latestCfg.limit).then((r) => r.items) : Promise.resolve([] as SocialPost[]),
+    wantProductions ? getFeaturedProductions(latestCfg.source === "both" ? 3 : latestCfg.limit) : Promise.resolve([] as Production[]),
+    showShop ? getHomeMerch(site.home.merch) : Promise.resolve({ items: [] as Product[], total: 0 }),
+    // El hero usa el mismo origen que la sección: post más reciente del feed si lo hay; si no, el release.
+    wantFeed ? Promise.resolve(null) : getLatestRelease(),
     getGenreImages(),
   ]);
+  // Con feed sin publicaciones (o API caída) se cae al release más reciente para no dejar el hero sin tarjeta.
+  const latest: HeroLatest | null = wantFeed ? (feed[0] ? heroLatestFromPost(feed[0]) : await getLatestRelease()) : latestRelease;
 
   const whatsappUrl = `https://wa.me/${site.contact.whatsapp}`;
-  const portfolioCta = stripTrailingArrow(site.home.portfolioCta) || "Ver todas las producciones";
+  const businessName = site.legal?.businessName?.trim() || site.brand.logoText;
+  const policyVersion = site.legal?.policyVersion?.trim() || SITE_CONTENT_DEFAULTS.legal.policyVersion;
   const about = splitQuote(site.home.aboutBody);
   const socials = [
     { href: site.social.youtube, label: "YouTube de Sodimusic", Icon: Youtube },
@@ -172,12 +215,6 @@ export default async function HomePage() {
     sameAs: [site.social.facebook, site.social.youtube, site.social.instagram, site.social.tiktok].filter(Boolean),
   };
 
-  const portfolioAction = (
-    <Button asChild variant="outline" withArrow>
-      <Link href="/productions">{portfolioCta}</Link>
-    </Button>
-  );
-
   return (
     <>
       <Script id="ld-music-group" type="application/ld+json">
@@ -195,6 +232,8 @@ export default async function HomePage() {
         secondary={{ href: site.hero.secondaryHref, label: site.hero.secondaryCta }}
         latest={latest}
       />
+      {/* Barra CTA fija en móvil (aparece al pasar el hero; se oculta con el reproductor abierto) */}
+      <MobileCtaBar ctaHref={site.nav.ctaHref} ctaLabel={site.nav.ctaLabel} whatsapp={site.contact.whatsapp} businessName={businessName} />
 
       {/* 2. Quiénes somos: EditorialSplit + cifras en fila */}
       <HomeFadeSection className="relative py-section" aria-labelledby="about-title">
@@ -272,94 +311,16 @@ export default async function HomePage() {
         </div>
       </HomeFadeSection>
 
-      {/* 5. Producciones destacadas: BentoGrid (1 grande + 2 medianas) */}
-      <HomeFadeSection className="py-section" aria-labelledby="feat-title">
-        <div className="container-page">
-          <SectionHeader
-            eyebrow={site.home.portfolioEyebrow}
-            title={site.home.portfolioTitle}
-            accent="Últimas"
-            id="feat-title"
-            action={<div className="hidden md:block">{portfolioAction}</div>}
-          />
-          {featured.length ? (
-            <HomeStagger>
-              <BentoGrid pattern={[8, 4, 4]} rowSpans={[2]}>
-                {featured.map((p, i) => {
-                  const big = i === 0;
-                  const color = genreColor(p.genre);
-                  const loc = [p.artistCity, p.artistCountry].filter(Boolean).join(", ");
-                  return (
-                    <HomeStaggerItem key={p.id} className="h-full">
-                      <MediaCard
-                        layout="overlay"
-                        aspect={big ? "4/5" : "16/9"}
-                        src={p.coverUrl ? resolveMediaUrl(p.coverUrl) : null}
-                        alt={`Portada de ${p.title} por ${p.artistName}`}
-                        priority={big}
-                        sizes={big ? "(max-width: 1024px) 100vw, 60vw" : "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 30vw"}
-                        fallbackSeed={p.artistName}
-                        fallbackLabel={p.artistName}
-                        title={p.title}
-                        overlayTitleSize={big ? "display-md" : "display-sm"}
-                        description={loc ? `${p.artistName} · ${loc}` : p.artistName}
-                        meta={
-                          <>
-                            <Badge tone="neutral" variant="outline" className="border-white/25 text-text-1">
-                              {p.year}
-                            </Badge>
-                            {p.genre ? (
-                              <Badge variant="outline" style={{ color: color.fg, borderColor: color.border }}>
-                                {p.genre}
-                              </Badge>
-                            ) : null}
-                          </>
-                        }
-                        action={
-                          p.spotifyUrl || p.youtubeUrl ? (
-                            <span className="flex gap-2">
-                              {p.spotifyUrl ? (
-                                <IconButton asChild variant="outline" className={productionIconBtn} aria-label={`Escuchar ${p.title} en Spotify`}>
-                                  <a href={p.spotifyUrl} target="_blank" rel="noopener noreferrer">
-                                    <SpotifyIcon className="h-5 w-5" />
-                                  </a>
-                                </IconButton>
-                              ) : null}
-                              {p.youtubeUrl ? (
-                                <IconButton asChild variant="outline" className={productionIconBtn} aria-label={`Ver ${p.title} en YouTube`}>
-                                  <a href={p.youtubeUrl} target="_blank" rel="noopener noreferrer">
-                                    <Youtube />
-                                  </a>
-                                </IconButton>
-                              ) : null}
-                            </span>
-                          ) : null
-                        }
-                        className="h-full"
-                        mediaClassName={big ? "lg:aspect-auto lg:min-h-[480px]" : undefined}
-                      />
-                    </HomeStaggerItem>
-                  );
-                })}
-              </BentoGrid>
-            </HomeStagger>
-          ) : (
-            <Text tone="3" className="rounded-lg border border-dashed border-line-2 px-6 py-12 text-center">
-              Pronto verás aquí las producciones destacadas.
-            </Text>
-          )}
-          <div className="mt-10 text-center md:hidden">{portfolioAction}</div>
-        </div>
-      </HomeFadeSection>
-
-      {/* 6. Novedades */}
-      <HomeNewsSection className="bg-ink-1" />
+      {/* 5. Lo último: una sola sección (feed social y/o producciones destacadas, según el CMS) */}
+      <HomeLatestSection latest={latestCfg} posts={feed} productions={featured} className="bg-ink-1" />
 
       {/* 7. Canales (organismo del catálogo, tal cual) */}
       {showYoutube ? <HomeChannelsSection youtube={site.youtube} className="border-t border-line-1" /> : null}
 
       {/* 8. Merch */}
-      {showShop ? <HomeShopSection shop={site.shop} products={featuredProducts} /> : null}
+      {showShop ? (
+        <HomeShopSection shop={site.shop} merch={site.home.merch} products={merch.items} total={merch.total} ivaIncluded={site.legal?.ivaIncluded ?? true} />
+      ) : null}
 
       {/* 9. Servicios: cabecera a la izquierda + FeatureRow ×6 */}
       <HomeFadeSection className="py-section" aria-labelledby="services-title">
@@ -380,6 +341,20 @@ export default async function HomePage() {
           <HomeServicesSection services={site.booking.services} ctaHref={site.nav.ctaHref} />
         </div>
       </HomeFadeSection>
+
+      {/* 9b. Testimonios (oculto si no hay) */}
+      <HomeTestimonialsSection testimonials={site.home.testimonials} className="border-t border-line-1" />
+
+      {/* 9c. Cotización rápida (leads) */}
+      {site.home.lead.enabled ? (
+        <HomeLeadSection
+          lead={site.home.lead}
+          services={site.booking.services.map((s) => s.title).filter((t) => t?.trim())}
+          businessName={businessName}
+          policyVersion={policyVersion}
+          whatsapp={site.contact.whatsapp}
+        />
+      ) : null}
 
       {/* 10. Contacto: banda fire */}
       <CtaBand

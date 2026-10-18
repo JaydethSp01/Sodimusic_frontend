@@ -1,4 +1,4 @@
-import type { SiteContent } from "@/types/site-content";
+import type { SiteContent, SiteHomeLatestSource, SiteTestimonial } from "@/types/site-content";
 
 export const SITE_CONTENT_DEFAULTS: SiteContent = {
   brand: {
@@ -63,6 +63,38 @@ export const SITE_CONTENT_DEFAULTS: SiteContent = {
       { value: 5, suffix: "", label: "géneros" },
       { value: 3, suffix: "", label: "ciudades" },
     ],
+    latest: {
+      eyebrow: "Lo último",
+      title: "Lo último del sello",
+      subtitle: "Videos, lanzamientos y publicaciones recientes de Sodimusic y sus aliados.",
+      source: "feed",
+      limit: 5,
+      ctaLabel: "Ver todas las producciones",
+      ctaHref: "/productions",
+      secondaryCtaLabel: "Ver novedades",
+      secondaryCtaHref: "/novedades",
+    },
+    merch: {
+      title: "Merch oficial",
+      subtitle: "Lleva el sello puesto. Productos seleccionados de la tienda.",
+      ctaLabel: "Ver la tienda",
+      limit: 4,
+      onlyFeatured: false,
+    },
+    lead: {
+      enabled: true,
+      eyebrow: "Cotiza en 1 minuto",
+      title: "¿Grabamos tu próximo tema?",
+      subtitle: "Cuéntanos qué necesitas y te respondemos por WhatsApp con precio y fechas.",
+      bullets: ["Respuesta en menos de 24 h", "Anticipo del 30 % y el resto al entregar", "Estudio en María La Baja y Medellín"],
+      ctaLabel: "Quiero una cotización",
+      whatsappLabel: "Hablar por WhatsApp",
+      successMessage: "¡Listo! Te escribimos en menos de 24 horas.",
+    },
+    testimonials: {
+      title: "Lo que dicen de Sodimusic",
+      items: [],
+    },
   },
   footer: {
     tagline: "Champeta en el ADN, Caribe en cada beat. Desde María La Baja para el mundo.",
@@ -294,3 +326,55 @@ export const SITE_CONTENT_DEFAULTS: SiteContent = {
     pressKitUrl: "",
   },
 };
+
+const LATEST_SOURCES: SiteHomeLatestSource[] = ["feed", "productions", "both"];
+
+function clampInt(v: unknown, min: number, max: number, fallback: number): number {
+  const n = typeof v === "number" ? Math.trunc(v) : Number.NaN;
+  return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
+}
+
+function stringList(v: unknown): string[] | null {
+  return Array.isArray(v) ? v.filter((b): b is string => typeof b === "string" && b.trim().length > 0) : null;
+}
+
+function testimonialList(v: unknown): SiteTestimonial[] {
+  if (!Array.isArray(v)) return [];
+  return v
+    .filter((t): t is SiteTestimonial => !!t && typeof t === "object" && typeof (t as SiteTestimonial).quote === "string")
+    .map((t) => ({
+      quote: t.quote,
+      author: typeof t.author === "string" ? t.author : "",
+      ...(typeof t.role === "string" && t.role ? { role: t.role } : {}),
+      ...(typeof t.avatarUrl === "string" && t.avatarUrl ? { avatarUrl: t.avatarUrl } : {}),
+    }))
+    .filter((t) => t.quote.trim().length > 0);
+}
+
+/**
+ * Rellena `home.latest / merch / lead / testimonials` con los defaults: los configs ya publicados (y un
+ * backend sin estas claves) no los traen. El resto del contenido se devuelve tal cual.
+ */
+export function withHomeDefaults(content: SiteContent): SiteContent {
+  const d = SITE_CONTENT_DEFAULTS.home;
+  const home = (content.home ?? {}) as Partial<SiteContent["home"]>;
+  const latest = { ...d.latest, ...(home.latest ?? {}) };
+  const merch = { ...d.merch, ...(home.merch ?? {}) };
+  const lead = { ...d.lead, ...(home.lead ?? {}) };
+  const testimonials = { ...d.testimonials, ...(home.testimonials ?? {}) };
+  return {
+    ...content,
+    home: {
+      ...d,
+      ...home,
+      latest: {
+        ...latest,
+        source: LATEST_SOURCES.includes(latest.source) ? latest.source : d.latest.source,
+        limit: clampInt(latest.limit, 1, 12, d.latest.limit),
+      },
+      merch: { ...merch, limit: clampInt(merch.limit, 1, 12, d.merch.limit), onlyFeatured: merch.onlyFeatured === true },
+      lead: { ...lead, enabled: lead.enabled !== false, bullets: stringList(lead.bullets) ?? d.lead.bullets },
+      testimonials: { ...testimonials, items: testimonialList(testimonials.items) },
+    },
+  };
+}

@@ -28,7 +28,7 @@ export function PlaceholderCover({ seed, label, className }: PlaceholderCoverPro
       }}
       aria-hidden
     >
-      <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_80%_100%,rgba(255,107,0,0.22),transparent)]" />
+      <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_80%_100%,rgba(217,166,42,0.22),transparent)]" />
       <span
         className="relative font-display font-extrabold uppercase leading-none text-text-1/80 [font-stretch:125%]"
         style={{ fontSize: "clamp(18px, 34cqw, 112px)" }}

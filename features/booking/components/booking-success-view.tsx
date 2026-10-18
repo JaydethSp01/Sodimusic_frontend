@@ -36,7 +36,7 @@ export function BookingSuccessView({
         particleCount: 55,
         spread: 70,
         origin: { y: 0.55 },
-        colors: ["#ff6b00", "#d4a017", "#f3efe8"],
+        colors: ["#d9a62a", "#d4a017", "#f3efe8"],
         ticks: 120,
       });
     });
@@ -48,7 +48,7 @@ export function BookingSuccessView({
   return (
     <section className="relative isolate overflow-hidden bg-ink-1 py-section" aria-labelledby="booking-success-title">
       <div
-        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(255,107,0,0.16),transparent)]"
+        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(217,166,42,0.16),transparent)]"
         aria-hidden
       />
       <div className="container-page flex flex-col items-center text-center">

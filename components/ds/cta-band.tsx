@@ -25,7 +25,7 @@ export function CtaBand({ title, accent, lead, actions, aside, tone = "fire", id
       className={cn(
         "relative isolate overflow-hidden py-16 lg:py-24",
         fire
-          ? "bg-[linear-gradient(120deg,#d95a00_0%,#ff6b00_55%,#ff8c33_100%)] text-fire-on"
+          ? "bg-[linear-gradient(120deg,#b3861b_0%,#d9a62a_55%,#e6b83a_100%)] text-fire-on"
           : "border-t border-fire-500/40 bg-ink-1 text-text-1",
         className,
       )}
@@ -33,7 +33,7 @@ export function CtaBand({ title, accent, lead, actions, aside, tone = "fire", id
       {fire ? (
         <div className="grain pointer-events-none absolute inset-0 opacity-70" aria-hidden />
       ) : (
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_60%_at_50%_100%,rgba(255,107,0,0.14),transparent)]" aria-hidden />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_60%_at_50%_100%,rgba(217,166,42,0.14),transparent)]" aria-hidden />
       )}
       <div className="container-page relative z-10 grid gap-10 lg:grid-cols-12 lg:items-center">
         <div className="min-w-0 lg:col-span-7">

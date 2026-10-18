@@ -16,7 +16,7 @@ type QrSize = (typeof SIZES)[number];
 
 const PRESETS: { id: string; label: string; fg: string; bg: string }[] = [
   { id: "classic", label: "Negro sobre blanco", fg: "#000000", bg: "#ffffff" },
-  { id: "sodimusic", label: "Naranja Sodimusic", fg: "#ff6b00", bg: "#080808" },
+  { id: "sodimusic", label: "Dorado Sodimusic", fg: "#d9a62a", bg: "#080808" },
 ];
 
 const nativeSelectClass =

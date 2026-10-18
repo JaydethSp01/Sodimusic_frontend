@@ -23,6 +23,7 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
     {
       label: "Contenido",
       links: [
+        { href: "/admin/dashboard/artistas", label: "Artistas", icon: "artists" },
         { href: "/admin/dashboard/productions", label: "Producciones", icon: "productions" },
         { href: "/admin/dashboard/releases", label: "Releases", icon: "releases" },
         { href: "/admin/dashboard/beats", label: "Beats", icon: "beats" },

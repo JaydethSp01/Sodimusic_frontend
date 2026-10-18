@@ -13,6 +13,7 @@ import {
   LayoutGrid,
   Mail,
   Menu,
+  MicVocal,
   Music2,
   Newspaper,
   QrCode,
@@ -31,6 +32,7 @@ export type AdminNavIcon =
   | "home"
   | "globe"
   | "sessions"
+  | "artists"
   | "productions"
   | "beats"
   | "releases"
@@ -50,6 +52,7 @@ const NAV_ICONS: Record<AdminNavIcon, LucideIcon> = {
   home: LayoutDashboard,
   globe: Globe,
   sessions: Users,
+  artists: MicVocal,
   productions: LayoutGrid,
   beats: Music2,
   releases: Disc3,

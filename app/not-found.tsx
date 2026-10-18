@@ -32,7 +32,7 @@ export default async function NotFound() {
       <main id="contenido-principal" className="relative z-[2]">
         <section className="relative isolate overflow-hidden bg-ink-1 py-section" aria-labelledby="not-found-title">
           <div
-            className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_70%_50%_at_50%_0%,rgba(255,107,0,0.14),transparent)]"
+            className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_70%_50%_at_50%_0%,rgba(217,166,42,0.14),transparent)]"
             aria-hidden
           />
           <span

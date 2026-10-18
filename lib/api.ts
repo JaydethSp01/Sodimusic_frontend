@@ -16,6 +16,7 @@ export const publicTags = {
   releases: "releases",
   productions: "productions",
   social: "social",
+  artists: "artists",
 } as const;
 
 export type PublicTag = (typeof publicTags)[keyof typeof publicTags];
@@ -35,6 +36,7 @@ const RESOURCE_POLICIES: Array<{ prefix: string; policy: ResourceCachePolicy }> 
   { prefix: "/api/releases", policy: { tag: publicTags.releases, revalidate: PUBLIC_REVALIDATE_DEFAULT } },
   { prefix: "/api/productions", policy: { tag: publicTags.productions, revalidate: PUBLIC_REVALIDATE_DEFAULT } },
   { prefix: "/api/social", policy: { tag: publicTags.social, revalidate: PUBLIC_REVALIDATE_DEFAULT } },
+  { prefix: "/api/artists", policy: { tag: publicTags.artists, revalidate: PUBLIC_REVALIDATE_DEFAULT } },
 ];
 
 /** Política de caché inferida por la ruta (`/api/beats?x=1` → beats). */

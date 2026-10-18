@@ -8,13 +8,23 @@ import { Heading } from "@/components/ui/heading";
 import { MediaFrame } from "@/components/ds/media-frame";
 import { cn } from "@/lib/utils";
 
-/** Lanzamiento más reciente para la tarjeta «Lo último». `upcoming` = fecha de salida en el futuro. */
+/**
+ * Elemento de la tarjeta «Lo último». Por defecto es un lanzamiento (`/releases/[slug]`; `upcoming` =
+ * fecha de salida en el futuro). Con `href` apunta a otro destino (p. ej. el post más reciente del feed
+ * social): `external` abre en pestaña nueva, `label` sustituye a «Nuevo» y `ctaLabel` a «Escuchar».
+ */
 export interface HeroLatest {
   title: string;
   artistName: string;
   slug: string;
   upcoming: boolean;
   coverUrl?: string | null;
+  href?: string;
+  external?: boolean;
+  label?: string;
+  ctaLabel?: string;
+  /** Imagen externa (miniaturas de YouTube/Facebook) sin pasar por el optimizador. */
+  unoptimized?: boolean;
 }
 
 export interface HeroCinematicProps {
@@ -56,8 +66,9 @@ export function HeroCinematic({
   children,
   className,
 }: HeroCinematicProps) {
-  const latestHref = latest?.slug ? `/releases/${latest.slug}` : "/releases";
-  const latestLabel = latest?.upcoming ? "Próximamente" : "Nuevo";
+  const latestHref = latest?.href ?? (latest?.slug ? `/releases/${latest.slug}` : "/releases");
+  const latestLabel = latest?.label ?? (latest?.upcoming ? "Próximamente" : "Nuevo");
+  const latestCta = latest?.ctaLabel ?? "Escuchar";
 
   return (
     <section aria-label={ariaLabel} className={cn("relative isolate flex min-h-[78svh] flex-col justify-end overflow-visible", className)}>
@@ -108,6 +119,8 @@ export function HeroCinematic({
             <div className="hero-enter min-w-0 lg:col-span-4 lg:justify-self-end" style={enter(16, 0.6)}>
               <Link
                 href={latestHref}
+                target={latest.external ? "_blank" : undefined}
+                rel={latest.external ? "noopener noreferrer" : undefined}
                 data-testid="hero-latest"
                 className="group relative flex min-h-11 items-center gap-4 rounded-lg border border-line-2 bg-ink-2/90 p-3 pr-5 shadow-card backdrop-blur-md transition-colors duration-150 hover:border-fire-500/60 lg:w-[22rem] lg:translate-y-1/2"
               >
@@ -120,6 +133,7 @@ export function HeroCinematic({
                   rounded="md"
                   fallbackSeed={latest.artistName || latest.title}
                   fallbackLabel=""
+                  unoptimized={latest.unoptimized}
                   sizes="96px"
                   className="h-20 w-20 shrink-0 lg:h-24 lg:w-24"
                   center={
@@ -136,7 +150,7 @@ export function HeroCinematic({
                   <span className="mt-1 block truncate text-title text-text-1">{latest.title}</span>
                   <span className="mt-0.5 block truncate text-body-sm text-text-2">{latest.artistName}</span>
                   <span className="mt-2 inline-flex items-center gap-1 text-label text-text-3 transition-colors duration-150 group-hover:text-fire-300">
-                    Escuchar
+                    {latestCta}
                     <ArrowRight className="h-3.5 w-3.5 transition-transform duration-150 group-hover:translate-x-1" aria-hidden />
                   </span>
                 </span>

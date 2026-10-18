@@ -94,3 +94,23 @@ test.describe("Admin · Sitio web (borrador, vista previa y publicación)", () =
     await anon.close();
   });
 });
+
+test.describe("Admin · Sitio web (tarjeta «Inicio · Lo último, merch, leads y testimonios»)", () => {
+  test("la tarjeta expone fuente, límites, leads y testimonios con los valores del borrador (sin guardar)", async ({ page, adminApi }) => {
+    const cfg = await adminApi.get<{ draft: { home: { latest?: { source?: string; title?: string }; lead?: { title?: string } } } }>(
+      "/api/admin/site-config",
+    );
+    await page.goto("/admin/dashboard/site");
+    await page.getByRole("navigation", { name: "Secciones del editor" }).getByRole("link", { name: /inicio · lo último/i }).click();
+    const card = page.locator("#site-section-home-latest");
+    await expect(card.getByRole("heading", { name: /inicio · lo último, merch, leads y testimonios/i })).toBeVisible();
+    // Los configs antiguos no traen estas claves: el editor rellena con los defaults.
+    await expect(card.getByLabel(/lo último — fuente/i)).toHaveValue(cfg.draft.home.latest?.source ?? "feed");
+    await expect(card.getByLabel(/lo último — título/i)).toHaveValue(cfg.draft.home.latest?.title ?? "Lo último del sello");
+    await expect(card.getByLabel(/merch — productos a mostrar/i)).toHaveValue(/^\d+$/);
+    await expect(card.getByLabel(/leads — título/i)).toHaveValue(cfg.draft.home.lead?.title ?? "¿Grabamos tu próximo tema?");
+    await expect(card.getByRole("checkbox", { name: /mostrar el formulario de cotización/i })).toBeVisible();
+    await expect(card.getByRole("button", { name: /añadir beneficio/i })).toBeVisible();
+    await expect(card.getByRole("button", { name: /añadir testimonio/i })).toBeVisible();
+  });
+});

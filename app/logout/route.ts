@@ -14,7 +14,10 @@ export async function POST(request: Request): Promise<Response> {
   for (const part of raw.split(";")) {
     const name = part.split("=")[0]?.trim();
     if (name && AUTH_COOKIE.test(name)) {
-      res.cookies.set({ name, value: "", path: "/", maxAge: 0, expires: new Date(0) });
+      // Las cookies con prefijo __Secure-/__Host- (producción, https) solo se borran si la cookie
+      // de expiración lleva también `Secure`; sin él el navegador la ignora y la sesión sigue viva.
+      const secure = name.startsWith("__Secure-") || name.startsWith("__Host-") || new URL(request.url).protocol === "https:";
+      res.cookies.set({ name, value: "", path: "/", maxAge: 0, expires: new Date(0), secure, httpOnly: true, sameSite: "lax" });
     }
   }
   res.headers.set("Cache-Control", "no-store");

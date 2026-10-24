@@ -54,6 +54,8 @@ export const metadata: Metadata = {
     default: "Sodimusic Company — Sello Urbano Afro-Caribeño | Colombia",
     template: "%s | Sodimusic Company",
   },
+  openGraph: { locale: "es_CO", siteName: "Sodimusic", type: "website" },
+  other: { "geo.region": "CO-BOL", "geo.placename": "María La Baja, Bolívar, Colombia", "geo.position": "9.9817;-75.3008", ICBM: "9.9817, -75.3008" },
   // Código de verificación de Google Search Console (método «Etiqueta HTML»): variable de entorno en Vercel.
   verification: process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : undefined,
   description:

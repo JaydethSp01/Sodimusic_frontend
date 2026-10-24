@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Script from "next/script";
+import { JsonLd } from "@/components/seo/json-ld";
 import { notFound } from "next/navigation";
 import { ArrowLeft, MapPin } from "lucide-react";
 import { BentoGrid } from "@/components/ds/bento-grid";
@@ -90,9 +90,7 @@ export default async function ArtistDetailPage({ params }: Props) {
 
   return (
     <article className="pb-16 lg:pb-24">
-      <Script id={`ld-artist-${artist.id}`} type="application/ld+json">
-        {JSON.stringify(jsonLd)}
-      </Script>
+      <JsonLd data={jsonLd} />
 
       {/* Hero */}
       <header className="relative isolate overflow-hidden bg-ink-1 pb-12 pt-20 lg:pb-16 lg:pt-24" aria-labelledby="artist-title">

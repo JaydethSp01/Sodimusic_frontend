@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import Script from "next/script";
+import { JsonLd } from "@/components/seo/json-ld";
+import { isRealProfileUrl, ORG_ID } from "@/lib/seo/structured-data";
 import Link from "next/link";
 import { Facebook, Instagram, Youtube } from "lucide-react";
 import { CtaBand } from "@/components/ds/cta-band";
@@ -212,14 +213,13 @@ export default async function HomePage() {
     },
     genre: HOME_GENRES.map((g) => g.name),
     url: (process.env.NEXT_PUBLIC_SITE_URL ?? "https://sodimusic.com").replace(/\/$/, ""),
-    sameAs: [site.social.facebook, site.social.youtube, site.social.instagram, site.social.tiktok].filter(Boolean),
+    sameAs: [site.social.facebook, site.social.youtube, site.social.instagram, site.social.tiktok, site.social.spotify].filter(isRealProfileUrl),
+    memberOf: { "@id": ORG_ID },
   };
 
   return (
     <>
-      <Script id="ld-music-group" type="application/ld+json">
-        {JSON.stringify(jsonLd)}
-      </Script>
+      <JsonLd data={jsonLd} />
 
       {/* 1. Hero */}
       <HeroCinematic

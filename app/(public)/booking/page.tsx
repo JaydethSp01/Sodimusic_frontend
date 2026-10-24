@@ -1,3 +1,5 @@
+import { JsonLd } from "@/components/seo/json-ld";
+import { breadcrumbSchema, servicesSchema } from "@/lib/seo/structured-data";
 import type { Metadata } from "next";
 import { CalendarClock, Percent } from "lucide-react";
 import { HeroPage } from "@/components/ds/hero-page";
@@ -10,8 +12,10 @@ import { getSiteContent } from "@/lib/site-config-server";
 export async function generateMetadata(): Promise<Metadata> {
   const site = await getSiteContent();
   return {
-    title: "Agenda tu sesión",
-    description: site.booking.heroDescription,
+    title: "Agendar sesión de estudio",
+    description:
+      "Agenda tu sesión en el estudio Sodimusic (María La Baja, Bolívar, Colombia): grabación vocal, beats a medida, coproducción, mezcla, masterización y video. Reserva en cinco pasos.",
+    alternates: { canonical: "/booking" },
   };
 }
 
@@ -26,6 +30,7 @@ export default async function BookingPage() {
   };
   return (
     <div>
+      <JsonLd data={[servicesSchema(site), breadcrumbSchema([{ name: "Agendar sesión", path: "/booking" }])]} />
       <HeroPage
         eyebrow="Estudio"
         title={site.booking.heroTitle}

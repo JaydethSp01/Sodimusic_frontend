@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Script from "next/script";
+import { JsonLd } from "@/components/seo/json-ld";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Truck } from "lucide-react";
 import { SectionHeader } from "@/components/ds/section-header";
@@ -106,9 +106,7 @@ export default async function ProductPage({ params }: Props) {
 
   return (
     <article className="container-page py-8 lg:py-12">
-      <Script id={`ld-product-${product.id}`} type="application/ld+json">
-        {JSON.stringify(jsonLd)}
-      </Script>
+      <JsonLd data={jsonLd} />
       <Button asChild variant="ghost" size="sm" className="-ml-4 text-label text-text-2 hover:text-fire-300">
         <Link href="/tienda">
           <ArrowLeft aria-hidden />

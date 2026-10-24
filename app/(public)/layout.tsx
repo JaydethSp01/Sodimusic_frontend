@@ -6,6 +6,8 @@ import { getSiteContent } from "@/lib/site-config-server";
 import { CartDrawerLazy } from "@/features/shop/components/cart-drawer-lazy";
 import { FloatingWhatsapp } from "@/components/shared/floating-whatsapp";
 import { RevealNoScriptFallback } from "@/components/shared/reveal-item";
+import { JsonLd } from "@/components/seo/json-ld";
+import { organizationSchema, websiteSchema } from "@/lib/seo/structured-data";
 import { BeatPlayerBarLazy } from "@/features/beats/components/beat-player-bar-lazy";
 
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
@@ -13,6 +15,7 @@ export default async function PublicLayout({ children }: { children: React.React
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
   return (
     <>
+      <JsonLd data={[organizationSchema(site), websiteSchema()]} />
       <RevealNoScriptFallback />
       <PageViewTracker />
       <Navbar site={site} />
